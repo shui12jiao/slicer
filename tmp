@@ -1,0 +1,99 @@
+# 如果觉得好用，请收藏或则分享本站
+_id:
+  $oid: 67c7d274c107b60012f4043d
+ambr:
+  downlink:
+    value: 1
+    unit: 3
+  uplink:
+    value: 1
+    unit: 3
+schema_version: 1
+msisdn: []
+imeisv: []
+mme_host: []
+mme_realm: []
+purge_flag: []
+access_restriction_data: 32
+subscriber_status: 0
+operator_determined_barring: 0
+network_access_mode: 0
+subscribed_rau_tau_timer: 12
+imsi: "10000"
+security:
+  k: 465B5CE8 B199B49F AA5F0A2E E238A6BC
+  amf: "8000"
+  op: null
+  opc: E8ED289D EBA952E4 283B54E8 8E6183CA
+slice:
+  - _id:
+      $oid: 67c7d274c107b60012f4043e
+    sst: 1
+    default_indicator: true
+    session:
+      - qos:
+          arp:
+            priority_level: 8
+            pre_emption_capability: 1
+            pre_emption_vulnerability: 1
+          index: 9
+        ambr:
+          downlink:
+            value: 1
+            unit: 3
+          uplink:
+            value: 1
+            unit: 3
+        _id:
+          $oid: 67c7d274c107b60012f4043f
+        name: internet
+        type: 3
+        pcc_rule: []
+    sd: "111111"
+  - _id:
+      $oid: 67c7d274c107b60012f40440
+    sst: 4
+    sd: "222222"
+    session:
+      - qos:
+          arp:
+            priority_level: 1
+            pre_emption_capability: 1
+            pre_emption_vulnerability: 1
+          index: 5
+        ambr:
+          downlink:
+            value: 1
+            unit: 3
+          uplink:
+            value: 1
+            unit: 3
+        _id:
+          $oid: 67c7d274c107b60012f40441
+        name: test
+        type: 3
+        pcc_rule:
+          - qos:
+              arp:
+                priority_level: 2
+                pre_emption_capability: 2
+                pre_emption_vulnerability: 2
+              mbr:
+                downlink:
+                  value: 1
+                  unit: 1
+                uplink:
+                  value: 1
+                  unit: 1
+              gbr:
+                downlink:
+                  value: 1
+                  unit: 1
+                uplink:
+                  value: 1
+                  unit: 1
+              index: 1
+            _id:
+              $oid: 67c7d274c107b60012f40442
+            flow: []
+__v: 0
