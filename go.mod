@@ -3,7 +3,9 @@ module slicer
 go 1.24.0
 
 require (
+	github.com/minio/minio-go/v7 v7.0.87
 	gopkg.in/yaml.v2 v2.4.0
+	k8s.io/api v0.32.2
 	k8s.io/apimachinery v0.32.2
 	k8s.io/client-go v0.32.2
 )
@@ -32,7 +34,6 @@ require (
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/minio/crc64nvme v1.0.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.87 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -51,7 +52,6 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.32.2 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250304201544-e5f78fe3ede9 // indirect
 	k8s.io/utils v0.0.0-20241210054802-24370beab758 // indirect

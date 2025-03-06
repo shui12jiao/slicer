@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"gopkg.in/yaml.v2"
 )
@@ -57,18 +58,22 @@ type ARP struct {
 type GBR = AMBR
 type MBR = AMBR
 
-func (s *Slice) toYAML() ([]byte, error) {
+func (s *Slice) ToYAML() ([]byte, error) {
 	return yaml.Marshal(s)
 }
 
-func (s *Slice) fromYAML(data []byte) error {
+func (s *Slice) FromYAML(data []byte) error {
 	return yaml.Unmarshal(data, s)
 }
 
-func (s *Slice) toJSON() ([]byte, error) {
+func (s *Slice) ToJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
-func (s *Slice) fromJSON(data []byte) error {
+func (s *Slice) FromJSON(data []byte) error {
 	return json.Unmarshal(data, s)
+}
+
+func (s *Slice) ID() string {
+	return fmt.Sprintf("%d-%s.json", s.SST, s.SD)
 }

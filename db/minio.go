@@ -155,21 +155,21 @@ func (m *MinioOSS) DownloadFile(bucketName, objectName, filePath string) error {
 	return err
 }
 
-func (m *MinioOSS) Upload(bucketName, objectName string, reader *io.Reader) error {
-	_, err := m.client.PutObject(context.Background(), bucketName, objectName, *reader, -1, minio.PutObjectOptions{})
+func (m *MinioOSS) Upload(bucketName, objectName string, reader io.Reader) error {
+	_, err := m.client.PutObject(context.Background(), bucketName, objectName, reader, -1, minio.PutObjectOptions{})
 	if err != nil {
 		log.Printf("Failed to upload object: %v", err)
 	}
 	return err
 }
 
-func (m *MinioOSS) Download(bucketName, objectName string, writer *io.Writer) error {
+func (m *MinioOSS) Download(bucketName, objectName string, writer io.Writer) error {
 	object, err := m.client.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		log.Printf("Failed to get object: %v", err)
 		return err
 	}
-	_, err = io.Copy(*writer, object)
+	_, err = io.Copy(writer, object)
 	if err != nil {
 		log.Printf("Failed to copy object to writer: %v", err)
 	}

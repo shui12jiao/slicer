@@ -7,15 +7,16 @@ type OSS interface {
 	DownloadFile(bucketName string, objectName string, filePath string) error
 	UpdateFolder(bucketName string, objectName string, folderPath string) error
 	DownloadFolder(bucketName string, objectName string, folderPath string) error
-	Upload(bucketName string, objectName string, reader *io.Reader) error
-	Download(bucketName string, objectName string, writer *io.Writer) error
+	Upload(bucketName string, objectName string, reader io.Reader) error
+	Download(bucketName string, objectName string, writer io.Writer) error
 	Delete(bucketName string, objectName string) error
 }
 
 type Store struct {
-	oss OSS
+	OSS
 }
 
 func NewStore(oss OSS) *Store {
-	return &Store{oss: oss}
+	return &Store{
+		OSS: oss}
 }
