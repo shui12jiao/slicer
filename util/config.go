@@ -1,9 +1,13 @@
 package util
 
 type Config struct {
-	Namespace string
+	// for mongodb
+	MongoURI     string
+	MongoDBName  string
+	MongoTimeout uint8 // 单位秒
 
 	// for kubernetes client
+	Namespace      string
 	KubeconfigPath string
 
 	// for http server
@@ -13,5 +17,11 @@ type Config struct {
 
 	// for render
 	TemplatePath string
-	KubePath     string
+
+	// for ipam
+	N3Network           string
+	N4Network           string
+	SessionNetwork      string
+	SessionSubnetLength uint8
+	IPAMTimeout         uint8 // 单位秒
 }

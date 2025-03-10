@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -88,7 +87,7 @@ func (m *MinioOSS) DownloadFolder(bucketName string, objectName string, folderPa
 	defer obj.Close()
 
 	// 读取压缩包内容
-	zipData, err := ioutil.ReadAll(obj)
+	zipData, err := io.ReadAll(obj)
 	if err != nil {
 		return err
 	}

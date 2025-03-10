@@ -16,7 +16,7 @@ type SessionValues = []SessionValue
 
 type SmfConfigmapValue struct {
 	SliceValue
-	UPFAddr string
+	UPFN4Addr string
 	SessionValues
 }
 

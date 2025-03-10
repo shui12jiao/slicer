@@ -1,6 +1,8 @@
 package render
 
 import (
+	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,63 +24,59 @@ func NewRender(config util.Config) *Render {
 
 }
 
-func (r *Render) SliceToKube(slice model.Slice) (dirPath string, err error) {
+func (r *Render) SliceToKube(slice model.SliceAndAddress) (contents [][]byte, err error) {
 	_, _, smfcv, smfdv, smfsv, upfcv, upfdv := sliceToValue(slice)
 
 	//从value中生成kubernetes配置文件
-	dirPath = filepath.Join(r.config.KubePath, slice.ID())
-	if err = os.MkdirAll(dirPath, 0755); err != nil {
-		log.Printf("创建目录失败: %v", err)
-		return
-	}
 
 	// 定义各资源对应的模板和输出文件
 	resources := []struct {
 		templateFile string
-		outputFile   string
-		data         interface{}
+		// outputFile   string
+		data interface{}
 	}{
-		{"smf-configmap.yaml.tpl", "smf-configmap.yaml", smfcv},
-		{"smf-deployment.yaml.tpl", "smf-deployment.yaml", smfdv},
-		{"smf-service.yaml.tpl", "smf-service.yaml", smfsv},
-		{"upf-configmap.yaml.tpl", "upf-configmap.yaml", upfcv},
-		{"upf-deployment.yaml.tpl", "upf-deployment.yaml", upfdv},
+		// {"smf-configmap.yaml.tpl", "smf-configmap.yaml", smfcv},
+		// {"smf-deployment.yaml.tpl", "smf-deployment.yaml", smfdv},
+		// {"smf-service.yaml.tpl", "smf-service.yaml", smfsv},
+		// {"upf-configmap.yaml.tpl", "upf-configmap.yaml", upfcv},
+		// {"upf-deployment.yaml.tpl", "upf-deployment.yaml", upfdv},
+		{"smf-configmap.yaml.tpl", smfcv},
+		{"smf-deployment.yaml.tpl", smfdv},
+		{"smf-service.yaml.tpl", smfsv},
+		{"upf-configmap.yaml.tpl", upfcv},
+		{"upf-deployment.yaml.tpl", upfdv},
 	}
 
 	for _, res := range resources {
 		// 构造模板文件路径
 		tplPath := filepath.Join(r.config.TemplatePath, res.templateFile)
+
 		// 读取模板内容
 		tplContent, err := os.ReadFile(tplPath)
 		if err != nil {
 			log.Printf("读取模板文件 %s 失败: %v", tplPath, err)
 			break
 		}
+
 		// 解析模板
-		tmpl, err := template.New(res.outputFile).Parse(string(tplContent))
+		tmpl, err := template.New(res.templateFile).Parse(string(tplContent))
 		if err != nil {
-			log.Printf("解析模板 %s 失败: %v", res.templateFile, err)
-			break
+			return nil, fmt.Errorf("解析模板失败[%s]: %w", res.templateFile, err)
 		}
-		// 创建输出文件
-		outputPath := filepath.Join(r.config.KubePath, res.outputFile)
-		f, err := os.Create(outputPath)
-		if err != nil {
-			log.Printf("创建输出文件 %s 失败: %v", outputPath, err)
-			break
+
+		// 渲染到内存缓冲区
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, res.data); err != nil {
+			return nil, fmt.Errorf("渲染失败[%s]: %w", res.templateFile, err)
 		}
-		defer f.Close()
-		// 渲染模板
-		if err = tmpl.Execute(f, res.data); err != nil {
-			log.Printf("渲染模板 %s 失败: %v", res.templateFile, err)
-			break
-		}
+
+		contents = append(contents, buf.Bytes())
 	}
 
 	return
 }
 
-func sliceToValue(slice model.Slice) (
+func sliceToValue(ws model.SliceAndAddress) (
 	sv SliceValue,
 	sevs SessionValues,
 	smfcv SmfConfigmapValue,
@@ -87,26 +85,31 @@ func sliceToValue(slice model.Slice) (
 	upfcv UpfConfigmapValue,
 	upfdv UpfDeploymentValue,
 ) {
-	sv.ID = slice.ID()
-	sv.SST = strconv.Itoa(slice.SST)
-	sv.SD = slice.SD
+	sv.ID = ws.ID()
+	sv.SST = strconv.Itoa(ws.SST)
+	sv.SD = ws.SD
 
-	for _, session := range slice.Sessions {
+	if len(ws.Sessions) != len(ws.SessionSubnets) {
+		log.Printf("会话数和会话子网数不一致")
+		return
+	}
+
+	for idx, session := range ws.Sessions {
 		sev := SessionValue{
-			DNN: session.Name,
-			// SessionSubnet: , //TODO 从ipam中获取
-			// Dev:           ,           //TODO
+			DNN:           session.Name,
+			SessionSubnet: ws.SessionSubnets[idx],
+			Dev:           "ogstun" + strconv.Itoa(idx),
 		}
 		sevs = append(sevs, sev)
 	}
 
 	smfcv.SliceValue = sv
-	// smfcv.UPFAddr = , //TODO
+	smfcv.UPFN4Addr = ws.UPFN4Addr
 	smfcv.SessionValues = sevs
 
 	smfdv.SliceValue = sv
-	// smfdv.N4Addr = , //TODO
-	// smfdv.N3Addr = , //TODO
+	smfdv.N4Addr = ws.SMFN4Addr
+	smfdv.N3Addr = ws.SMFN3Addr
 
 	smfsv.SliceValue = sv
 
@@ -114,8 +117,8 @@ func sliceToValue(slice model.Slice) (
 	upfcv.SessionValues = sevs
 
 	upfdv.SliceValue = sv
-	// upfdv.N4Addr = , //TODO
-	// upfdv.N3Addr = , //TODO
+	upfdv.N4Addr = ws.UPFN4Addr
+	upfdv.N3Addr = ws.UPFN3Addr
 
 	return
 }

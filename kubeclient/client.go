@@ -188,6 +188,16 @@ func (kc *KubeClient) Delete(yamlData []byte, namespace string) error {
 	return nil
 }
 
+func (kc *KubeClient) ApplyMulti(yamlDatas [][]byte, namespace string) error {
+	// TODO
+	return nil
+}
+
+func (kc *KubeClient) DeleteMulti(yamlDatas [][]byte, namespace string) error {
+	// TODO
+	return nil
+}
+
 func (kc *KubeClient) ApplyDir(dirPath, namespace string) error {
 	files, err := readYAMLFiles(dirPath)
 	if err != nil {

@@ -15,6 +15,7 @@ type Server struct {
 	router     *http.ServeMux
 	render     render.Render
 	kubeclient kubeclient.KubeClient
+	ipam       db.IPAM
 }
 
 func NewServer(config util.Config, store db.Store, render render.Render, kubeclient kubeclient.KubeClient) *Server {

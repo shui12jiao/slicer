@@ -29,7 +29,7 @@ data:
           - dev: n4
         client:
           upf:
-            - address: {{.UPFAddr}}
+            - address: {{.UPFN4Addr}}
       gtpc:
         server:
           - dev: eth0
