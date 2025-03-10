@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: open5gs-smf1
+  name: open5gs-smf{{.ID}}
   labels:
     app: open5gs
     nf: smf
-    name: smf1
+    name: smf{{.ID}}
 spec:
   selector:
     matchLabels:
       app: open5gs
       nf: smf
-      name: smf1
+      name: smf{{.ID}}
   replicas: 1
   template:
     metadata:
       labels:
         app: open5gs
         nf: smf
-        name: smf1
+        name: smf{{.ID}}
       annotations:
         k8s.v1.cni.cncf.io/networks: '[
-          { "name": "n4network", "interface": "n4", "ips": [ "10.10.4.101/24" ] },
-          { "name": "n3network", "interface": "n3", "ips": [ "10.10.3.101/24" ] }
+          { "name": "n4network", "interface": "n4", "ips": [ "{{.N4Addr}}" ] },
+          { "name": "n3network", "interface": "n3", "ips": [ "{{.N3Addr}}" ] }
           ]'
     spec:
       # nodeSelector:
@@ -74,7 +74,7 @@ spec:
           projected:
             sources:
               - configMap:
-                  name: smf1-configmap
+                  name: smf{{.ID}}-configmap
                   items:
                     - key: smfcfg.yaml
                       path: smfcfg.yaml

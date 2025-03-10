@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: smf1-nsmf
+  name: smf{{.ID}}-nsmf
   labels:
     app: open5gs
     nf: smf
-    name: smf1
+    name: smf{{.ID}}
 spec:
   ports:
     - name: sbi
@@ -23,4 +23,4 @@ spec:
   selector:
     app: open5gs
     nf: smf
-    name: smf1
+    name: smf{{.ID}}

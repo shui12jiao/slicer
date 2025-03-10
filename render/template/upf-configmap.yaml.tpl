@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: upf1-configmap
+  name: upf{{.ID}}-configmap
   labels:
     app: open5gs
     nf: upf
-    name: upf1
+    name: upf{{.ID}}
 data:
   upfcfg.yaml: |
     logger:
@@ -24,8 +24,10 @@ data:
         server:
           - dev: n3
       session:
-        - subnet: 10.41.0.1/16
-          dnn: internet
+      {{- range .SessionValue }}
+        - subnet: {{.SessionSubnet}}
+          dnn: {{.DNN}}
+      {{- end }}
       metrics:
         server:
           - address: 0.0.0.0

@@ -13,10 +13,13 @@ type OSS interface {
 }
 
 type Store struct {
-	OSS
+	MongoDB
+	// OSS
 }
 
-func NewStore(oss OSS) *Store {
+func NewStore(mongodb MongoDB, oss OSS) *Store {
 	return &Store{
-		OSS: oss}
+		MongoDB: mongodb,
+		// OSS:     oss,
+	}
 }

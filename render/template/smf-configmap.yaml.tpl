@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: smf1-configmap
+  name: smf{{.ID}}-configmap
   labels:
     app: open5gs
     nf: smf
-    name: smf1
+    name: smf{{.ID}}
 data:
   smfcfg.yaml: |
     logger:
@@ -19,7 +19,7 @@ data:
       sbi:
         server:
           - dev: eth0
-            advertise: smf1-nsmf
+            advertise: smf{{.ID}}-nsmf
             port: 80
         client:
           scp:
@@ -29,8 +29,7 @@ data:
           - dev: n4
         client:
           upf:
-            - address: 10.10.4.1
-              dnn: internet
+            - address: {{.UPFAddr}}
       gtpc:
         server:
           - dev: eth0
@@ -42,7 +41,9 @@ data:
           - address: 0.0.0.0
             port: 9090
       session:
-        - subnet: 10.41.0.1/16
+      {{- range .SessionValue }}
+        - subnet: {{.SessionSubnet}}
+      {{- end }}
       dns:
         - 8.8.8.8
         - 8.8.4.4
@@ -53,7 +54,7 @@ data:
 
       info:
         - s_nssai:
-          - sst: 1
-            sd: 000001
+          - sst: {{.SST}}
+            sd: {{.SD}}
             dnn:
-             - internet
+             - {{.DNN}}
