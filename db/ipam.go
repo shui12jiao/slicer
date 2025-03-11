@@ -19,7 +19,7 @@ type IPAM struct {
 	ipam   ipam.Ipamer
 }
 
-func NewIPAM(config util.Config) *IPAM {
+func NewIPAM(config util.Config) (*IPAM, error) {
 	// 初始化父前缀
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -50,14 +50,15 @@ func NewIPAM(config util.Config) *IPAM {
 	for _, p := range prefixes {
 		_, err := ipamer.NewPrefix(ctx, p)
 		if err != nil {
-			panic(fmt.Sprintf("failed to initialize prefix %s: %v", p, err))
+			// panic(fmt.Sprintf("failed to initialize prefix %s: %v", p, err))
+			return nil, fmt.Errorf()
 		}
 	}
 
 	return &IPAM{
 		config: config,
 		ipam:   ipamer,
-	}
+	}, nil
 
 }
 

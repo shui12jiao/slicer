@@ -12,12 +12,10 @@ type OSS interface {
 	Delete(bucketName string, objectName string) error
 }
 
-type Store struct {
-	MongoDB
-}
+type Store = MongoDB
 
-func NewStore(mongodb MongoDB) *Store {
-	return &Store{
-		MongoDB: mongodb,
-	}
-}
+// func NewStore(mongodb MongoDB) *Store {
+// 	return &Store{
+// 		MongoDB: mongodb,
+// 	}
+// }
