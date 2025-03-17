@@ -10,9 +10,8 @@ import (
 )
 
 type Document struct {
-	ID   string      `bson:"_id"`
-	Data interface{} `bson:"data"`
-	Meta interface{} `bson:"meta"`
+	ID   string `bson:"_id"`
+	Data []byte `bson:"data"`
 }
 
 type MongoDB struct {
@@ -49,8 +48,36 @@ func NewMongoDB(uri, dbName string, timeout time.Duration, opts ...*options.Clie
 	}, nil
 }
 
+func (m *MongoDB) Set(place, key string, value []byte) error {
+	doc := &Document{
+		ID:   key,
+		Data: value,
+	}
+	return m.insert(place, doc)
+}
+
+func (m *MongoDB) Get(place, key string) ([]byte, error) {
+	doc, error := m.find(place, key)
+	if error != nil {
+		return nil, error
+	}
+	return doc.Data, nil
+}
+
+func (m *MongoDB) Delete(place, key string) error {
+	return m.delete(place, key)
+}
+
+func (m *MongoDB) Update(place, key string, value []byte) error {
+	doc := &Document{
+		ID:   key,
+		Data: value,
+	}
+	return m.update(place, doc)
+}
+
 // 存储数据
-func (m *MongoDB) Insert(collection string, doc *Document) error {
+func (m *MongoDB) insert(collection string, doc *Document) error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
@@ -58,25 +85,25 @@ func (m *MongoDB) Insert(collection string, doc *Document) error {
 	return err
 }
 
-// 查询单挑/多条数据
-func (m *MongoDB) FindAll(collection string, filter interface{}) ([]*Document, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-	defer cancel()
+// 查询单/多条数据
+// func (m *MongoDB) findAll(collection string, filter interface{}) ([]*Document, error) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+// 	defer cancel()
 
-	cursor, err := m.client.Database(m.database).Collection(collection).Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
+// 	cursor, err := m.client.Database(m.database).Collection(collection).Find(ctx, filter)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	var docs []*Document
-	if err = cursor.All(ctx, &docs); err != nil {
-		return nil, err
-	}
+// 	var docs []*Document
+// 	if err = cursor.All(ctx, &docs); err != nil {
+// 		return nil, err
+// 	}
 
-	return docs, nil
-}
+// 	return docs, nil
+// }
 
-func (m *MongoDB) Find(collection string, id string) (*Document, error) {
+func (m *MongoDB) find(collection string, id string) (*Document, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
@@ -85,15 +112,15 @@ func (m *MongoDB) Find(collection string, id string) (*Document, error) {
 	return doc, err
 }
 
-func (m *MongoDB) DeleteAll(collection string, filter interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-	defer cancel()
+// func (m *MongoDB) deleteAll(collection string, filter interface{}) error {
+// 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+// 	defer cancel()
 
-	_, err := m.client.Database(m.database).Collection(collection).DeleteOne(ctx, filter)
-	return err
-}
+// 	_, err := m.client.Database(m.database).Collection(collection).DeleteOne(ctx, filter)
+// 	return err
+// }
 
-func (m *MongoDB) Delete(collection string, id string) error {
+func (m *MongoDB) delete(collection string, id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
@@ -101,7 +128,7 @@ func (m *MongoDB) Delete(collection string, id string) error {
 	return err
 }
 
-func (m *MongoDB) Update(collection string, doc *Document) error {
+func (m *MongoDB) update(collection string, doc *Document) error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 

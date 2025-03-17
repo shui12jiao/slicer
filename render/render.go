@@ -54,8 +54,8 @@ func (r *Render) SliceToKube(slice model.SliceAndAddress) (contents [][]byte, er
 		// 读取模板内容
 		tplContent, err := os.ReadFile(tplPath)
 		if err != nil {
-			log.Printf("读取模板文件 %s 失败: %v", tplPath, err)
-			break
+			return nil, fmt.Errorf("读取模板文件 %s 失败: %v", tplPath, err)
+
 		}
 
 		// 解析模板
@@ -96,9 +96,9 @@ func sliceToValue(ws model.SliceAndAddress) (
 
 	for idx, session := range ws.Sessions {
 		sev := SessionValue{
-			DNN:           session.Name,
-			SessionSubnet: ws.SessionSubnets[idx],
-			Dev:           "ogstun" + strconv.Itoa(idx),
+			DNN:    session.Name,
+			Subnet: ws.SessionSubnets[idx],
+			Dev:    "ogstun" + strconv.Itoa(idx),
 		}
 		sevs = append(sevs, sev)
 	}

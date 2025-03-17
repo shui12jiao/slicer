@@ -31,9 +31,9 @@ import (
 
 // KubeClient 定义Kubernetes客户端结构
 type KubeClient struct {
-	clientset     *kubernetes.Clientset                   // 核心API客户端
-	dynamicClient dynamic.Interface                       // 动态资源客户端
-	restMapper    *restmapper.DeferredDiscoveryRESTMapper // 资源类型映射器
+	clientset     kubernetes.Interface // 核心API客户端
+	dynamicClient dynamic.Interface    // 动态资源客户端
+	restMapper    meta.RESTMapper      // 资源类型映射器
 }
 
 // NewKubeClient 创建Kubernetes客户端
@@ -125,13 +125,24 @@ func (kc *KubeClient) Apply(yamlData []byte, namespace string) error {
 		_, err = resourceClient.Create(context.TODO(), &rawObj, v1.CreateOptions{})
 		if err != nil {
 			if errors.IsAlreadyExists(err) {
+				// 更新资源
 				_, err = resourceClient.Update(context.TODO(), &rawObj, v1.UpdateOptions{})
 				if err != nil {
 					return fmt.Errorf("更新资源 %s/%s 失败: %v", gvk.Kind, rawObj.GetName(), err)
 				}
+
 			} else {
 				return fmt.Errorf("创建资源 %s/%s 失败: %v", gvk.Kind, rawObj.GetName(), err)
 			}
+		}
+	}
+	return nil
+}
+
+func (kc *KubeClient) ApplyMulti(yamlDatas [][]byte, namespace string) error {
+	for _, yamlData := range yamlDatas {
+		if err := kc.Apply(yamlData, namespace); err != nil {
+			return fmt.Errorf("应用 YAML 失败: %v", err)
 		}
 	}
 	return nil
@@ -188,13 +199,12 @@ func (kc *KubeClient) Delete(yamlData []byte, namespace string) error {
 	return nil
 }
 
-func (kc *KubeClient) ApplyMulti(yamlDatas [][]byte, namespace string) error {
-	// TODO
-	return nil
-}
-
 func (kc *KubeClient) DeleteMulti(yamlDatas [][]byte, namespace string) error {
-	// TODO
+	for _, yamlData := range yamlDatas {
+		if err := kc.Delete(yamlData, namespace); err != nil {
+			return fmt.Errorf("删除 YAML 失败: %v", err)
+		}
+	}
 	return nil
 }
 

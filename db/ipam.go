@@ -21,7 +21,7 @@ type IPAM struct {
 
 func NewIPAM(config util.Config) (*IPAM, error) {
 	// 初始化父前缀
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	// 创建一个新的MongoDB存储实例
@@ -34,7 +34,7 @@ func NewIPAM(config util.Config) (*IPAM, error) {
 
 	storage, err := ipam.NewMongo(ctx, mongoConfig)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("创建MongoDB存储实例失败: %v", err))
 	}
 
 	ipamer := ipam.NewWithStorage(storage)
@@ -42,16 +42,14 @@ func NewIPAM(config util.Config) (*IPAM, error) {
 	// 检查SessionSubnetLength是否合法
 	parentLength, err := strconv.Atoi(strings.Split(config.SessionNetwork, "/")[1])
 	if err != nil || int(config.SessionSubnetLength) < parentLength || config.SessionSubnetLength > 32 {
-		panic(fmt.Sprintf("invalid session subnet length: %d", config.SessionSubnetLength))
+		panic(fmt.Sprintf("会话子网长度不合法: %d", config.SessionSubnetLength))
 	}
 
 	// 初始化三个网络的前缀
-	prefixes := []string{config.N3Network, config.N4Network, config.SessionNetwork}
-	for _, p := range prefixes {
+	for _, p := range []string{config.N3Network, config.N4Network, config.SessionNetwork} {
 		_, err := ipamer.NewPrefix(ctx, p)
-		if err != nil {
-			// panic(fmt.Sprintf("failed to initialize prefix %s: %v", p, err))
-			return nil, fmt.Errorf()
+		if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("overlaps %s", p)) {
+			return nil, fmt.Errorf("初始化%s网络失败: %w", p, err)
 		}
 	}
 
@@ -63,24 +61,21 @@ func NewIPAM(config util.Config) (*IPAM, error) {
 }
 
 func (i *IPAM) AllocateN3Addr() (string, error) {
+	return i.allocateIP(i.config.N3Network)
+
+}
+func (i *IPAM) AllocateN4Addr() (string, error) {
+	return i.allocateIP(i.config.N4Network)
+}
+
+// 分配IP
+func (i *IPAM) allocateIP(network string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(i.config.IPAMTimeout)*time.Second)
 	defer cancel()
 
-	// 调用 ipam.AcquireIP 分配单个 IP 地址，参数为 N3Network 字符串
-	alloc, err := i.ipam.AcquireIP(ctx, i.config.N3Network)
+	alloc, err := i.ipam.AcquireIP(ctx, network)
 	if err != nil {
-		return "", err
-	}
-
-	return alloc.IP.String(), nil
-}
-func (i *IPAM) AllocateN4Addr() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	alloc, err := i.ipam.AcquireIP(ctx, i.config.N4Network)
-	if err != nil {
-		return "", err
+		return "", fmt.Errorf("分配 %s 地址失败: %w", network, err)
 	}
 
 	return alloc.IP.String(), nil
@@ -94,7 +89,7 @@ func (i *IPAM) AllocateSessionSubnet() (string, error) {
 	// 从SessionNetwork分配子网，子网掩码由SessionSubnetMask指定
 	subnet, err := i.ipam.AcquireChildPrefix(ctx, i.config.SessionNetwork, i.config.SessionSubnetLength)
 	if err != nil {
-		return "", fmt.Errorf("failed to allocate session subnet: %w", err)
+		return "", fmt.Errorf("分配会话子网失败: %w", err)
 	}
 
 	return subnet.Cidr, nil
@@ -117,26 +112,15 @@ func (i *IPAM) releaseIP(addr, expectedPrefix string) error {
 	// 验证 IP 有效性
 	ip := net.ParseIP(addr)
 	if ip == nil {
-		return fmt.Errorf("invalid IP address format: %s", addr)
-	}
-
-	// 获取 IP 所属前缀
-	prefix, err := i.ipam.PrefixFrom(ctx, ip.String())
-	if err != nil {
-		return fmt.Errorf("failed to locate IP prefix: %w", err)
-	}
-
-	// 验证前缀匹配性
-	if prefix.Cidr != expectedPrefix {
-		return fmt.Errorf("IP %s does not belong to expected prefix %s", addr, expectedPrefix)
+		return fmt.Errorf("无效的IP地址格式: %s", addr)
 	}
 
 	// 执行释放
 	if _, err := i.ipam.ReleaseIP(ctx, &ipam.IP{
 		IP:           netip.MustParseAddr(ip.String()),
-		ParentPrefix: prefix.Cidr,
+		ParentPrefix: expectedPrefix,
 	}); err != nil {
-		return fmt.Errorf("release failed: %w", err)
+		return fmt.Errorf("释放失败: %w", err)
 	}
 
 	return nil
@@ -150,28 +134,18 @@ func (i *IPAM) ReleaseSessionSubnet(subnet string) error {
 	// 验证子网格式
 	_, _, err := net.ParseCIDR(subnet)
 	if err != nil {
-		return fmt.Errorf("invalid subnet format: %w", err)
+		return fmt.Errorf("子网格式无效: %w", err)
 	}
 
-	// 获取父前缀
+	// 获取子网前缀
 	prefix, err := i.ipam.PrefixFrom(ctx, subnet)
 	if err != nil {
-		return fmt.Errorf("subnet not found: %w", err)
-	}
-
-	// 检查是否属于 SessionNetwork
-	if !strings.HasPrefix(prefix.Cidr, i.config.SessionNetwork) {
-		return fmt.Errorf("subnet %s not under parent %s", subnet, i.config.SessionNetwork)
-	}
-
-	// 检查子网使用状态
-	if usage := prefix.Usage(); usage.AcquiredIPs > 0 {
-		return fmt.Errorf("subnet %s still has %d active IPs", subnet, usage.AcquiredIPs)
+		return fmt.Errorf("找不到子网: %w", err)
 	}
 
 	// 执行释放
 	if err := i.ipam.ReleaseChildPrefix(ctx, prefix); err != nil {
-		return fmt.Errorf("subnet release failed: %w", err)
+		return fmt.Errorf("子网释放失败: %w", err)
 	}
 
 	return nil

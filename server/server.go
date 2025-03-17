@@ -10,19 +10,20 @@ import (
 
 // Server 负责处理HTTP请求
 type Server struct {
+	router     *http.ServeMux
 	config     util.Config
 	store      db.Store
-	router     *http.ServeMux
-	render     render.Render
-	kubeclient kubeclient.KubeClient
-	ipam       db.IPAM
+	ipam       *db.IPAM
+	render     *render.Render
+	kubeclient *kubeclient.KubeClient
 }
 
-func NewServer(config util.Config, store db.Store, render render.Render, kubeclient kubeclient.KubeClient) *Server {
+func NewServer(config util.Config, store db.Store, ipam *db.IPAM, render *render.Render, kubeclient *kubeclient.KubeClient) *Server {
 	s := &Server{
+		router:     http.NewServeMux(),
 		config:     config,
 		store:      store,
-		router:     http.NewServeMux(),
+		ipam:       ipam,
 		render:     render,
 		kubeclient: kubeclient,
 	}

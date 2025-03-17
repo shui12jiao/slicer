@@ -6,9 +6,12 @@ import (
 	"slicer/db"
 	"slicer/kubeclient"
 	"slicer/render"
+	"slicer/server"
 	"slicer/util"
 	"strconv"
 	"time"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
@@ -40,13 +43,10 @@ func main() {
 	}
 
 	// 初始化渲染器
-	render, err := render.NewRender(config.TemplatePath)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create render: %v", err))
-	}
+	render := render.NewRender(config)
 
 	// 初始化Kubernetes客户端
-	kubeclient, err := kubeclient.NewKubeClient("")
+	kubeclient, err := kubeclient.NewKubeClient(config.KubeconfigPath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create kubeclient: %v", err))
 	}
@@ -57,6 +57,10 @@ func main() {
 		panic(fmt.Sprintf("failed to create ipam: %v", err))
 	}
 
+	// 初始化Server
+	server := server.NewServer(config, store, ipam, render, kubeclient)
+
+	server.Start()
 }
 
 func MustGetEnvUInt8(key string) uint8 {

@@ -12,10 +12,9 @@ type OSS interface {
 	Delete(bucketName string, objectName string) error
 }
 
-type Store = MongoDB
-
-// func NewStore(mongodb MongoDB) *Store {
-// 	return &Store{
-// 		MongoDB: mongodb,
-// 	}
-// }
+type Store interface {
+	Set(place, key string, value []byte) error //禁止相同Key
+	Get(place, key string) ([]byte, error)
+	Delete(place, key string) error
+	Update(place, key string, value []byte) error
+}

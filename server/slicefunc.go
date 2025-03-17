@@ -2,9 +2,9 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
+	"log"
 	"net/http"
-	"slicer/db"
 	"slicer/model"
 )
 
@@ -16,102 +16,122 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	var createSliceRequest createSliceRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&createSliceRequest); err != nil {
-		http.Error(w, "Failed to decode request", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("请求解码失败: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	slice := createSliceRequest.Slice
 
+	// 检查值是否有效
+	err := slice.Validate()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("非法值: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// 定义一个回滚栈，用于记录需要回滚的操作
+	var rollbackFuncs []func()
+
+	// 在函数退出时，根据是否出错决定是否执行回滚
+	defer func() {
+		if err != nil {
+			for i := len(rollbackFuncs) - 1; i >= 0; i-- {
+				rollbackFuncs[i]()
+			}
+		}
+	}()
+
 	// 分配IP
 	wrappedSlice, err := s.allocateIP(slice)
 	if err != nil {
-		http.Error(w, "Failed to allocate IP", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("分配IP失败: %v", err), http.StatusInternalServerError)
 		return
 	}
+	rollbackFuncs = append(rollbackFuncs, func() { //出错则释放IP
+		if releaseErr := s.releaseIP(wrappedSlice); releaseErr != nil {
+			// 记录释放IP时的错误，避免覆盖原始错误
+			log.Printf("释放IP失败: %v", releaseErr)
+		}
+	})
 
 	// 存储 slice对象
 	err = s.storeSlice(wrappedSlice)
 	if err != nil {
-		http.Error(w, "Failed to store slice", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("存储slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if deleteErr := s.deleteSliceFromStore(slice.ID()); deleteErr != nil { //从mongodb中删除存储的slice文件
+			// 记录删除 slice 时的错误，避免覆盖原始错误
+			log.Printf("从存储中删除slice失败: %v", deleteErr)
+		}
+	})
 
 	// 切片转化为k8s资源
 	contents, err := s.render.SliceToKube(wrappedSlice)
 	if err != nil {
-		http.Error(w, "Failed to render slice", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("渲染slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// 部署k8s资源
 	err = s.kubeclient.ApplyMulti(contents, s.config.Namespace)
 	if err != nil {
-		http.Error(w, "Failed to apply kube resources", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("应用kube资源失败: %v", err), http.StatusInternalServerError)
 		return
 	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if deleteErr := s.kubeclient.DeleteMulti(contents, s.config.Namespace); deleteErr != nil { //保证原子操作
+			log.Printf("从集群中删除配置失败: %v", deleteErr)
+		}
+	})
 
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
-	sliceId := r.URL.Query().Get("sliceId")
+	sliceId := r.PathValue("sliceId")
 	if sliceId == "" {
-		http.Error(w, "sliceId is required", http.StatusBadRequest)
+		http.Error(w, "缺少sliceId参数", http.StatusBadRequest)
 		return
 	}
 
 	// 从对象存储中获取slice对象
-	slice, err := s.getSliceBySliceId(sliceId)
+	slice, err := s.findSlice(sliceId)
 	if err != nil {
-		http.Error(w, "Failed to get slice", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// 切片转化为k8s资源
 	contents, err := s.render.SliceToKube(slice)
 	if err != nil {
-		http.Error(w, "Failed to render slice", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("渲染slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// 删除k8s资源
 	err = s.kubeclient.DeleteMulti(contents, s.config.Namespace)
 	if err != nil {
-		http.Error(w, "Failed to delete kube resources", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("删除kube资源失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// 释放IP
-	err = s.ipam.ReleaseSessionSubnets(slice.SessionSubnets) // 释放各个session的子网
+	err = s.releaseIP(slice)
 	if err != nil {
-		http.Error(w, "Failed to release session subnets", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("释放IP失败: %v", err), http.StatusInternalServerError)
 		return
-	}
-	err = s.ipam.ReleaseN3Addr(slice.UPFN3Addr) // 释放UPF N3地址
-	if err != nil {
-		http.Error(w, "Failed to release UPF N3 address", http.StatusInternalServerError)
-	}
-	err = s.ipam.ReleaseN4Addr(slice.UPFN4Addr) // 释放UPF N4地址
-	if err != nil {
-		http.Error(w, "Failed to release UPF N4 address", http.StatusInternalServerError)
-	}
-	err = s.ipam.ReleaseN3Addr(slice.SMFN3Addr) // 释放SMF N3地址
-	if err != nil {
-		http.Error(w, "Failed to release SMF N3 address", http.StatusInternalServerError)
-	}
-	err = s.ipam.ReleaseN4Addr(slice.SMFN4Addr) // 释放SMF N4地址
-	if err != nil {
-		http.Error(w, "Failed to release SMF N4 address", http.StatusInternalServerError)
 	}
 
 	// 删除对象存储中的slice对象
-	if err := s.store.Delete(s.config.SliceStoreName, sliceId); err != nil {
-		http.Error(w, "Failed to delete slice", http.StatusInternalServerError)
+	err = s.deleteSliceFromStore(slice.ID())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("从存储中删除slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-
 }
 
 type getSliceResponse struct {
@@ -121,14 +141,14 @@ type getSliceResponse struct {
 func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 	sliceId := r.URL.Query().Get("sliceId")
 	if sliceId == "" {
-		http.Error(w, "sliceId is required", http.StatusBadRequest)
+		http.Error(w, "缺少sliceId参数", http.StatusBadRequest)
 		return
 	}
 
 	// 从对象存储中获取slice对象
-	slice, err := s.getSliceBySliceId(sliceId)
+	slice, err := s.findSlice(sliceId)
 	if err != nil {
-		http.Error(w, "Failed to get slice", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -140,79 +160,8 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	//编码响应
 	if err := json.NewEncoder(w).Encode(getSliceResponse); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-}
-
-// 存储slice对象
-func (s *Server) storeSlice(slice model.SliceAndAddress) error {
-	sliceYAML, err := slice.ToYAML()
-	if err != nil {
-		return err
-	}
-	doc := &db.Document{
-		ID:   slice.ID(),
-		Data: sliceYAML,
-	}
-	return s.store.Insert(s.config.SliceStoreName, doc)
-}
-
-// 从存储中获取slice对象
-func (s *Server) getSliceBySliceId(sliceId string) (slice model.SliceAndAddress, err error) {
-	doc, err := s.store.Find(s.config.SliceStoreName, sliceId)
-	if err != nil {
-		return slice, err
-	}
-	data, ok := doc.Data.([]byte)
-	if !ok {
-		return slice, errors.New("failed to assert doc.Data to []byte")
-	}
-	err = slice.FromYAML(data)
-	return
-}
-
-// 给slice分配IP
-func (s *Server) allocateIP(slice model.Slice) (ws model.SliceAndAddress, err error) {
-	// SessionSubnets []string
-	// UPFN3Addr      string
-	// UPFN4Addr      string
-	// SMFN3Addr      string
-	// SMFN4Addr      string
-	sessionSubnets := []string{}
-	for len(slice.Sessions) > 0 {
-		sessionSubnet, err := s.ipam.AllocateSessionSubnet()
-		if err != nil {
-			return ws, err
-		}
-		sessionSubnets = append(sessionSubnets, sessionSubnet)
-	}
-	upfN3Addr, err := s.ipam.AllocateN3Addr()
-	if err != nil {
-		return
-	}
-	upfN4Addr, err := s.ipam.AllocateN4Addr()
-	if err != nil {
-		return
-	}
-	smfN3Addr, err := s.ipam.AllocateN3Addr()
-	if err != nil {
-		return
-	}
-	smfN4Addr, err := s.ipam.AllocateN4Addr()
-	if err != nil {
-		return
-	}
-
-	return model.SliceAndAddress{
-		Slice: slice,
-		AddressValue: model.AddressValue{
-			SessionSubnets: sessionSubnets,
-			UPFN3Addr:      upfN3Addr,
-			UPFN4Addr:      upfN4Addr,
-			SMFN3Addr:      smfN3Addr,
-			SMFN4Addr:      smfN4Addr,
-		},
-	}, nil
 }

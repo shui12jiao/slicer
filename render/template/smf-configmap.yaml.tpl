@@ -41,8 +41,9 @@ data:
           - address: 0.0.0.0
             port: 9090
       session:
-      {{- range .SessionValue }}
-        - subnet: {{.SessionSubnet}}
+      {{- range .SessionValues }}
+        - subnet: {{.Subnet}}
+          gateway: {{.Gateway}}
       {{- end }}
       dns:
         - 8.8.8.8
@@ -57,4 +58,7 @@ data:
           - sst: {{.SST}}
             sd: {{.SD}}
             dnn:
+            {{- range .SessionValues }}
              - {{.DNN}}
+            {{- end}}
+
