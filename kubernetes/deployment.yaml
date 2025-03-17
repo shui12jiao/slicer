@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: slicer
-          image: alpine:latest # 实际应替换为构建后的镜像名
+          image: shui12jiao/slicer:v0.1
           command: ["./main"]
           ports:
             - containerPort: 58888
