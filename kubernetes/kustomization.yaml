@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: slicer
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - mongo/
+
+configMapGenerator:
+  - name: slicer-env
+    envs: [".env"]
+    behavior: merge
+
+secretGenerator:
+  - name: mongo-secret
+    literals:
+      - USERNAME=admin
+      - PASSWORD=admin
+      - MONGO_URI=mongodb://$(USERNAME):$(PASSWORD)@mongo-service.open5gs.svc.cluster.local:27017
+
+generatorOptions:
+  disableNameSuffixHash: true # 禁用名称哈希后缀

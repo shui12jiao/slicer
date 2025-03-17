@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slicer-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slicer
+  template:
+    metadata:
+      labels:
+        app: slicer
+    spec:
+      containers:
+        - name: slicer
+          image: alpine:latest # 实际应替换为构建后的镜像名
+          command: ["./main"]
+          ports:
+            - containerPort: 58888
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+          envFrom:
+            - configMapRef:
+                name: slicer-env
+            - secretRef:
+                name: mongo-secret
