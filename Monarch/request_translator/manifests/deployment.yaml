@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: request-translator
+  namespace: monarch
+  labels:
+    app: monarch
+    component: request-translator
+spec:
+  selector:
+    matchLabels:
+      app: monarch
+      component: request-translator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: monarch
+        component: request-translator
+    spec:
+      containers:
+        - image: ghcr.io/niloysh/request-translator:v1.0.0
+          name: request-translator
+          imagePullPolicy: Always
+          ports:
+            - name: api
+              containerPort: 7000
+          command: ["/bin/bash", "-c", "--"]
+          args: ["python -u run.py"]
+          # args: ["while true; do sleep 30000000; done;"]
+          env:
+            - name: MONITORING_MANAGER_URI
+              value: http://monitoring-manager-service.monarch.svc.cluster.local:6000
+            - name: MONARCH_MONGO_URI
+              value: mongodb://datastore-mongodb.monarch.svc.cluster.local:27017
+            - name: SERVICE_ORCHESTRATOR_URI
+              value: ${SERVICE_ORCHESTRATOR_URI}
+          resources:
+            requests:
+              memory: "100Mi"
+              cpu: "100m"
+            limits:
+              memory: "200Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 7000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 3
+      restartPolicy: Always

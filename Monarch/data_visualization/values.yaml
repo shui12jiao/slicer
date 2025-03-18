@@ -1,0 +1,43 @@
+service:
+  enabled: true
+  type: NodePort
+  nodePort: 32005
+
+adminUser: admin
+adminPassword: monarch-operator
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: monarch-thanos
+      type: prometheus
+      url: http://${NODE_IP}:31004
+      isDefault: true
+      uid: monarch-thanos
+      editable: true
+      jsonData:
+        timeInterval: 1s
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+dashboardsConfigMaps:
+  default: monarch-dashboard-configmap
+
+grafana.ini:
+  dashboards:
+    min_refresh_interval: 1s
+  users:
+    default_theme: light
+    viewers_can_edit: true
