@@ -85,7 +85,7 @@ func sliceToValue(ws model.SliceAndAddress) (
 	upfcv UpfConfigmapValue,
 	upfdv UpfDeploymentValue,
 ) {
-	sv.ID = ws.ID()
+	sv.ID = ws.SliceID()
 	sv.SST = strconv.Itoa(ws.SST)
 	sv.SD = ws.SD
 

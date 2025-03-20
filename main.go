@@ -10,7 +10,6 @@ import (
 	"slicer/server"
 	"slicer/util"
 	"strconv"
-	"time"
 
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -51,7 +50,7 @@ func main() {
 	monitor, err := monitor.NewMonitor(config)
 
 	// 连接数据库
-	store, err := db.NewMongoDB(config.MongoURI, config.MongoDBName, time.Duration(config.MongoTimeout)*time.Second)
+	store, err := db.NewMongoDB(config)
 	if err != nil {
 		panic(fmt.Sprintf("failed to connect to mongodb: %v", err))
 	}

@@ -6,30 +6,6 @@ import (
 	"slicer/model"
 )
 
-// 存储slice对象
-func (s *Server) storeSlice(slice model.SliceAndAddress) error {
-	sliceYAML, err := slice.ToYAML()
-	if err != nil {
-		return err
-	}
-	return s.store.Set(s.config.SliceStoreName, slice.ID(), sliceYAML)
-}
-
-// 删除slice对象
-func (s *Server) deleteSliceFromStore(sliceId string) error {
-	return s.store.Delete(s.config.SliceStoreName, sliceId)
-}
-
-// 从存储中获取slice对象
-func (s *Server) findSlice(sliceId string) (slice model.SliceAndAddress, err error) {
-	sliceYAML, err := s.store.Get(s.config.SliceStoreName, sliceId)
-	if err != nil {
-		return slice, err
-	}
-	err = slice.FromYAML(sliceYAML)
-	return
-}
-
 // 给slice分配IP
 func (s *Server) allocateIP(slice model.Slice) (ws model.SliceAndAddress, err error) {
 	// SessionSubnets []string

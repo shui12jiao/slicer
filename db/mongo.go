@@ -2,6 +2,9 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"slicer/model"
+	"slicer/util"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -9,24 +12,21 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Document struct {
-	ID   string `bson:"_id"`
-	Data []byte `bson:"data"`
-}
-
 type MongoDB struct {
+	config   util.Config
 	client   *mongo.Client // 连接客户端[1](@ref)
 	database string        // 数据库名称
 	timeout  time.Duration // 操作超时时间
 }
 
 // New 创建MongoDB实例（单例模式推荐）
-func NewMongoDB(uri, dbName string, timeout time.Duration, opts ...*options.ClientOptions) (*MongoDB, error) {
+func NewMongoDB(config util.Config, opts ...*options.ClientOptions) (*MongoDB, error) {
+	timeout := time.Duration(config.MongoTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	// 合并连接选项[1](@ref)
-	baseOpts := options.Client().ApplyURI(uri).
+	baseOpts := options.Client().ApplyURI(config.MongoURI).
 		SetServerSelectionTimeout(timeout).
 		SetMaxPoolSize(10)
 	opts = append(opts, baseOpts)
@@ -42,83 +42,107 @@ func NewMongoDB(uri, dbName string, timeout time.Duration, opts ...*options.Clie
 	}
 
 	return &MongoDB{
+		config:   config,
 		client:   client,
-		database: dbName,
+		database: config.MongoDBName,
 		timeout:  timeout,
 	}, nil
 }
 
-func (m *MongoDB) Set(place, key string, value []byte) error {
-	doc := &Document{
-		ID:   key,
-		Data: value,
-	}
-	return m.insert(place, doc)
+// Querier 接口实现
+func (m *MongoDB) CreateSlice(slice model.SliceAndAddress) (model.SliceAndAddress, error) {
+	res, err := m.insert(m.config.SliceStoreName, slice)
+
+	// 获取插入的ID
+	slice.ID = res.InsertedID.(primitive.ObjectID).Hex()
+	return slice, fmt.Errorf("插入Slice失败：%w", err)
 }
 
-func (m *MongoDB) Get(place, key string) ([]byte, error) {
-	doc, error := m.find(place, key)
-	if error != nil {
-		return nil, error
-	}
-	return doc.Data, nil
+func (m *MongoDB) DeleteSlice(id string) error {
+	return m.delete(m.config.SliceStoreName, id)
 }
 
-func (m *MongoDB) Delete(place, key string) error {
-	return m.delete(place, key)
+func (m *MongoDB) GetSlice(id string) (model.SliceAndAddress, error) {
+	res := m.find(m.config.SliceStoreName, id)
+
+	var slice model.SliceAndAddress
+	if err := res.Decode(&slice); err != nil {
+		return slice, fmt.Errorf("查询Slice失败：%w", err)
+	}
+
+	return slice, nil
 }
 
-func (m *MongoDB) Update(place, key string, value []byte) error {
-	doc := &Document{
-		ID:   key,
-		Data: value,
+func (m *MongoDB) GetSliceBySliceID(sliceID string) (model.SliceAndAddress, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	defer cancel()
+
+	var sst int
+	var sd string
+	_, err := fmt.Sscanf(sliceID, "%d-%s", &sst, &sd)
+	if err != nil {
+		return model.SliceAndAddress{}, fmt.Errorf("SliceID格式错误：%w", err)
 	}
-	return m.update(place, doc)
+
+	// 查询 Slice
+	res := m.client.Database(m.database).Collection(m.config.SliceStoreName).FindOne(ctx, primitive.M{"sst": sst, "sd": sd})
+	var slice model.SliceAndAddress
+	if err := res.Decode(&slice); err != nil {
+		return slice, fmt.Errorf("查询Slice失败：%w", err)
+	}
+
+	return slice, nil
+}
+
+func (m *MongoDB) ListSlice() ([]model.SliceAndAddress, error) {
+	// 获取所有 Slice
+	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	defer cancel()
+
+	cursor, err := m.client.Database(m.database).Collection(m.config.SliceStoreName).Find(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("查询Slice失败：%w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var slices []model.SliceAndAddress
+	if err = cursor.All(ctx, &slices); err != nil {
+		return nil, fmt.Errorf("查询Slice失败：%w", err)
+	}
+
+	return slices, nil
+}
+
+func (m *MongoDB) ListSliceID() ([]string, error) {
+	// 获取所有 Slice ID
+	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	defer cancel()
+
+	cursor, err := m.client.Database(m.database).Collection(m.config.SliceStoreName).Find(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("查询Slice ID失败：%w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var ids []string
+	for cursor.Next(ctx) {
+		var slice model.SliceAndAddress
+		if err = cursor.Decode(&slice); err != nil {
+			return nil, fmt.Errorf("查询Slice ID失败：%w", err)
+		}
+		ids = append(ids, slice.ID)
+	}
+
+	return ids, nil
 }
 
 // 存储数据
-func (m *MongoDB) insert(collection string, doc *Document) error {
+func (m *MongoDB) insert(collection string, doc any) (*mongo.InsertOneResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
-	_, err := m.client.Database(m.database).Collection(collection).InsertOne(ctx, doc)
-	return err
+	return m.client.Database(m.database).Collection(collection).InsertOne(ctx, doc)
 }
-
-// 查询单/多条数据
-// func (m *MongoDB) findAll(collection string, filter interface{}) ([]*Document, error) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-// 	defer cancel()
-
-// 	cursor, err := m.client.Database(m.database).Collection(collection).Find(ctx, filter)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	var docs []*Document
-// 	if err = cursor.All(ctx, &docs); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return docs, nil
-// }
-
-func (m *MongoDB) find(collection string, id string) (*Document, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-	defer cancel()
-
-	doc := new(Document)
-	err := m.client.Database(m.database).Collection(collection).FindOne(ctx, primitive.M{"_id": id}).Decode(doc)
-	return doc, err
-}
-
-// func (m *MongoDB) deleteAll(collection string, filter interface{}) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-// 	defer cancel()
-
-// 	_, err := m.client.Database(m.database).Collection(collection).DeleteOne(ctx, filter)
-// 	return err
-// }
 
 func (m *MongoDB) delete(collection string, id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
@@ -128,12 +152,11 @@ func (m *MongoDB) delete(collection string, id string) error {
 	return err
 }
 
-func (m *MongoDB) update(collection string, doc *Document) error {
+func (m *MongoDB) find(collection string, id string) *mongo.SingleResult {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
-	_, err := m.client.Database(m.database).Collection(collection).UpdateOne(ctx, primitive.M{"_id": doc.ID}, primitive.M{"$set": doc})
-	return err
+	return m.client.Database(m.database).Collection(collection).FindOne(ctx, primitive.M{"_id": id})
 }
 
 // Close 关闭连接

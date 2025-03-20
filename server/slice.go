@@ -12,6 +12,10 @@ type createSliceRequest struct {
 	Slice model.Slice `json:"slice"`
 }
 
+type createSliceResponse struct {
+	Slice model.SliceAndAddress `json:"slice"`
+}
+
 func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	var createSliceRequest createSliceRequest
 
@@ -55,13 +59,13 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// 存储 slice对象
-	err = s.storeSlice(wrappedSlice)
+	wrappedSlice, err = s.store.CreateSlice(wrappedSlice)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("存储slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 	rollbackFuncs = append(rollbackFuncs, func() {
-		if deleteErr := s.deleteSliceFromStore(slice.ID()); deleteErr != nil { //从mongodb中删除存储的slice文件
+		if deleteErr := s.store.DeleteSlice(wrappedSlice.ID); deleteErr != nil { //从mongodb中删除存储的slice文件
 			// 记录删除 slice 时的错误，避免覆盖原始错误
 			log.Printf("从存储中删除slice失败: %v", deleteErr)
 		}
@@ -97,7 +101,7 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 从对象存储中获取slice对象
-	slice, err := s.findSlice(sliceId)
+	slice, err := s.store.GetSliceBySliceID(sliceId)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
 		return
@@ -125,7 +129,7 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 删除对象存储中的slice对象
-	err = s.deleteSliceFromStore(slice.ID())
+	err = s.store.DeleteSlice(slice.ID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("从存储中删除slice失败: %v", err), http.StatusInternalServerError)
 		return
@@ -146,7 +150,7 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 从对象存储中获取slice对象
-	slice, err := s.findSlice(sliceId)
+	slice, err := s.store.GetSliceBySliceID(sliceId)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
 		return

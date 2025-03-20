@@ -3,6 +3,7 @@ package model
 import "time"
 
 type Monitor struct {
+	ID                 string             `json:"id" yaml:"id" bson:"_id"`
 	APIVersion         string             `json:"api_version" yaml:"api_version"`
 	RequestDescription string             `json:"request_description" yaml:"request_description"`
 	Scope              Scope              `json:"scope" yaml:"scope"`

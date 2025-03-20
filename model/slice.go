@@ -11,6 +11,7 @@ import (
 )
 
 type Slice struct {
+	ID               string    `json:"id" yaml:"id" bson:"_id"`
 	SST              int       `json:"sst" yaml:"sst"`
 	SD               string    `json:"sd" yaml:"sd"`
 	DefaultIndicator bool      `json:"default_indicator" yaml:"default_indicator"`
@@ -77,7 +78,7 @@ func (s *Slice) FromJSON(data []byte) error {
 	return json.Unmarshal(data, s)
 }
 
-func (s *Slice) ID() string {
+func (s *Slice) SliceID() string {
 	return fmt.Sprintf("%d-%s", s.SST, s.SD)
 }
 

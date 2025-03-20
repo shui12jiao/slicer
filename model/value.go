@@ -3,6 +3,7 @@ package model
 import "gopkg.in/yaml.v2"
 
 type SliceAndAddress struct {
+	ID string `json:"id" yaml:"id" bson:"_id"`
 	Slice
 	AddressValue
 }
