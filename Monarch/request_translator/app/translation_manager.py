@@ -43,7 +43,7 @@ class TranslationManager:
         for snssai in snssais:
             pod_infos = self.service_orchestrator.get_slice_components(snssai)
             self.logger.info(f"Pod info for SNSSAI {snssai}: {pod_infos}")
-        # TODO 这里缩进有问题
+        # TODO 这里缩进有问题 无法处理多snssai 待修改
         for pod_info in pod_infos:
             component_info = {}
             if pod_info["nf"] == "smf":

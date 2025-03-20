@@ -1,6 +1,11 @@
 package util
 
 type Config struct {
+	// for monitor
+	MonarchThanosURI            string
+	MonarchRequestTranslatorURI string
+	MonitorTimeout              uint8
+
 	// for mongodb
 	MongoURI     string
 	MongoDBName  string
