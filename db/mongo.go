@@ -54,8 +54,11 @@ func (m *MongoDB) CreateSlice(slice model.SliceAndAddress) (model.SliceAndAddres
 	res, err := m.insert(m.config.SliceStoreName, slice)
 
 	// 获取插入的ID
-	slice.ID = res.InsertedID.(primitive.ObjectID).Hex()
-	return slice, fmt.Errorf("插入Slice失败：%w", err)
+	slice.ID = res.InsertedID.(primitive.ObjectID)
+	if err != nil {
+		return slice, fmt.Errorf("插入Slice失败：%w", err)
+	}
+	return slice, nil
 }
 
 func (m *MongoDB) DeleteSlice(id string) error {
@@ -85,7 +88,7 @@ func (m *MongoDB) GetSliceBySliceID(sliceID string) (model.SliceAndAddress, erro
 	}
 
 	// 查询 Slice
-	res := m.client.Database(m.database).Collection(m.config.SliceStoreName).FindOne(ctx, primitive.M{"sst": sst, "sd": sd})
+	res := m.client.Database(m.database).Collection(m.config.SliceStoreName).FindOne(ctx, primitive.M{"slice.sst": sst, "slice.sd": sd})
 	var slice model.SliceAndAddress
 	if err := res.Decode(&slice); err != nil {
 		return slice, fmt.Errorf("查询Slice失败：%w", err)
@@ -130,7 +133,7 @@ func (m *MongoDB) ListSliceID() ([]string, error) {
 		if err = cursor.Decode(&slice); err != nil {
 			return nil, fmt.Errorf("查询Slice ID失败：%w", err)
 		}
-		ids = append(ids, slice.ID)
+		ids = append(ids, slice.SliceID())
 	}
 
 	return ids, nil

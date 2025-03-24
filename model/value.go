@@ -1,9 +1,12 @@
 package model
 
-import "gopkg.in/yaml.v2"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"gopkg.in/yaml.v2"
+)
 
 type SliceAndAddress struct {
-	ID string `json:"id" yaml:"id" bson:"_id"`
+	ID primitive.ObjectID `json:"id" yaml:"id" bson:"_id,omitempty"`
 	Slice
 	AddressValue
 }

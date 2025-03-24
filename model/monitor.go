@@ -1,9 +1,13 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Monitor struct {
-	ID                 string             `json:"id" yaml:"id" bson:"_id"`
+	ID                 primitive.ObjectID `json:"id" yaml:"id" bson:"_id,omitempty"`
 	APIVersion         string             `json:"api_version" yaml:"api_version"`
 	RequestDescription string             `json:"request_description" yaml:"request_description"`
 	Scope              Scope              `json:"scope" yaml:"scope"`

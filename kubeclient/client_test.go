@@ -2,6 +2,7 @@ package kubeclient
 
 import (
 	"context"
+	"flag"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	fakeclientset "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/klog/v2"
 )
 
 // newFakeKubeClient 构造一个使用 fake client 的 KubeClient 实例
@@ -316,4 +318,18 @@ metadata:
 	// 验证删除成功
 	_, err = kc.dynamicClient.Resource(gvr).Namespace("default").Get(context.TODO(), "dir-cm", v1.GetOptions{})
 	assert.Error(t, err)
+}
+
+func TestWithRealKubeClient(t *testing.T) {
+	// 创建一个真实的 KubeClient 实例
+	kc, err := NewKubeClient("/home/sming/.kube/config")
+	require.NoError(t, err)
+
+	klog.InitFlags(nil)
+	flag.Set("v", "6") // 日志级别调至最高
+
+	// 验证能获取到 Pod 列表
+	pods, err := kc.GetPods("kube-system")
+	require.NoError(t, err)
+	assert.NotEmpty(t, pods)
 }

@@ -31,16 +31,21 @@ spec:
             - name: mongodb
               containerPort: 27017
           env:
-            - name: MONGODB_USERNAME
+            - name: MONGODB_ROOT_USER
               valueFrom:
                 secretKeyRef:
                   name: mongodb-secret
                   key: USERNAME
-            - name: MONGO_PASSWORD
+            - name: MONGODB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mongodb-secret
                   key: PASSWORD
+            - name: MONGODB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: slicer-env
+                  key: MONGO_DB_NAME
           resources:
             limits: {}
             requests: {}

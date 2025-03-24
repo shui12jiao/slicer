@@ -7,15 +7,16 @@ import (
 	"regexp"
 	"strings"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"gopkg.in/yaml.v2"
 )
 
 type Slice struct {
-	ID               string    `json:"id" yaml:"id" bson:"_id"`
-	SST              int       `json:"sst" yaml:"sst"`
-	SD               string    `json:"sd" yaml:"sd"`
-	DefaultIndicator bool      `json:"default_indicator" yaml:"default_indicator"`
-	Sessions         []Session `json:"session" yaml:"session"`
+	ID               primitive.ObjectID `json:"id" yaml:"id" bson:"_id,omitempty"`
+	SST              int                `json:"sst" yaml:"sst"`
+	SD               string             `json:"sd" yaml:"sd"`
+	DefaultIndicator bool               `json:"default_indicator" yaml:"default_indicator"`
+	Sessions         []Session          `json:"session" yaml:"session"`
 }
 
 type Session struct {

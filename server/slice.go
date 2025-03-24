@@ -65,7 +65,7 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rollbackFuncs = append(rollbackFuncs, func() {
-		if deleteErr := s.store.DeleteSlice(wrappedSlice.ID); deleteErr != nil { //从mongodb中删除存储的slice文件
+		if deleteErr := s.store.DeleteSlice(wrappedSlice.ID.Hex()); deleteErr != nil { //从mongodb中删除存储的slice文件
 			// 记录删除 slice 时的错误，避免覆盖原始错误
 			log.Printf("从存储中删除slice失败: %v", deleteErr)
 		}
@@ -129,7 +129,7 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 删除对象存储中的slice对象
-	err = s.store.DeleteSlice(slice.ID)
+	err = s.store.DeleteSlice(slice.ID.Hex())
 	if err != nil {
 		http.Error(w, fmt.Sprintf("从存储中删除slice失败: %v", err), http.StatusInternalServerError)
 		return
