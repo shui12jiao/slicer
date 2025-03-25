@@ -3,6 +3,7 @@ package kubeclient
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -329,7 +330,9 @@ func TestWithRealKubeClient(t *testing.T) {
 	flag.Set("v", "6") // 日志级别调至最高
 
 	// 验证能获取到 Pod 列表
-	pods, err := kc.GetPods("kube-system")
+	pods, err := kc.GetPods("open5gs")
 	require.NoError(t, err)
 	assert.NotEmpty(t, pods)
+	// 打印pods为json
+	fmt.Println(pods)
 }

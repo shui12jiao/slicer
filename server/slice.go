@@ -16,6 +16,7 @@ type createSliceResponse struct {
 	Slice model.SliceAndAddress `json:"slice"`
 }
 
+// createSlice 创建一个新的slice
 func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	var createSliceRequest createSliceRequest
 
@@ -31,6 +32,12 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, fmt.Sprintf("非法值: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	// 检查是否有重复的slice
+	_, err = s.store.GetSliceBySliceID(slice.SliceID())
+	if err == nil {
+		http.Error(w, fmt.Sprintf("slice已存在: %v", slice.SliceID()), http.StatusBadRequest)
 	}
 
 	// 定义一个回滚栈，用于记录需要回滚的操作
@@ -59,7 +66,7 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// 存储 slice对象
-	wrappedSlice, err = s.store.CreateSlice(wrappedSlice)
+	wrappedSlice, err = s.store.CreateSlice(wrappedSlice) //返回的slice包含了ID
 	if err != nil {
 		http.Error(w, fmt.Sprintf("存储slice失败: %v", err), http.StatusInternalServerError)
 		return
@@ -90,9 +97,19 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	w.WriteHeader(http.StatusCreated)
+	//设置响应头
+	w.Header().Set("Content-Type", "application/json")
+	//编码响应
+	// w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(createSliceResponse{
+		Slice: wrappedSlice,
+	}); err != nil {
+		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
+		return
+	}
 }
 
+// deleteSlice 删除一个slice
 func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	sliceId := r.PathValue("sliceId")
 	if sliceId == "" {
@@ -139,11 +156,12 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 }
 
 type getSliceResponse struct {
-	Slice model.Slice `json:"slice"`
+	Slice model.SliceAndAddress `json:"slice"`
 }
 
+// getSlice 获取一个slice
 func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
-	sliceId := r.URL.Query().Get("sliceId")
+	sliceId := r.PathValue("sliceId")
 	if sliceId == "" {
 		http.Error(w, "缺少sliceId参数", http.StatusBadRequest)
 		return
@@ -156,16 +174,14 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	getSliceResponse := getSliceResponse{
-		Slice: slice.Slice,
-	}
-
 	//设置响应头
 	w.Header().Set("Content-Type", "application/json")
 	//编码响应
-	if err := json.NewEncoder(w).Encode(getSliceResponse); err != nil {
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(getSliceResponse{
+		Slice: slice,
+	}); err != nil {
 		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }

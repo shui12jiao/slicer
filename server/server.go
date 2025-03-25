@@ -47,7 +47,7 @@ func (s *Server) routes() {
 
 	// Monarch交互相关路由
 	// monarch调用service orchestrator相关接口
-	s.router.HandleFunc("GET /service-orchestrator/slices/{slice_id}", s.soGetSliceComponents)
+	s.router.HandleFunc("GET /service-orchestrator/slices/{sliceId}", s.soGetSliceComponents)
 	s.router.HandleFunc("GET /service-orchestrator/api/health", s.soCheckHealth)
 	// monarch调用nfv orchestration相关接口
 	s.router.HandleFunc("POST /nfv-orchestrator/mde/install", s.noMdeInstall)

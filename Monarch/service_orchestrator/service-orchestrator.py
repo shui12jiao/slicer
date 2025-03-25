@@ -104,7 +104,7 @@ class DummyServiceOrchestrator:
             print(pod_labels)
             for item in slice_pod_map:
                 name = item.get("nf")
-                if name and pod_labels.get("name") == name:
+                if name and name in pod_labels.get("name"):
                     filtered_pods.append(pod)
                     break
 
@@ -126,4 +126,4 @@ class DummyServiceOrchestrator:
 
 if __name__ == "__main__":
     service_orchestrator = DummyServiceOrchestrator()
-    service_orchestrator.run(debug=True, port=5001, host="0.0.0.0")
+    service_orchestrator.run(debug=True, port=50001, host="0.0.0.0")

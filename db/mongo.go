@@ -151,7 +151,12 @@ func (m *MongoDB) delete(collection string, id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
-	_, err := m.client.Database(m.database).Collection(collection).DeleteOne(ctx, primitive.M{"_id": id})
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("无效ID：%w", err)
+	}
+
+	_, err = m.client.Database(m.database).Collection(collection).DeleteOne(ctx, primitive.M{"_id": objID})
 	return err
 }
 
@@ -159,7 +164,12 @@ func (m *MongoDB) find(collection string, id string) *mongo.SingleResult {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
-	return m.client.Database(m.database).Collection(collection).FindOne(ctx, primitive.M{"_id": id})
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil
+	}
+
+	return m.client.Database(m.database).Collection(collection).FindOne(ctx, primitive.M{"_id": objID})
 }
 
 // Close 关闭连接
