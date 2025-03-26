@@ -8,6 +8,8 @@ import (
 	"slicer/model"
 )
 
+// createSlice 创建一个新的slice
+// POST /api/slice
 type createSliceRequest struct {
 	Slice model.Slice `json:"slice"`
 }
@@ -16,7 +18,6 @@ type createSliceResponse struct {
 	Slice model.SliceAndAddress `json:"slice"`
 }
 
-// createSlice 创建一个新的slice
 func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	var createSliceRequest createSliceRequest
 
@@ -110,6 +111,7 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 }
 
 // deleteSlice 删除一个slice
+// DELETE /api/slice/{sliceId}
 func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	sliceId := r.PathValue("sliceId")
 	if sliceId == "" {
@@ -155,11 +157,12 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// getSlice 获取一个slice
+// GET /api/slice/{sliceId}
 type getSliceResponse struct {
 	Slice model.SliceAndAddress `json:"slice"`
 }
 
-// getSlice 获取一个slice
 func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 	sliceId := r.PathValue("sliceId")
 	if sliceId == "" {
@@ -180,6 +183,30 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(getSliceResponse{
 		Slice: slice,
+	}); err != nil {
+		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+// listSlice 获取所有slice
+// GET /api/slice
+type listSliceResponse struct {
+	Slices []model.SliceAndAddress `json:"slices"`
+}
+
+func (s *Server) listSlice(w http.ResponseWriter, r *http.Request) {
+	slices, err := s.store.ListSlice()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("获取slice列表失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	//设置响应头
+	w.Header().Set("Content-Type", "application/json")
+	//编码响应
+	if err := json.NewEncoder(w).Encode(listSliceResponse{
+		Slices: slices,
 	}); err != nil {
 		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
 		return

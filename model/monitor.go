@@ -1,10 +1,18 @@
 package model
 
 import (
+	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+type SupportedKpi struct {
+	KpiName        string `json:"kpi_name"`
+	KpiDescription string `json:"kpi_description"`
+	KpiUnit        string `json:"kpi_unit"`
+	// KpiPromMetricName string `json:"kpi_prom_metric_name"`
+}
 
 type Monitor struct {
 	ID                 primitive.ObjectID `json:"id" yaml:"id" bson:"_id,omitempty"`
@@ -14,6 +22,8 @@ type Monitor struct {
 	KPI                KPI                `json:"kpi" yaml:"kpi"`
 	Duration           Duration           `json:"duration" yaml:"duration"`
 	MonitoringInterval MonitoringInterval `json:"monitoring_interval" yaml:"monitoring_interval"`
+	//用于request translator
+	RequestID string `json:"request_id,omitempty" yaml:"request_id,omitempty"`
 }
 
 type Scope struct {
@@ -41,4 +51,18 @@ type Duration struct {
 type MonitoringInterval struct {
 	Adaptive     bool `json:"adaptive" yaml:"adaptive"`
 	IntervalSecs int  `json:"interval_seconds" yaml:"interval_seconds"`
+}
+
+func (m *Monitor) Validate(sliceID string) error {
+	// Validate the Monitor struct
+	switch m.KPI.KPIName {
+	case "slice_throughput":
+		if m.Scope.ScopeType == "slice" && m.KPI.SubCounter.SubCounterType == "SNSSAI" && len(m.KPI.SubCounter.SubCounterIDs) == 1 && sliceID == m.KPI.SubCounter.SubCounterIDs[0] {
+			return nil
+		}
+		return errors.New("slice_throughput KPI验证失败")
+	default:
+		return errors.New("不支持的KPI")
+	}
+
 }

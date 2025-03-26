@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"slicer/db"
 	"slicer/kubeclient"
@@ -39,11 +40,14 @@ func (s *Server) routes() {
 	s.router.HandleFunc("POST /slice", s.createSlice)
 	s.router.HandleFunc("DELETE /slice/{sliceId}", s.deleteSlice)
 	s.router.HandleFunc("GET /slice/{sliceId}", s.getSlice)
+	s.router.HandleFunc("GET /slice", s.listSlice)
 
-	// 切片监控相关路由
-	s.router.HandleFunc("POST /slice/{sliceId}/monitor", s.createMonitor)
-	s.router.HandleFunc("DELETE /slice/{sliceId}/monitor", s.deleteMonitor)
-	s.router.HandleFunc("GET /slice/{sliceId}/monitor", s.getMonitor)
+	// 监控相关路由(目前只支持切片监控)
+	s.router.HandleFunc("POST /monitor/slice/{sliceId}", s.createMonitor)
+	s.router.HandleFunc("DELETE /monitor/slice/{monitorId}", s.deleteMonitor)
+	s.router.HandleFunc("GET /monitor/slice/{monitorId}", s.getMonitor)
+	s.router.HandleFunc("GET /monitor", s.listMonitor)
+	s.router.HandleFunc("GET /monitor/supported_kpis", s.getSupportedKpis)
 
 	// Monarch交互相关路由
 	// monarch调用service orchestrator相关接口
@@ -62,4 +66,11 @@ func (s *Server) routes() {
 // Start 启动HTTP服务器
 func (s *Server) Start() error {
 	return http.ListenAndServe(s.config.HTTPServerAddress, s.router)
+}
+
+func encodeResponse(w http.ResponseWriter, response any) {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "编码失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

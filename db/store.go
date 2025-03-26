@@ -14,6 +14,11 @@ type Querier interface {
 	ListSlice() ([]model.SliceAndAddress, error)
 	ListSliceID() ([]string, error)
 
+	CreateMonitor(monitor model.Monitor) (model.Monitor, error)
+	DeleteMonitor(id string) error
+	GetMonitor(id string) (model.Monitor, error)
+	ListMonitor() ([]model.Monitor, error)
+
 	// CreateMonitor(monitor model.Monitor) (model.Monitor, error)
 	// DeleteMonitor(id string) error
 	// GetMonitor(id string) (model.Monitor, error)
