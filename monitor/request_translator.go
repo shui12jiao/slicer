@@ -13,7 +13,7 @@ import (
 // 获取支持的KPIs
 // GET /api/supported-kpis
 type getSupportedKpisResponse struct {
-	Status        string               `json:"status"`
+	Response
 	SupportedKpis []model.SupportedKpi `json:"supported_kpis"`
 }
 
@@ -54,8 +54,7 @@ func (m *Monitor) GetSupportedKpis() ([]model.SupportedKpi, error) {
 // type submitMonitoringRequest = model.Monitor
 
 type submitMonitoringResponse struct {
-	Status    string `json:"status"`
-	Message   string `json:"message"`
+	Response
 	RequestID string `json:"request_id"`
 }
 
@@ -102,7 +101,7 @@ func (m *Monitor) SubmitMonitoring(monitor model.Monitor) (model.Monitor, error)
 // 删除监控请求
 // DELETE /api/monitoring-requests/delete/<request_id>
 
-type deleteMonitoringResponse = submitMonitoringResponse
+type deleteMonitoringResponse = Response
 
 func (m *Monitor) DeleteMonitoring(requestID string) error {
 	httpClient := http.Client{

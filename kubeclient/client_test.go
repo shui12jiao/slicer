@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slicer/util"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -323,7 +324,11 @@ metadata:
 
 func TestWithRealKubeClient(t *testing.T) {
 	// 创建一个真实的 KubeClient 实例
-	kc, err := NewKubeClient("/home/sming/.kube/config")
+	kc, err := NewKubeClient(util.Config{
+		Namespace:        "open5gs",
+		MonitorNamespace: "monarch",
+		KubeconfigPath:   "/home/sming/.kube/config",
+	})
 	require.NoError(t, err)
 
 	klog.InitFlags(nil)

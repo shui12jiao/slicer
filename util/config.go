@@ -18,8 +18,9 @@ type Config struct {
 	MongoTimeout uint8 // 单位秒
 
 	// for kubernetes client
-	Namespace      string
-	KubeconfigPath string
+	Namespace        string
+	MonitorNamespace string
+	KubeconfigPath   string
 
 	// for http server
 	HTTPServerAddress string
@@ -51,7 +52,9 @@ func LoadConfig() Config {
 		MongoTimeout: MustGetEnvUInt8("MONGO_TIMEOUT"),
 
 		// for kubernetes client
-		Namespace:      MustGetEnvString("NAMESPACE"),
+		Namespace:        MustGetEnvString("NAMESPACE"),         //用于open5gs的namespace
+		MonitorNamespace: MustGetEnvString("MONITOR_NAMESPACE"), //监控系统所在的namespace
+
 		KubeconfigPath: MustGetEnvString("KUBECONFIG_PATH"),
 
 		// for http server

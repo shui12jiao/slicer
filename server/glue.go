@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slicer/monitor"
 )
 
 // for Monarch
 
 // service orchestrator相关接口
+
+// 用于响应监控系统request transltor的切片信息获取请求
+// GET /service-orchestrator/slices/{sliceId}
 type soGetSliceComponentsResponse struct {
 	// {
 	// 	"pods": [
@@ -33,7 +37,7 @@ type soGetSliceComponentsResponse struct {
 		NSS   string `json:"nss"`
 		PodIP string `json:"pod_ip"`
 	} `json:"pods"`
-	Status string `json:"status"`
+	monitor.Response
 }
 
 func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
@@ -86,31 +90,69 @@ func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// 用于响应监控系统的so组件健康检查请求
+// GET /service-orchestrator/api/health
+
+type soCheckHealthResponse = monitor.Response
+
 func (s *Server) soCheckHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status": "success", "message": "Service Orchestrator is healthy"}`))
+
+	encodeResponse(w, soCheckHealthResponse{
+		Status:  "success",
+		Message: "service orchestrator is healthy",
+	})
 }
 
 // nfv orchestration相关接口
+
+// 用于响应监控系统的mde安装请求
+// POST /nfv-orchestrator/mde/install
 func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	// TODO
 }
+
+// 用于响应监控系统的mde卸载请求
+// POST /nfv-orchestrator/mde/uninstall
 func (s *Server) noMdeUninstall(w http.ResponseWriter, r *http.Request) {
 	// TODO
 }
+
+// 用于响应监控系统的mde检查请求
+// POST /nfv-orchestrator/mde/check
 func (s *Server) noMdeCheck(w http.ResponseWriter, r *http.Request) {
 	// TODO
 }
+
+// 用于响应监控系统的kpi计算组件安装请求
+// POST /nfv-orchestrator/kpi-computation/install
 func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request) {
 	// TODO
 }
+
+// 用于响应监控系统的kpi计算组件卸载请求
+// POST /nfv-orchestrator/kpi-computation/uninstall
 func (s *Server) noKpiComputationUninstall(w http.ResponseWriter, r *http.Request) {
 	// TODO
 }
+
+// 用于响应监控系统的kpi计算组件检查请求
+// POST /nfv-orchestrator/kpi-computation/check
 func (s *Server) noKpiComputationCheck(w http.ResponseWriter, r *http.Request) {
 	// TODO
 }
+
+// 用于响应监控系统的健康检查请求
+// GET /nfv-orchestrator/api/health
+type noCheckHealthResponse = monitor.Response
+
 func (s *Server) noCheckHealth(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	encodeResponse(w, noCheckHealthResponse{
+		Status:  "success",
+		Message: "NFV Orchestrator is healthy",
+	})
 }

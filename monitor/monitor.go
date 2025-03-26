@@ -51,3 +51,8 @@ func NewMonitor(config util.Config) (*Monitor, error) {
 
 	return &Monitor{config: config}, nil
 }
+
+type Response struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}

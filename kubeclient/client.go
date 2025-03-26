@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slicer/util"
 	"sort"
 	"strings"
 
@@ -30,57 +31,102 @@ import (
 
 // KubeClient 定义Kubernetes客户端结构
 type KubeClient struct {
+	config        util.Config          // 配置
 	clientset     kubernetes.Interface // 核心API客户端
 	dynamicClient dynamic.Interface    // 动态资源客户端
 	restMapper    meta.RESTMapper      // 资源类型映射器
 }
 
 // NewKubeClient 创建Kubernetes客户端
-func NewKubeClient(kubeconfigPath string) (*KubeClient, error) {
+func NewKubeClient(uconfig util.Config) (kc *KubeClient, err error) {
 	var config *rest.Config
-	var err error
 
-	if kubeconfigPath != "" {
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	// 从 kubeconfig 文件或 in-cluster 配置中创建 Kubernetes 配置
+	if uconfig.KubeconfigPath != "" {
+		config, err = clientcmd.BuildConfigFromFlags("", uconfig.KubeconfigPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to build Kubernetes config: %v", err)
+			return nil, fmt.Errorf("创建Kubernetes配置失败: %v", err)
 		}
 	} else {
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			return nil, fmt.Errorf("failed to build in-cluster config: %v", err)
+			return nil, fmt.Errorf("创建集群内配置失败: %v", err)
 		}
 	}
 
+	// clientset 用于核心API（如Pod、Service）
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes clientset: %v", err)
+		return nil, fmt.Errorf("创建Kubernetes客户端失败: %v", err)
 	}
 
+	// dynamicClient 用于动态API（如CRD）
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %v", err)
+		return nil, fmt.Errorf("创建动态客户端失败: %v", err)
 	}
 
+	// discoveryClient 用于发现API资源
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create discovery client: %v", err)
+		return nil, fmt.Errorf("创建发现客户端失败: %v", err)
 	}
 
+	// restMapper 用于资源类型映射
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(discoveryClient))
 
-	return &KubeClient{
+	kc = &KubeClient{
+		config:        uconfig,
 		clientset:     clientset,
 		dynamicClient: dynamicClient,
 		restMapper:    restMapper,
-	}, nil
+	}
+
+	// 获取所有namespaces, 作为测试
+	namespaces, err := kc.GetNamespaces()
+	if err != nil {
+		return nil, fmt.Errorf("获取命名空间失败: %v", err)
+	}
+	// 检查config中的namespace是否存在, 若不存在则创建
+	for _, ns := range []string{uconfig.Namespace, uconfig.MonitorNamespace} {
+		var exist bool
+		for _, namespace := range namespaces {
+			if namespace.Name == ns {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			// 创建namespace
+			namespace := &corev1.Namespace{
+				ObjectMeta: v1.ObjectMeta{
+					Name: ns,
+				},
+			}
+			_, err := kc.clientset.CoreV1().Namespaces().Create(context.TODO(), namespace, v1.CreateOptions{})
+			if err != nil {
+				return nil, fmt.Errorf("创建命名空间 %s 失败: %v", ns, err)
+			}
+		}
+	}
+
+	return
+}
+
+// GetNamespaces 获取所有命名空间
+func (kc *KubeClient) GetNamespaces() ([]corev1.Namespace, error) {
+	namespaces, err := kc.clientset.CoreV1().Namespaces().List(context.TODO(), v1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("获取命名空间失败: %v", err)
+	}
+	return namespaces.Items, nil
 }
 
 // GetPods 获取指定命名空间下的Pod列表
 func (kc *KubeClient) GetPods(namespace string) ([]corev1.Pod, error) {
 	pods, err := kc.clientset.CoreV1().Pods(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Pods: %v", err)
+		return nil, fmt.Errorf("获取Pod列表失败: %v", err)
 	}
 	return pods.Items, nil
 }
@@ -89,7 +135,7 @@ func (kc *KubeClient) GetPods(namespace string) ([]corev1.Pod, error) {
 func (kc *KubeClient) GetServices(namespace string) ([]corev1.Service, error) {
 	services, err := kc.clientset.CoreV1().Services(namespace).List(context.TODO(), v1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Services: %v", err)
+		return nil, fmt.Errorf("获取Service列表失败: %v", err)
 	}
 	return services.Items, nil
 }
@@ -141,7 +187,7 @@ func (kc *KubeClient) Apply(yamlData []byte, namespace string) error {
 func (kc *KubeClient) ApplyMulti(yamlDatas [][]byte, namespace string) error {
 	for _, yamlData := range yamlDatas {
 		if err := kc.Apply(yamlData, namespace); err != nil {
-			return fmt.Errorf("应用 YAML 失败: %v", err)
+			return fmt.Errorf("应用YAML失败: %v", err)
 		}
 	}
 	return nil
@@ -156,7 +202,7 @@ func (kc *KubeClient) Delete(yamlData []byte, namespace string) error {
 			if err == io.EOF {
 				break // 读取结束
 			}
-			return fmt.Errorf("解析 YAML 失败: %v", err)
+			return fmt.Errorf("解析YAML失败: %v", err)
 		}
 
 		// 获取 GVK（Group-Version-Kind）
@@ -165,7 +211,7 @@ func (kc *KubeClient) Delete(yamlData []byte, namespace string) error {
 		// 获取资源映射信息
 		mapping, err := kc.restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
-			return fmt.Errorf("无法获取资源映射: %v", err)
+			return fmt.Errorf("获取资源映射失败: %v", err)
 		}
 
 		// 解析 namespace
@@ -180,7 +226,7 @@ func (kc *KubeClient) Delete(yamlData []byte, namespace string) error {
 		// 获取资源名称
 		resourceName := rawObj.GetName()
 		if resourceName == "" {
-			return fmt.Errorf("资源缺少 metadata.name，无法删除")
+			return fmt.Errorf("资源缺少metadata.name，无法删除")
 		}
 
 		// 执行删除操作
@@ -201,7 +247,7 @@ func (kc *KubeClient) Delete(yamlData []byte, namespace string) error {
 func (kc *KubeClient) DeleteMulti(yamlDatas [][]byte, namespace string) error {
 	for _, yamlData := range yamlDatas {
 		if err := kc.Delete(yamlData, namespace); err != nil {
-			return fmt.Errorf("删除 YAML 失败: %v", err)
+			return fmt.Errorf("删除YAML失败: %v", err)
 		}
 	}
 	return nil
