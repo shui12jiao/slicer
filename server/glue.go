@@ -8,6 +8,7 @@ import (
 )
 
 // for Monarch
+// 接受监控系统而非用户请求
 
 // service orchestrator相关接口
 
@@ -109,8 +110,15 @@ func (s *Server) soCheckHealth(w http.ResponseWriter, r *http.Request) {
 
 // 用于响应监控系统的mde安装请求
 // POST /nfv-orchestrator/mde/install
+type noMdeInstallRequest struct {
+	SliceId string `json:"slice_id"`
+}
+
 func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	// monarch的monitor manager组件中，process_slice_throughput_directive负责向no发送mdeinstall请求
+	// 并未对directive（包含SliceComponents信息）进行解析
+
+	// 从r中获取
 }
 
 // 用于响应监控系统的mde卸载请求
