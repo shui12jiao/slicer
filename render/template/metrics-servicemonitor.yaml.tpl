@@ -1,10 +1,13 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: amf-servicemonitor
+  name: amf{{ .SliceID }}-servicemonitor # 不同的切片使用不同的servicemonitor，否则删除时会删除所有的servicemonitor
   namespace: monarch
   labels:
     nf: amf
+    {{- if .ne .SliceID "" }}
+    slice: {{ .SliceID }}
+    {{- end }}
     app: monarch
 spec:
   namespaceSelector:
@@ -12,6 +15,9 @@ spec:
   selector:
     matchLabels:
       nf: amf # target amf service
+      {{- if .ne .SliceID "" }}
+      slice: {{ .SliceID }}
+      {{- end }}
   endpoints:
     - port: metrics
       interval: "${MONARCH_MONITORING_INTERVAL}"
@@ -19,22 +25,23 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: smf{{ join .SliceIDs "," }}-servicemonitor
+  name: smf{{ .SliceID }}-servicemonitor
   namespace: monarch
   labels:
-    nf: smf{{ join .SliceIDs "," }}
+    nf: smf
+    {{- if .ne .SliceID "" }}
+    slice: {{ .SliceID }}
+    {{- end }}
     app: monarch
 spec:
   namespaceSelector:
     any: true # important otherwise this is not picked up
   selector:
-    matchExpressions:
-      - key: nf
-        operator: In
-        values:
-          {{- range .SliceIDs }}
-          - smf{{ . | quote }} # target smf service
-          {{- end }}
+    matchLabels:
+      nf: smf # target smf service
+      {{- if .ne .SliceID "" }}
+      slice: {{ .SliceID }}
+      {{- end }}
   endpoints:
     - port: metrics
       interval: "${MONARCH_MONITORING_INTERVAL}"
@@ -42,22 +49,23 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: upf{{ join .SliceIDs "," }}-servicemonitor
+  name: upf{{ .SliceID }}-servicemonitor
   namespace: monarch
   labels:
-    nf: upf{{ join .SliceIDs "," }}
+    nf: upf
+    {{- if .ne .SliceID "" }}
+    slice: {{ .SliceID }}
+    {{- end }}
     app: monarch
 spec:
   namespaceSelector:
     any: true # important otherwise this is not picked up
   selector:
-    matchExpressions:
-      - key: nf
-        operator: In
-        values:
-          {{- range .SliceIDs }}
-          - upf{{ . | quote }} # target upf service
-          {{- end }}
+    matchLabels:
+      nf: upf
+      {{- if .ne .SliceID "" }}
+      slice: {{ .SliceID }}
+      {{- end }}
   endpoints:
     - port: metrics
       interval: "${MONARCH_MONITORING_INTERVAL}"

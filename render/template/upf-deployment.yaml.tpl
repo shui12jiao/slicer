@@ -4,20 +4,23 @@ metadata:
   name: open5gs-upf{{.ID}}
   labels:
     app: open5gs
-    nf: upf{{.ID}}
+    nf: upf
+    slice: {{.ID}}
     name: upf{{.ID}}
 spec:
   selector:
     matchLabels:
       app: open5gs
-      nf: upf{{.ID}}
+      nf: upf
+      slice: {{.ID}}
       name: upf{{.ID}}
   replicas: 1
   template:
     metadata:
       labels:
         app: open5gs
-        nf: upf{{.ID}}
+        nf: upf
+        slice: {{.ID}}
         name: upf{{.ID}}
       annotations:
         k8s.v1.cni.cncf.io/networks: '[
@@ -32,7 +35,7 @@ spec:
           image: busybox:1.32.0
           env:
             - name: DEPENDENCIES
-              value: smf{{.ID}}-nsmf:80
+              value: smf-nsmf:80
           command:
             [
               "sh",
@@ -40,7 +43,7 @@ spec:
               "until nc -z $DEPENDENCIES; do echo waiting for the SMF; sleep 2; done;",
             ]
       containers:
-        - name: upf{{.ID}}
+        - name: upf
           image: docker.io/shui12jiao/open5gs:v2.7.2
           imagePullPolicy: Always
           command: ["/open5gs/config/wrapper.sh"]

@@ -133,7 +133,7 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 渲染mde的yaml文件
-	yaml, err := s.render.RenderMde([]string{req.SliceId})
+	yaml, err := s.render.RenderMde(req.SliceId)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("渲染yaml失败: %v", err), http.StatusInternalServerError)
 		return
@@ -222,7 +222,7 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 	}
 
 	// 渲染kpsc的yaml文件
-	yaml, err := s.render.RenderKpiComp([]string{req.SliceId})
+	yaml, err := s.render.RenderKpiComp(req.SliceId)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("渲染yaml失败: %v", err), http.StatusInternalServerError)
 		return

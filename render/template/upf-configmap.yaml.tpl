@@ -5,6 +5,7 @@ metadata:
   labels:
     app: open5gs
     nf: upf
+    slice: {{.ID}}
     name: upf{{.ID}}
 data:
   upfcfg.yaml: |

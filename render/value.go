@@ -8,7 +8,7 @@ import (
 type KpiCalc = MdeValue
 
 type MdeValue struct {
-	SliceIDs []string // 切片ID列表
+	SliceID string // 切片ID
 }
 
 type SliceValue struct {

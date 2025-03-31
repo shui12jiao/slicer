@@ -96,7 +96,7 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 
 	// 这里不需要发送删除监控请求，直接进行删除
 	// 删除MDE
-	yaml, err := s.render.RenderMde([]string{monitor.SliceID})
+	yaml, err := s.render.RenderMde(monitor.SliceID)
 	if err != nil {
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -104,7 +104,7 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 	s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
 
 	// 删除KPI
-	yaml, err = s.render.RenderKpiComp([]string{monitor.SliceID})
+	yaml, err = s.render.RenderKpiComp(monitor.SliceID)
 	if err != nil {
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return

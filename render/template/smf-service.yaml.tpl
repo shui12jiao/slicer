@@ -5,6 +5,7 @@ metadata:
   labels:
     app: open5gs
     nf: smf
+    slice: {{.ID}}
     name: smf{{.ID}}
 spec:
   ports:
@@ -23,4 +24,5 @@ spec:
   selector:
     app: open5gs
     nf: smf
+    slice: {{.ID}}
     name: smf{{.ID}}

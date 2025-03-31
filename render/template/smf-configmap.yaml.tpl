@@ -5,6 +5,7 @@ metadata:
   labels:
     app: open5gs
     nf: smf
+    slice: {{.ID}}
     name: smf{{.ID}}
 data:
   smfcfg.yaml: |

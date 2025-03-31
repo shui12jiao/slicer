@@ -24,14 +24,14 @@ func NewRender(config util.Config) *Render {
 
 }
 
-func (r *Render) RenderKpiComp(sliceIDs []string) (content []byte, err error) {
-	v := KpiCalc{SliceIDs: sliceIDs}
+func (r *Render) RenderKpiComp(sliceID string) (content []byte, err error) {
+	v := KpiCalc{SliceID: sliceID}
 
 	return r.render("kpi_calculator.yaml.tpl", v)
 }
 
-func (r *Render) RenderMde(sliceIDs []string) (content []byte, err error) {
-	v := MdeValue{SliceIDs: sliceIDs}
+func (r *Render) RenderMde(sliceID string) (content []byte, err error) {
+	v := MdeValue{SliceID: sliceID}
 
 	return r.render("metrics-servicemonitor.yaml.tpl", v)
 }

@@ -1,20 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kpi-calculator
+  name: kpi{{ .SliceID }}-calculator
   namespace: monarch
   labels:
+    {{- if .ne .SliceID "" }}
+    slice: {{ .SliceID }}
+    {{- end }}
     app: monarch
     component: kpi-calculator
 spec:
   selector:
     matchLabels:
+      {{- if .ne .SliceID "" }}
+      slice: {{ .SliceID }}
+      {{- end }}
       app: monarch
       component: kpi-calculator
   replicas: 1
   template:
     metadata:
       labels:
+        {{- if .ne .SliceID "" }}
+        slice: {{ .SliceID }}
+        {{- end }}
         app: monarch
         component: kpi-calculator
     spec:
@@ -46,9 +55,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kpi-calculator-service
+  name: kpi{{ .SliceID }}-calculator-service
   namespace: monarch
   labels:
+    {{- if .ne .SliceID "" }}
+    slice: {{ .SliceID }}
+    {{- end }}
     app: monarch
     component: kpi-calculator
   annotations:
@@ -62,6 +74,9 @@ spec:
       port: 9000 # defined in chart
       targetPort: metrics # port name in pod
   selector:
+    {{- if .ne .SliceID "" }}
+    slice: {{ .SliceID }}
+    {{- end }}
     app: monarch # target pods
     component: kpi-calculator
 ---

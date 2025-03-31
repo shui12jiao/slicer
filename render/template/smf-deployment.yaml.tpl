@@ -4,20 +4,23 @@ metadata:
   name: open5gs-smf{{.ID}}
   labels:
     app: open5gs
-    nf: smf{{.ID}}
+    nf: smf
+    slice: {{.ID}}
     name: smf{{.ID}}
 spec:
   selector:
     matchLabels:
       app: open5gs
-      nf: smf{{.ID}}
+      nf: smf
+      slice: {{.ID}}
       name: smf{{.ID}}
   replicas: 1
   template:
     metadata:
       labels:
         app: open5gs
-        nf: smf{{.ID}}
+        nf: smf
+        slice: {{.ID}}
         name: smf{{.ID}}
       annotations:
         k8s.v1.cni.cncf.io/networks: '[
