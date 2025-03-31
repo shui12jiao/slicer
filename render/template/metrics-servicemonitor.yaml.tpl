@@ -5,7 +5,7 @@ metadata:
   namespace: monarch
   labels:
     nf: amf
-    {{- if .ne .SliceID "" }}
+    {{- if ne .SliceID "" }}
     slice: {{ .SliceID }}
     {{- end }}
     app: monarch
@@ -15,7 +15,7 @@ spec:
   selector:
     matchLabels:
       nf: amf # target amf service
-      {{- if .ne .SliceID "" }}
+      {{- if ne .SliceID "" }}
       slice: {{ .SliceID }}
       {{- end }}
   endpoints:
@@ -29,7 +29,7 @@ metadata:
   namespace: monarch
   labels:
     nf: smf
-    {{- if .ne .SliceID "" }}
+    {{- if ne .SliceID "" }}
     slice: {{ .SliceID }}
     {{- end }}
     app: monarch
@@ -39,7 +39,7 @@ spec:
   selector:
     matchLabels:
       nf: smf # target smf service
-      {{- if .ne .SliceID "" }}
+      {{- if ne .SliceID "" }}
       slice: {{ .SliceID }}
       {{- end }}
   endpoints:
@@ -53,7 +53,7 @@ metadata:
   namespace: monarch
   labels:
     nf: upf
-    {{- if .ne .SliceID "" }}
+    {{- if ne .SliceID "" }}
     slice: {{ .SliceID }}
     {{- end }}
     app: monarch
@@ -63,7 +63,7 @@ spec:
   selector:
     matchLabels:
       nf: upf
-      {{- if .ne .SliceID "" }}
+      {{- if ne .SliceID "" }}
       slice: {{ .SliceID }}
       {{- end }}
   endpoints:

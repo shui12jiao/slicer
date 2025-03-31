@@ -1,6 +1,8 @@
 package render
 
 import (
+	"bytes"
+	"io"
 	"testing"
 
 	"slicer/model"
@@ -29,7 +31,7 @@ var testSlice = model.SliceAndAddress{
 }
 
 // 验证生成的YAML结构
-func TestRenderTemplatesWithTestSlice(t *testing.T) {
+func TestRenderSlice(t *testing.T) {
 	config := util.Config{
 		TemplatePath: "./template",
 		// 假设模板文件已放在测试目录
@@ -65,6 +67,7 @@ func TestRenderTemplatesWithTestSlice(t *testing.T) {
 				// 验证元数据
 				assert.Equal(t, "smf1-000001-configmap", cm.Metadata.Name)
 				assert.Equal(t, "smf1-000001", cm.Metadata.Labels["name"])
+				assert.Equal(t, "1-000001", cm.Metadata.Labels["slice"])
 
 				// 验证配置内容
 				assert.Contains(t, cm.Data.SMFCfgYAML, "- subnet: 10.40.0.0/16", "gateway: 10.40.0.1/16")
@@ -95,6 +98,7 @@ func TestRenderTemplatesWithTestSlice(t *testing.T) {
 				require.NoError(t, yaml.Unmarshal(data, &dep))
 
 				assert.Equal(t, "smf1-000001", dep.Spec.Template.Metadata.Labels["name"])
+				assert.Equal(t, "1-000001", dep.Spec.Template.Metadata.Labels["slice"])
 				assert.Contains(t, dep.Spec.Template.Metadata.Annotations["k8s.v1.cni.cncf.io/networks"],
 					`"n4", "ips": [ "10.10.4.2" ]`,
 					`"n3", "ips": [ "10.10.3.2" ]`)
@@ -139,4 +143,98 @@ iptables -t nat -A POSTROUTING -s 10.41.0.0/16 ! -o ogstun1 -j MASQUERADE;`)
 			tc.validate(t, tc.content)
 		})
 	}
+}
+
+// 测试函数完整实现
+func TestRenderMde(t *testing.T) {
+	config := util.Config{TemplatePath: "./template"}
+	r := NewRender(config)
+
+	type ServiceMonitorDoc struct {
+		Metadata struct {
+			Name   string            `yaml:"name"`
+			Labels map[string]string `yaml:"labels"`
+		} `yaml:"metadata"`
+		Spec struct {
+			Selector struct {
+				MatchLabels map[string]string `yaml:"matchLabels"`
+			} `yaml:"selector"`
+			NamespaceSelector struct {
+				Any bool `yaml:"any"`
+			} `yaml:"namespaceSelector"`
+			Endpoints []struct {
+				Port     string `yaml:"port"`
+				Interval string `yaml:"interval"`
+			} `yaml:"endpoints"`
+		} `yaml:"spec"`
+	}
+
+	testCases := []struct {
+		name    string
+		sliceID string
+		verify  func(*testing.T, []ServiceMonitorDoc)
+	}{
+		{
+			name:    "WithSliceID",
+			sliceID: "1-000001",
+			verify: func(t *testing.T, docs []ServiceMonitorDoc) {
+				require.Len(t, docs, 3, "应生成3个ServiceMonitor文档")
+
+				// 验证AMF
+				assert.Equal(t, "amf1-000001-servicemonitor", docs[0].Metadata.Name)
+				assert.Equal(t, "amf", docs[0].Metadata.Labels["nf"])
+				assert.Equal(t, "1-000001", docs[0].Metadata.Labels["slice"])
+				assert.Equal(t, map[string]string{"nf": "amf", "slice": "1-000001"}, docs[0].Spec.Selector.MatchLabels)
+				assert.True(t, docs[0].Spec.NamespaceSelector.Any)
+
+				// 验证SMF（同理）
+				assert.Equal(t, "smf1-000001-servicemonitor", docs[1].Metadata.Name)
+
+				// 验证UPF
+				assert.Equal(t, "upf1-000001-servicemonitor", docs[2].Metadata.Name)
+			},
+		},
+		{
+			name:    "EmptySliceID",
+			sliceID: "",
+			verify: func(t *testing.T, docs []ServiceMonitorDoc) {
+				require.Len(t, docs, 3)
+
+				// 验证slice标签不存在
+				assert.NotContains(t, docs[0].Metadata.Labels, "slice")
+				assert.NotContains(t, docs[0].Spec.Selector.MatchLabels, "slice")
+
+				// 验证名称格式
+				assert.Equal(t, "amf-servicemonitor", docs[0].Metadata.Name)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			content, err := r.RenderMde(tc.sliceID)
+			require.NoError(t, err)
+
+			var docs []ServiceMonitorDoc
+			decoder := yaml.NewDecoder(bytes.NewReader(content))
+
+			// 多文档循环解析
+			for {
+				var doc ServiceMonitorDoc
+				if err := decoder.Decode(&doc); err != nil {
+					if err == io.EOF {
+						break
+					}
+					require.NoError(t, err)
+				}
+				docs = append(docs, doc)
+			}
+
+			tc.verify(t, docs)
+		})
+	}
+}
+
+func TestRenderKpiCalc(t *testing.T) {
+	// TODO
 }

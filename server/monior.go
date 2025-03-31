@@ -104,7 +104,7 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 	s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
 
 	// 删除KPI
-	yaml, err = s.render.RenderKpiComp(monitor.SliceID)
+	yaml, err = s.render.RenderKpiCalc(monitor.SliceID)
 	if err != nil {
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return

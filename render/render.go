@@ -24,7 +24,7 @@ func NewRender(config util.Config) *Render {
 
 }
 
-func (r *Render) RenderKpiComp(sliceID string) (content []byte, err error) {
+func (r *Render) RenderKpiCalc(sliceID string) (content []byte, err error) {
 	v := KpiCalc{SliceID: sliceID}
 
 	return r.render("kpi_calculator.yaml.tpl", v)

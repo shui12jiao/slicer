@@ -4,7 +4,7 @@ metadata:
   name: kpi{{ .SliceID }}-calculator
   namespace: monarch
   labels:
-    {{- if .ne .SliceID "" }}
+    {{- if ne .SliceID "" }}
     slice: {{ .SliceID }}
     {{- end }}
     app: monarch
@@ -12,7 +12,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      {{- if .ne .SliceID "" }}
+      {{- if ne .SliceID "" }}
       slice: {{ .SliceID }}
       {{- end }}
       app: monarch
@@ -21,7 +21,7 @@ spec:
   template:
     metadata:
       labels:
-        {{- if .ne .SliceID "" }}
+        {{- if ne .SliceID "" }}
         slice: {{ .SliceID }}
         {{- end }}
         app: monarch
@@ -58,7 +58,7 @@ metadata:
   name: kpi{{ .SliceID }}-calculator-service
   namespace: monarch
   labels:
-    {{- if .ne .SliceID "" }}
+    {{- if ne .SliceID "" }}
     slice: {{ .SliceID }}
     {{- end }}
     app: monarch
@@ -74,7 +74,7 @@ spec:
       port: 9000 # defined in chart
       targetPort: metrics # port name in pod
   selector:
-    {{- if .ne .SliceID "" }}
+    {{- if ne .SliceID "" }}
     slice: {{ .SliceID }}
     {{- end }}
     app: monarch # target pods
