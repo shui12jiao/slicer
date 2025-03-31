@@ -43,9 +43,9 @@ func (s *Server) routes() {
 	s.router.HandleFunc("GET /slice", s.listSlice)
 
 	// 监控相关路由(目前只支持切片监控)
-	s.router.HandleFunc("POST /monitor/slice/{sliceId}", s.createMonitor)
-	s.router.HandleFunc("DELETE /monitor/slice/{monitorId}", s.deleteMonitor)
-	s.router.HandleFunc("GET /monitor/slice/{monitorId}", s.getMonitor)
+	s.router.HandleFunc("POST /monitor", s.createMonitor)
+	s.router.HandleFunc("DELETE /monitor/{monitorId}", s.deleteMonitor)
+	s.router.HandleFunc("GET /monitor/{monitorId}", s.getMonitor)
 	s.router.HandleFunc("GET /monitor", s.listMonitor)
 	s.router.HandleFunc("GET /monitor/supported_kpis", s.getSupportedKpis)
 

@@ -23,7 +23,7 @@ func (s *Server) getSupportedKpis(w http.ResponseWriter, r *http.Request) {
 }
 
 // 创建监控请求
-// POST /monitor/slice/{sliceId}
+// POST /monitor
 type createMonitorRequest struct {
 	Monitor model.Monitor `json:"monitor"`
 }
@@ -31,13 +31,6 @@ type createMonitorRequest struct {
 type createMonitorResponse = createMonitorRequest
 
 func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
-	// 获取sliceId
-	sliceId := r.PathValue("sliceId")
-	if sliceId == "" {
-		http.Error(w, "缺少sliceId参数", http.StatusBadRequest)
-		return
-	}
-
 	// 解析请求
 	var createMonitorRequest createMonitorRequest
 	if err := json.NewDecoder(r.Body).Decode(&createMonitorRequest); err != nil {
@@ -46,8 +39,15 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 	monitor := createMonitorRequest.Monitor
 
+	// 获取sliceId
+	sliceId := monitor.SliceID
+	if sliceId == "" {
+		http.Error(w, "缺少sliceId参数", http.StatusBadRequest)
+		return
+	}
+
 	// 验证请求
-	if err := monitor.Validate(sliceId); err != nil {
+	if err := monitor.Validate(); err != nil {
 		http.Error(w, "请求验证失败: "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -81,11 +81,35 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 发送删除监控请求
-	err := s.monitor.DeleteMonitoring(monitorId)
+	// err := s.monitor.DeleteMonitoring(monitorId)
+	// if err != nil {
+	// 	http.Error(w, "提交监控请求失败: "+err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+
+	// 从monitor存储中获取sliceId
+	monitor, err := s.store.GetMonitor(monitorId)
 	if err != nil {
-		http.Error(w, "提交监控请求失败: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "不存在该监控请求: "+err.Error(), http.StatusNotFound)
 		return
 	}
+
+	// 这里不需要发送删除监控请求，直接进行删除
+	// 删除MDE
+	yaml, err := s.render.RenderMde([]string{monitor.SliceID})
+	if err != nil {
+		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
+
+	// 删除KPI
+	yaml, err = s.render.RenderKpiComp([]string{monitor.SliceID})
+	if err != nil {
+		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
 
 	// 存储中删除
 	err = s.store.DeleteMonitor(monitorId)

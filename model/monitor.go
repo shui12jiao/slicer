@@ -15,13 +15,16 @@ type SupportedKpi struct {
 }
 
 type Monitor struct {
-	ID                 primitive.ObjectID `json:"id" yaml:"id" bson:"_id,omitempty"`
+	ID primitive.ObjectID `json:"id" yaml:"id" bson:"_id,omitempty"`
+	// 通用
 	APIVersion         string             `json:"api_version" yaml:"api_version"`
 	RequestDescription string             `json:"request_description" yaml:"request_description"`
 	Scope              Scope              `json:"scope" yaml:"scope"`
 	KPI                KPI                `json:"kpi" yaml:"kpi"`
 	Duration           Duration           `json:"duration" yaml:"duration"`
 	MonitoringInterval MonitoringInterval `json:"monitoring_interval" yaml:"monitoring_interval"`
+	// 监控的切片ID
+	SliceID string `json:"slice_id" yaml:"slice_id"`
 	//用于request translator
 	RequestID string `json:"request_id,omitempty" yaml:"request_id,omitempty"`
 }
@@ -53,11 +56,11 @@ type MonitoringInterval struct {
 	IntervalSecs int  `json:"interval_seconds" yaml:"interval_seconds"`
 }
 
-func (m *Monitor) Validate(sliceID string) error {
+func (m *Monitor) Validate() error {
 	// Validate the Monitor struct
 	switch m.KPI.KPIName {
 	case "slice_throughput":
-		if m.Scope.ScopeType == "slice" && m.KPI.SubCounter.SubCounterType == "SNSSAI" && len(m.KPI.SubCounter.SubCounterIDs) == 1 && sliceID == m.KPI.SubCounter.SubCounterIDs[0] {
+		if m.Scope.ScopeType == "slice" && m.KPI.SubCounter.SubCounterType == "SNSSAI" && len(m.KPI.SubCounter.SubCounterIDs) == 1 && m.SliceID == m.KPI.SubCounter.SubCounterIDs[0] {
 			return nil
 		}
 		return errors.New("slice_throughput KPI验证失败")
