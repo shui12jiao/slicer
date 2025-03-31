@@ -1,3 +1,5 @@
+.PHONY: mongo minikube k3d cloc build push
+
 mongo:
 	docker run -d --name mongo --network=host -e MONGODB_ROOT_USER=admin -e MONGODB_ROOT_PASSWORD=admin -e MONGODB_DATABASE=slicer bitnami/mongodb
 
@@ -10,3 +12,19 @@ k3d:
 
 cloc:
 	cloc --exclude-dir=kubernetes,Monarch --exclude-ext=csv,py .
+
+
+# docker相关
+IMAGE_PREFIX := shui12jiao/slicer
+VERSION := $(VERSION)
+
+ifeq ($(VERSION),) # 如果未提供版本号，则使用默认值 'latest'
+    VERSION := latest
+endif
+
+build:
+	docker build -t $(IMAGE_PREFIX):$(VERSION) .
+push:
+	docker push $(IMAGE_PREFIX):$(VERSION)
+
+
