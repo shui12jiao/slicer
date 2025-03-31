@@ -4,20 +4,20 @@ metadata:
   name: open5gs-upf{{.ID}}
   labels:
     app: open5gs
-    nf: upf
+    nf: upf{{.ID}}
     name: upf{{.ID}}
 spec:
   selector:
     matchLabels:
       app: open5gs
-      nf: upf
+      nf: upf{{.ID}}
       name: upf{{.ID}}
   replicas: 1
   template:
     metadata:
       labels:
         app: open5gs
-        nf: upf
+        nf: upf{{.ID}}
         name: upf{{.ID}}
       annotations:
         k8s.v1.cni.cncf.io/networks: '[
@@ -40,13 +40,13 @@ spec:
               "until nc -z $DEPENDENCIES; do echo waiting for the SMF; sleep 2; done;",
             ]
       containers:
-        - name: upf
+        - name: upf{{.ID}}
           image: docker.io/shui12jiao/open5gs:v2.7.2
           imagePullPolicy: Always
           command: ["/open5gs/config/wrapper.sh"]
           volumeMounts:
             - mountPath: /open5gs/config/
-              name: upf-volume
+              name: upf{{.ID}}-volume
           ports:
             - containerPort: 8805
               name: n4
@@ -62,7 +62,7 @@ spec:
             privileged: true
       restartPolicy: Always
       volumes:
-        - name: upf-volume
+        - name: upf{{.ID}}-volume
           configMap:
             name: upf{{.ID}}-configmap
             items:

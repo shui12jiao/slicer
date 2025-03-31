@@ -37,7 +37,7 @@ func TestRenderTemplatesWithTestSlice(t *testing.T) {
 	r := NewRender(config)
 
 	// 生成配置内容
-	contents, err := r.SliceToKube(testSlice)
+	contents, err := r.RenderSlice(testSlice)
 	require.NoError(t, err, "生成配置失败")
 	require.Len(t, contents, 5, "应生成5个配置文件")
 

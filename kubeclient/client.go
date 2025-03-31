@@ -123,21 +123,26 @@ func (kc *KubeClient) GetNamespaces() ([]corev1.Namespace, error) {
 }
 
 // GetPods 获取指定命名空间下的Pod列表
-func (kc *KubeClient) GetPods(namespace string) ([]corev1.Pod, error) {
-	pods, err := kc.clientset.CoreV1().Pods(namespace).List(context.TODO(), v1.ListOptions{})
+func (kc *KubeClient) GetPods(namespace string, labelSelector ...string) ([]corev1.Pod, error) {
+	pods, err := kc.clientset.CoreV1().Pods(namespace).List(context.TODO(), v1.ListOptions{
+		LabelSelector: strings.Join(labelSelector, ","),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("获取Pod列表失败: %v", err)
 	}
 	return pods.Items, nil
 }
 
-// GetServices 获取指定命名空间下的Service列表
-func (kc *KubeClient) GetServices(namespace string) ([]corev1.Service, error) {
-	services, err := kc.clientset.CoreV1().Services(namespace).List(context.TODO(), v1.ListOptions{})
+// GetServices 获取指定命名空间下的Service列表,支持标签选择器(可选)
+func (kc *KubeClient) GetServices(namespace string, labelSelector ...string) ([]corev1.Service, error) {
+	// 使用标签选择器过滤Service
+	serviceList, err := kc.clientset.CoreV1().Services(namespace).List(context.TODO(), v1.ListOptions{
+		LabelSelector: strings.Join(labelSelector, ","),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("获取Service列表失败: %v", err)
 	}
-	return services.Items, nil
+	return serviceList.Items, nil
 }
 
 // Apply 将YAML配置应用到集群，支持多资源文档（以---分隔）

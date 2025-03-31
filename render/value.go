@@ -5,6 +5,12 @@ import (
 	"net"
 )
 
+type KpiCalc = MdeValue
+
+type MdeValue struct {
+	SliceIDs []string // 切片ID列表
+}
+
 type SliceValue struct {
 	ID  string // 切片ID= SST-SD
 	SST string
@@ -19,10 +25,10 @@ type SessionValue struct {
 
 func (s *SessionValue) Gateway() string { // 10.41.0.1/16
 	_, ipnet, _ := net.ParseCIDR(s.Subnet)
-    ip := ipnet.IP.To4()
-    ip[3] = 1 // 主机位设为1（如10.41.0.1）
-    maskSize, _ := ipnet.Mask.Size()
-    return fmt.Sprintf("%s/%d", ip, maskSize)
+	ip := ipnet.IP.To4()
+	ip[3] = 1 // 主机位设为1（如10.41.0.1）
+	maskSize, _ := ipnet.Mask.Size()
+	return fmt.Sprintf("%s/%d", ip, maskSize)
 }
 
 type SessionValues = []SessionValue

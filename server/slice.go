@@ -80,7 +80,7 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// 切片转化为k8s资源
-	contents, err := s.render.SliceToKube(wrappedSlice)
+	contents, err := s.render.RenderSlice(wrappedSlice)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("渲染slice失败: %v", err), http.StatusInternalServerError)
 		return
@@ -127,7 +127,7 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 切片转化为k8s资源
-	contents, err := s.render.SliceToKube(slice)
+	contents, err := s.render.RenderSlice(slice)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("渲染slice失败: %v", err), http.StatusInternalServerError)
 		return

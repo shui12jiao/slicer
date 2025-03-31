@@ -119,36 +119,170 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	// 并未对directive（包含SliceComponents信息）进行解析
 
 	// 从r中获取
+	var req noMdeInstallRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, fmt.Sprintf("请求解析失败: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// 检查slice是否存在
+	_, err := s.store.GetSliceBySliceID(req.SliceId)
+	if err != nil {
+		http.Error(w, "获取slice失败", http.StatusInternalServerError)
+		return
+	}
+
+	// 渲染mde的yaml文件
+	yaml, err := s.render.RenderMde([]string{req.SliceId})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("渲染yaml失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// 部署mde
+	if err := s.kubeclient.Apply(yaml, s.config.MonitorNamespace); err != nil {
+		http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// 返回响应
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
 // 用于响应监控系统的mde卸载请求
 // POST /nfv-orchestrator/mde/uninstall
-func (s *Server) noMdeUninstall(w http.ResponseWriter, r *http.Request) {
-	// TODO
-}
+// func (s *Server) noMdeUninstall(w http.ResponseWriter, r *http.Request) {
+// 	// 无需实现，卸载直接由该系统完成，跳过监控系统
+// }
 
 // 用于响应监控系统的mde检查请求
 // POST /nfv-orchestrator/mde/check
+
+type noMdeCheckResponse struct {
+	monitor.Response
+	Output string `json:"output"`
+}
+
 func (s *Server) noMdeCheck(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	// kubectl get svc -n open5gs -l app=monarch -o json | jq .items[].metadata.name
+	svcs, err := s.kubeclient.GetServices(s.config.MonitorNamespace, "app=monarch")
+	// 设置响应头
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		encodeResponse(w, noMdeCheckResponse{
+			Response: monitor.Response{
+				Status:  "error",
+				Message: "MDE 测试失败",
+			},
+			Output: fmt.Sprintf("获取服务失败: %v", err),
+		})
+		return
+	}
+
+	// 只返回服务名称
+	var serviceNames []string
+	for _, svc := range svcs {
+		serviceNames = append(serviceNames, svc.Name)
+	}
+
+	// 编码响应
+	w.WriteHeader(http.StatusOK)
+	encodeResponse(w, noMdeCheckResponse{
+		Response: monitor.Response{
+			Status:  "success",
+			Message: "MDE 测试成功",
+		},
+		Output: fmt.Sprintf("获取服务成功: %v", serviceNames),
+	})
 }
 
 // 用于响应监控系统的kpi计算组件安装请求
 // POST /nfv-orchestrator/kpi-computation/install
+
+type noKpiComputationInstallRequest = noMdeInstallRequest
+
 func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	// monarch的monitor manager组件中，process_slice_throughput_directive负责向no发送mdeinstall请求
+	// 并未对directive（包含SliceComponents信息）进行解析
+
+	// 从r中获取
+	var req noKpiComputationInstallRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, fmt.Sprintf("请求解析失败: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// 检查slice是否存在
+	_, err := s.store.GetSliceBySliceID(req.SliceId)
+	if err != nil {
+		http.Error(w, "获取slice失败", http.StatusInternalServerError)
+		return
+	}
+
+	// 渲染kpsc的yaml文件
+	yaml, err := s.render.RenderKpiComp([]string{req.SliceId})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("渲染yaml失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// 部署kpic
+	if err := s.kubeclient.Apply(yaml, s.config.MonitorNamespace); err != nil {
+		http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// 返回响应
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
 // 用于响应监控系统的kpi计算组件卸载请求
 // POST /nfv-orchestrator/kpi-computation/uninstall
-func (s *Server) noKpiComputationUninstall(w http.ResponseWriter, r *http.Request) {
-	// TODO
-}
+// func (s *Server) noKpiComputationUninstall(w http.ResponseWriter, r *http.Request) {
+// 	// 无需实现，卸载直接由该系统完成，跳过监控系统
+// }
 
 // 用于响应监控系统的kpi计算组件检查请求
 // POST /nfv-orchestrator/kpi-computation/check
+
+type noKpiComputationCheckResponse = noMdeCheckResponse
+
 func (s *Server) noKpiComputationCheck(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	// kubectl get pods -n monarch -l app=monarch,component=kpi-calculator -o json | jq .items[].metadata.name
+	pods, err := s.kubeclient.GetPods(s.config.MonitorNamespace, "app=monarch", "component=kpi-calculator")
+
+	// 设置响应头
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		encodeResponse(w, noKpiComputationCheckResponse{
+			Response: monitor.Response{
+				Status:  "error",
+				Message: "KPI computation 测试失败",
+			},
+			Output: fmt.Sprintf("获取服务失败: %v", err),
+		})
+		return
+	}
+
+	// 只返回服务名称
+	var podNames []string
+	for _, pod := range pods {
+		podNames = append(podNames, pod.Name)
+	}
+
+	// 编码响应
+	w.WriteHeader(http.StatusOK)
+	encodeResponse(w, noKpiComputationCheckResponse{
+		Response: monitor.Response{
+			Status:  "success",
+			Message: "KPI computation 测试成功",
+		},
+		Output: fmt.Sprintf("获取Pod成功: %v", podNames),
+	})
 }
 
 // 用于响应监控系统的健康检查请求

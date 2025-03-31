@@ -4,20 +4,20 @@ metadata:
   name: open5gs-smf{{.ID}}
   labels:
     app: open5gs
-    nf: smf
+    nf: smf{{.ID}}
     name: smf{{.ID}}
 spec:
   selector:
     matchLabels:
       app: open5gs
-      nf: smf
+      nf: smf{{.ID}}
       name: smf{{.ID}}
   replicas: 1
   template:
     metadata:
       labels:
         app: open5gs
-        nf: smf
+        nf: smf{{.ID}}
         name: smf{{.ID}}
       annotations:
         k8s.v1.cni.cncf.io/networks: '[
@@ -41,7 +41,7 @@ spec:
             ]
       containers:
         - image: docker.io/shui12jiao/open5gs:v2.7.2
-          name: smf
+          name: smf{{.ID}}
           imagePullPolicy: Always
           ports:
             - name: nsmf
@@ -56,7 +56,7 @@ spec:
               value: release
           volumeMounts:
             - mountPath: /open5gs/config/
-              name: smf-volume
+              name: smf{{.ID}}-volume
           securityContext:
             capabilities:
               add: ["NET_ADMIN"]
@@ -70,7 +70,7 @@ spec:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
-        - name: smf-volume
+        - name: smf{{.ID}}-volume
           projected:
             sources:
               - configMap:

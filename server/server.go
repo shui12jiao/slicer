@@ -55,10 +55,10 @@ func (s *Server) routes() {
 	s.router.HandleFunc("GET /service-orchestrator/api/health", s.soCheckHealth)
 	// monarch调用nfv orchestration相关接口
 	s.router.HandleFunc("POST /nfv-orchestrator/mde/install", s.noMdeInstall)
-	s.router.HandleFunc("POST /nfv-orchestrator/mde/uninstall", s.noMdeUninstall)
+	// s.router.HandleFunc("POST /nfv-orchestrator/mde/uninstall", s.noMdeUninstall)
 	s.router.HandleFunc("POST /nfv-orchestrator/mde/check", s.noMdeCheck)
 	s.router.HandleFunc("POST /nfv-orchestrator/kpi-computation/install", s.noKpiComputationInstall)
-	s.router.HandleFunc("POST /nfv-orchestrator/kpi-computation/uninstall", s.noKpiComputationUninstall)
+	// s.router.HandleFunc("POST /nfv-orchestrator/kpi-computation/uninstall", s.noKpiComputationUninstall)
 	s.router.HandleFunc("POST /nfv-orchestrator/kpi-computation/check", s.noKpiComputationCheck)
 	s.router.HandleFunc("GET /nfv-orchestrator/api/health", s.noCheckHealth)
 }

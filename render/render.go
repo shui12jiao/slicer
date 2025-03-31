@@ -24,7 +24,19 @@ func NewRender(config util.Config) *Render {
 
 }
 
-func (r *Render) SliceToKube(slice model.SliceAndAddress) (contents [][]byte, err error) {
+func (r *Render) RenderKpiComp(sliceIDs []string) (content []byte, err error) {
+	v := KpiCalc{SliceIDs: sliceIDs}
+
+	return r.render("kpi_calculator.yaml.tpl", v)
+}
+
+func (r *Render) RenderMde(sliceIDs []string) (content []byte, err error) {
+	v := MdeValue{SliceIDs: sliceIDs}
+
+	return r.render("metrics-servicemonitor.yaml.tpl", v)
+}
+
+func (r *Render) RenderSlice(slice model.SliceAndAddress) (contents [][]byte, err error) {
 	_, _, smfcv, smfdv, smfsv, upfcv, upfdv := sliceToValue(slice)
 
 	//从value中生成kubernetes配置文件
@@ -48,32 +60,41 @@ func (r *Render) SliceToKube(slice model.SliceAndAddress) (contents [][]byte, er
 	}
 
 	for _, res := range resources {
-		// 构造模板文件路径
-		tplPath := filepath.Join(r.config.TemplatePath, res.templateFile)
-
-		// 读取模板内容
-		tplContent, err := os.ReadFile(tplPath)
+		content, err := r.render(res.templateFile, res.data)
 		if err != nil {
-			return nil, fmt.Errorf("读取模板文件 %s 失败: %v", tplPath, err)
-
-		}
-
-		// 解析模板
-		tmpl, err := template.New(res.templateFile).Parse(string(tplContent))
-		if err != nil {
-			return nil, fmt.Errorf("解析模板失败[%s]: %w", res.templateFile, err)
-		}
-
-		// 渲染到内存缓冲区
-		var buf bytes.Buffer
-		if err := tmpl.Execute(&buf, res.data); err != nil {
 			return nil, fmt.Errorf("渲染失败[%s]: %w", res.templateFile, err)
 		}
 
-		contents = append(contents, buf.Bytes())
+		contents = append(contents, content)
 	}
 
 	return
+}
+
+func (r *Render) render(tplFile string, value any) ([]byte, error) {
+	// 构造模板文件路径
+	tplPath := filepath.Join(r.config.TemplatePath, tplFile)
+
+	// 读取模板内容
+	tplContent, err := os.ReadFile(tplPath)
+	if err != nil {
+		return nil, fmt.Errorf("读取模板文件 %s 失败: %v", tplPath, err)
+
+	}
+
+	// 解析模板
+	tmpl, err := template.New(tplFile).Parse(string(tplContent))
+	if err != nil {
+		return nil, fmt.Errorf("解析模板失败[%s]: %w", tplFile, err)
+	}
+
+	// 渲染到内存缓冲区
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, value); err != nil {
+		return nil, fmt.Errorf("渲染失败[%s]: %w", tplFile, err)
+	}
+
+	return buf.Bytes(), nil
 }
 
 func sliceToValue(ws model.SliceAndAddress) (
