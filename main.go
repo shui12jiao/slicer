@@ -15,17 +15,14 @@ import (
 func main() {
 	config := util.LoadConfig()
 
-	// 初始化monitor监控系统交互组件
-	monitor, err := monitor.NewMonitor(config)
-	if err != nil {
-		log.Fatalf("初始化监控系统失败: %v", err)
-	}
-
 	// 连接数据库
 	store, err := db.NewMongoDB(config)
 	if err != nil {
 		log.Fatalf("连接数据库失败: %v", err)
 	}
+
+	// 初始化monitor监控系统交互组件
+	monitor := monitor.NewMonitor(config)
 
 	// 初始化渲染器
 	render := render.NewRender(config)
