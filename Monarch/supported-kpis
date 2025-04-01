@@ -1,0 +1,10 @@
+{
+  "status": "success",
+  "supported_kpis": [
+    {
+      "kpi_description": "Throughput per slice",
+      "kpi_name": "slice_throughput",
+      "kpi_unit": "bits/sec"
+    }
+  ]
+}
