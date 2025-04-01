@@ -39,8 +39,14 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 	monitor := createMonitorRequest.Monitor
 
+	// 检查请求参数
+	if err := monitor.Validate(); err != nil {
+		http.Error(w, "请求验证失败: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	// 获取sliceId
-	sliceId := monitor.SliceID
+	sliceId := monitor.KPI.SubCounter.SubCounterIDs[0]
 	if sliceId == "" {
 		http.Error(w, "缺少sliceId参数", http.StatusBadRequest)
 		return
@@ -94,9 +100,12 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 获取sliceId
+	sliceId := monitor.KPI.SubCounter.SubCounterIDs[0]
+
 	// 这里不需要发送删除监控请求，直接进行删除
 	// 删除MDE
-	yaml, err := s.render.RenderMde(monitor.SliceID)
+	yaml, err := s.render.RenderMde(sliceId)
 	if err != nil {
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -104,7 +113,7 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 	s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
 
 	// 删除KPI
-	yaml, err = s.render.RenderKpiCalc(monitor.SliceID)
+	yaml, err = s.render.RenderKpiCalc(sliceId)
 	if err != nil {
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return

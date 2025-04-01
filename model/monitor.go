@@ -20,11 +20,9 @@ type Monitor struct {
 	APIVersion         string             `json:"api_version" yaml:"api_version"`
 	RequestDescription string             `json:"request_description" yaml:"request_description"`
 	Scope              Scope              `json:"scope" yaml:"scope"`
-	KPI                KPI                `json:"kpi" yaml:"kpi"`
+	KPI                KPI                `json:"kpi" yaml:"kpi"` // 核心内容
 	Duration           Duration           `json:"duration" yaml:"duration"`
 	MonitoringInterval MonitoringInterval `json:"monitoring_interval" yaml:"monitoring_interval"`
-	// 监控的切片ID
-	SliceID string `json:"slice_id" yaml:"slice_id"`
 	//用于request translator
 	RequestID string `json:"request_id,omitempty" yaml:"request_id,omitempty"`
 }
@@ -60,7 +58,7 @@ func (m *Monitor) Validate() error {
 	// Validate the Monitor struct
 	switch m.KPI.KPIName {
 	case "slice_throughput":
-		if m.Scope.ScopeType == "slice" && m.KPI.SubCounter.SubCounterType == "SNSSAI" && len(m.KPI.SubCounter.SubCounterIDs) == 1 && m.SliceID == m.KPI.SubCounter.SubCounterIDs[0] {
+		if m.Scope.ScopeType == "slice" && m.KPI.SubCounter.SubCounterType == "SNSSAI" && len(m.KPI.SubCounter.SubCounterIDs) == 1 {
 			return nil
 		}
 		return errors.New("slice_throughput KPI验证失败")
