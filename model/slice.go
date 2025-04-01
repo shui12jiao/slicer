@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Slice struct {
