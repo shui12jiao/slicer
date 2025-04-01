@@ -39,6 +39,7 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	_, err = s.store.GetSliceBySliceID(slice.SliceID())
 	if err == nil {
 		http.Error(w, fmt.Sprintf("slice已存在: %v", slice.SliceID()), http.StatusBadRequest)
+		return
 	}
 
 	// 定义一个回滚栈，用于记录需要回滚的操作
