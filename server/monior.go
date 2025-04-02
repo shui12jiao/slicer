@@ -52,12 +52,6 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 验证请求
-	if err := monitor.Validate(); err != nil {
-		http.Error(w, "请求验证失败: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	// 发送监控请求
 	monitor, err := s.monitor.SubmitMonitoring(monitor)
 	if err != nil {

@@ -21,7 +21,7 @@ spec:
       containers:
         - image: ghcr.io/niloysh/request-translator:v1.0.0
           name: request-translator
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - name: api
               containerPort: 7000

@@ -23,7 +23,7 @@ spec:
       containers:
         - image: ghcr.io/niloysh/monitoring-manager:v1.0.0
           name: monitoring-manager
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - name: api
               containerPort: 6000
