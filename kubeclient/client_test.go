@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slicer/util"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +25,9 @@ import (
 	"k8s.io/client-go/restmapper"
 	"k8s.io/klog/v2"
 )
+
+// !!!注意!!!
+// fake client对ssa（server-side apply）支持有限,改为ssa后可能会导致测试失败
 
 // newFakeKubeClient 构造一个使用 fake client 的 KubeClient 实例
 func newFakeKubeClient(t *testing.T) *KubeClient {
@@ -340,4 +344,103 @@ func TestWithRealKubeClient(t *testing.T) {
 	assert.NotEmpty(t, pods)
 	// 打印pods为json
 	fmt.Println(pods)
+}
+
+func TestWithRealKubeClientApply(t *testing.T) {
+	// 创建一个真实的 KubeClient 实例
+	kc, err := NewKubeClient(util.Config{
+		Namespace:        "open5gs",
+		MonitorNamespace: "monarch",
+		KubeconfigPath:   "/home/sming/.kube/config",
+	})
+	require.NoError(t, err)
+
+	klog.InitFlags(nil)
+	flag.Set("v", "6") // 日志级别调至最高
+
+	yamlData := []byte(`
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kpi-calculator
+  namespace: monarch
+  labels:
+    app: monarch
+    component: kpi-calculator
+spec:
+  selector:
+    matchLabels:
+      app: monarch
+      component: kpi-calculator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: monarch
+        component: kpi-calculator
+    spec:
+      containers:
+        - image: ghcr.io/niloysh/kpi-calculator-open5gs:v1.0.0-standard
+          name: kpi-calculator
+          imagePullPolicy: Always
+          ports:
+            - name: metrics
+              containerPort: 9000
+          env:
+            - name: UPDATE_PERIOD
+              value: "1"
+            - name: MONARCH_THANOS_URL
+              value: "http://172.18.0.3:31004"
+            - name: TIME_RANGE
+              value: "30s"
+          command: ["/bin/bash", "-c", "--"]
+          args: ["python -u kpi_calculator.py --log debug"]
+          resources:
+            requests:
+              memory: "100Mi"
+              cpu: "100m"
+            limits:
+              memory: "200Mi"
+              cpu: "200m"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kpi-calculator-service
+  namespace: monarch
+  labels:
+    app: monarch
+    component: kpi-calculator
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io.scheme: "http"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "9000"
+spec:
+  ports:
+    - name: metrics # expose metrics port
+      port: 9000 # defined in chart
+      targetPort: metrics # port name in pod
+  selector:
+    app: monarch # target pods
+    component: kpi-calculator
+---`)
+	err = kc.Apply(yamlData, "monarch")
+	require.NoError(t, err)
+
+	// 验证能获取到kpi-calculator
+	svcs, err := kc.GetServices("monarch", "app=monarch", "component=kpi-calculator")
+	require.NoError(t, err)
+	assert.NotEmpty(t, svcs)
+
+	// 删除测试
+	err = kc.Delete(yamlData, "monarch")
+	require.NoError(t, err)
+	// 这里可能会有延迟，给点时间
+	time.Sleep(2 * time.Second)
+	// 验证删除成功
+	svcs, err = kc.GetServices("monarch", "app=monarch", "component=kpi-calculator")
+	require.NoError(t, err)
+	assert.Empty(t, svcs)
 }

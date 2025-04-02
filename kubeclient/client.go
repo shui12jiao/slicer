@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -145,6 +146,17 @@ func (kc *KubeClient) GetServices(namespace string, labelSelector ...string) ([]
 	return serviceList.Items, nil
 }
 
+func (kc *KubeClient) GetDeployments(namespace string, labelSelector ...string) ([]appsv1.Deployment, error) {
+	// 使用标签选择器过滤Deployment
+	deploymentList, err := kc.clientset.AppsV1().Deployments(namespace).List(context.TODO(), v1.ListOptions{
+		LabelSelector: strings.Join(labelSelector, ","),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("获取Deployment列表失败: %v", err)
+	}
+	return deploymentList.Items, nil
+}
+
 // Apply 将YAML配置应用到集群，支持多资源文档（以---分隔）
 func (kc *KubeClient) Apply(yamlData []byte, namespace string) error {
 	decoder := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(yamlData), 100)
@@ -171,20 +183,38 @@ func (kc *KubeClient) Apply(yamlData []byte, namespace string) error {
 			resourceClient = kc.dynamicClient.Resource(mapping.Resource)
 		}
 
-		// 创建或更新资源
-		_, err = resourceClient.Create(context.TODO(), &rawObj, v1.CreateOptions{})
-		if err != nil {
-			if errors.IsAlreadyExists(err) {
-				// 更新资源
-				_, err = resourceClient.Update(context.TODO(), &rawObj, v1.UpdateOptions{})
-				if err != nil {
-					return fmt.Errorf("更新资源 %s/%s 失败: %v", gvk.Kind, rawObj.GetName(), err)
-				}
-
-			} else {
-				return fmt.Errorf("创建资源 %s/%s 失败: %v", gvk.Kind, rawObj.GetName(), err)
-			}
+		// 使用 Server-Side Apply
+		applyOptions := v1.ApplyOptions{
+			FieldManager: "application/apply-patch", // 指定字段管理器名称
+			Force:        true,                      // 强制应用，必要时覆盖其他管理器的字段
 		}
+
+		// 应用资源
+		_, err = resourceClient.Apply(
+			context.TODO(),
+			rawObj.GetName(),
+			&unstructured.Unstructured{Object: rawObj.Object},
+			applyOptions,
+		)
+
+		if err != nil {
+			return fmt.Errorf("应用资源 %s/%s 失败: %v", gvk.Kind, rawObj.GetName(), err)
+		}
+
+		// // 创建或更新资源
+		// _, err = resourceClient.Create(context.TODO(), &rawObj, v1.CreateOptions{})
+		// if err != nil {
+		// 	if errors.IsAlreadyExists(err) {
+		// 		// 更新资源
+		// 		_, err = resourceClient.Update(context.TODO(), &rawObj, v1.UpdateOptions{})
+		// 		if err != nil {
+		// 			return fmt.Errorf("更新资源 %s/%s 失败: %v", gvk.Kind, rawObj.GetName(), err)
+		// 		}
+
+		// 	} else {
+		// 		return fmt.Errorf("创建资源 %s/%s 失败: %v", gvk.Kind, rawObj.GetName(), err)
+		// 	}
+		// }
 	}
 	return nil
 }

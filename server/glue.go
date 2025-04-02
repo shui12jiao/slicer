@@ -233,6 +233,30 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 	// monarch的monitor manager组件中，process_slice_throughput_directive负责向no发送mdeinstall请求
 	// 并未对directive（包含SliceComponents信息）进行解析
 
+	// 对监控系统暂时的单独处理
+	// 暂时认为如果sliceId为空, 则监控全部slice
+	if r.Body == http.NoBody {
+		// 处理空请求体的逻辑
+
+		// 渲染kpsc的yaml文件
+		yaml, err := s.render.RenderKpiCalc("")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("渲染yaml失败: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// 部署kpic
+		if err := s.kubeclient.Apply(yaml, s.config.MonitorNamespace); err != nil {
+			http.Error(w, fmt.Sprintf("部署kpic失败: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// 返回响应
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	// 从r中获取
 	var req noKpiComputationInstallRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
