@@ -38,7 +38,7 @@ spec:
             - name: UPDATE_PERIOD
               value: "1"
             - name: MONARCH_THANOS_URL
-              value: "${MONARCH_THANOS_URL}"
+              value: "{{.ThanosURL}}"
             - name: TIME_RANGE
               value: "30s"
           command: ["/bin/bash", "-c", "--"]

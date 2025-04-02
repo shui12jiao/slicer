@@ -82,16 +82,16 @@ func (m *Monitor) SubmitMonitoring(monitor model.Monitor) (model.Monitor, error)
 	defer resp.Body.Close()
 
 	// 解析响应
-	if resp.StatusCode != http.StatusOK {
-		return monitor, errors.New("translator 服务异常，状态码: " + fmt.Sprint(resp.StatusCode))
-	}
+	// if resp.StatusCode != http.StatusOK {
+	// 	return monitor, errors.New("translator 服务异常，状态码: " + fmt.Sprint(resp.StatusCode))
+	// }
 
 	var submitMonitoringResponse submitMonitoringResponse
 	if err := json.NewDecoder(resp.Body).Decode(&submitMonitoringResponse); err != nil {
 		return monitor, fmt.Errorf("解析Monarch response失败: %v", err)
 	}
-	if submitMonitoringResponse.Status != "success" {
-		return monitor, errors.New("translator 服务异常，%v" + submitMonitoringResponse.Message)
+	if submitMonitoringResponse.Status != "success" || resp.StatusCode != http.StatusOK {
+		return monitor, fmt.Errorf("translator 服务异常，消息: %s, 状态码: %d", submitMonitoringResponse.Message, resp.StatusCode)
 	}
 
 	monitor.RequestID = submitMonitoringResponse.RequestID

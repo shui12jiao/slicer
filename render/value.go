@@ -5,10 +5,14 @@ import (
 	"net"
 )
 
-type KpiCalc = MdeValue
+type KpiCalc struct {
+	SliceID   string // 切片ID
+	ThanosURL string // Thanos地址
+}
 
 type MdeValue struct {
-	SliceID string // 切片ID
+	SliceID  string // 切片ID
+	Interval uint8  // 采集间隔
 }
 
 type SliceValue struct {

@@ -10,6 +10,7 @@ type Config struct {
 	// for monitor
 	MonarchThanosURI            string
 	MonarchRequestTranslatorURI string
+	MonarchMonitoringInterval   uint8
 	MonitorTimeout              uint8
 
 	// for mongodb
@@ -44,6 +45,7 @@ func LoadConfig() Config {
 		// for monitor
 		MonarchThanosURI:            MustGetEnvString("MONARCH_THANOS_URL"),
 		MonarchRequestTranslatorURI: MustGetEnvString("MONARCH_REQUEST_TRANSLATOR_URI"),
+		MonarchMonitoringInterval:   MustGetEnvUInt8("MONARCH_MONITORING_INTERVAL"),
 		MonitorTimeout:              MustGetEnvUInt8("MONITOR_TIMEOUT"),
 
 		// for mongodb

@@ -2,6 +2,7 @@ package render
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"testing"
 
@@ -145,10 +146,18 @@ iptables -t nat -A POSTROUTING -s 10.41.0.0/16 ! -o ogstun1 -j MASQUERADE;`)
 	}
 }
 
+var testConfig = util.Config{
+	TemplatePath:                "./template",
+	MonarchThanosURI:            "http://172.18.0.3:31004",
+	MonarchRequestTranslatorURI: "http://172.18.0.3:31005",
+	MonarchMonitoringInterval:   1,
+}
+
+var testRender = NewRender(testConfig)
+
 // 测试函数完整实现
 func TestRenderMde(t *testing.T) {
-	config := util.Config{TemplatePath: "./template"}
-	r := NewRender(config)
+	r := testRender
 
 	type ServiceMonitorDoc struct {
 		Metadata struct {
@@ -213,6 +222,8 @@ func TestRenderMde(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			content, err := r.RenderMde(tc.sliceID)
+			// debug 打印content
+			fmt.Println(string(content))
 			require.NoError(t, err)
 
 			var docs []ServiceMonitorDoc
@@ -236,5 +247,15 @@ func TestRenderMde(t *testing.T) {
 }
 
 func TestRenderKpiCalc(t *testing.T) {
+	r := testRender
+
+	content, err := r.RenderKpiCalc("1-000001")
+	fmt.Println(string(content))
+	require.NoError(t, err)
+
+	content, err = r.RenderKpiCalc("")
+	fmt.Println(string(content))
+	require.NoError(t, err)
+
 	// TODO
 }

@@ -21,17 +21,22 @@ func NewRender(config util.Config) *Render {
 	return &Render{
 		config: config,
 	}
-
 }
 
 func (r *Render) RenderKpiCalc(sliceID string) (content []byte, err error) {
-	v := KpiCalc{SliceID: sliceID}
+	v := KpiCalc{
+		SliceID:   sliceID,
+		ThanosURL: r.config.MonarchThanosURI,
+	}
 
 	return r.render("kpi_calculator.yaml.tpl", v)
 }
 
 func (r *Render) RenderMde(sliceID string) (content []byte, err error) {
-	v := MdeValue{SliceID: sliceID}
+	v := MdeValue{
+		SliceID:  sliceID,
+		Interval: r.config.MonarchMonitoringInterval,
+	}
 
 	return r.render("metrics-servicemonitor.yaml.tpl", v)
 }

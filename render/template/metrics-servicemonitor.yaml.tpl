@@ -20,7 +20,7 @@ spec:
       {{- end }}
   endpoints:
     - port: metrics
-      interval: "${MONARCH_MONITORING_INTERVAL}"
+      interval: "{{ .Interval }}s"
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -44,7 +44,7 @@ spec:
       {{- end }}
   endpoints:
     - port: metrics
-      interval: "${MONARCH_MONITORING_INTERVAL}"
+      interval: "{{ .Interval }}s"
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -68,4 +68,4 @@ spec:
       {{- end }}
   endpoints:
     - port: metrics
-      interval: "${MONARCH_MONITORING_INTERVAL}"
+      interval: "{{ .Interval }}s"
