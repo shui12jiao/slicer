@@ -22,7 +22,7 @@ spec:
         sysctls: []
       containers:
         - name: mongodb
-          image: bitnami/mongodb:8.0.5-debian-12-r1
+          image: bitnami/mongodb:8.0-debian-12
           imagePullPolicy: "IfNotPresent"
           securityContext:
             runAsNonRoot: true
@@ -54,7 +54,7 @@ spec:
               mountPath: /data/db
   volumeClaimTemplates:
     - metadata:
-        name: datadir
+        name: mongo-persistent-storage
       spec:
         accessModes:
           - "ReadWriteOnce"

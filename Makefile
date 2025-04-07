@@ -27,4 +27,10 @@ build:
 push:
 	docker push $(IMAGE_PREFIX):$(VERSION)
 
+run:
+	docker run -d --name slicer --network=host --env-file .env shui12jiao/slicer:latest
+	
+# kubernetes相关
 
+deploy:
+	kubectl apply -k kubernetes

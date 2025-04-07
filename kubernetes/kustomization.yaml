@@ -5,19 +5,49 @@ namespace: slicer
 resources:
   - deployment.yaml
   - service.yaml
+  - serviceaccount.yaml
   - mongo/
 
 configMapGenerator:
   - name: slicer-env
-    envs: [".env"]
-    behavior: merge
+    literals:
+      # for monitor
+      - MONARCH_THANOS_URL=http://datadist-thanos-query-frontend.monarch.svc.cluster.local:9065
+      - MONARCH_REQUEST_TRANSLATOR_URI=http://request-translator-service.monarch.svc.cluster.local:7000
+      - MONARCH_MONITORING_INTERVAL=1
+      - MONITOR_TIMEOUT=255
+
+      # for mongodb
+      # MONGO_URI 从secret中构筑
+      - MONGO_DB_NAME=slicer
+      - MONGO_TIMEOUT=255
+
+      # for kubernetes client
+      - NAMESPACE=open5gs
+      - MONITOR_NAMESPACE=monarch
+      # KUBECONFIG_PATH= (设置为空, 从集群中获取)
+
+      # for http server
+      - HTTP_SERVER_ADDRESS=0.0.0.0:30001
+      - SLICE_STORE_NAME=slice
+      - KUBE_STORE_NAME=kube
+      - MONITOR_STORE_NAME=monitor
+
+      # for render
+      - TEMPLATE_PATH=render/template
+
+      # for ipam
+      - N3_NETWORK=10.10.3.0/24
+      - N4_NETWORK=10.10.4.0/24
+      - SESSION_NETWORK=10.32.0.0/11
+      - SESSION_SUBNET_LENGTH=16
+      - IPAM_TIMEOUT=255
 
 secretGenerator:
-  - name: mongo-secret
+  - name: mongodb-secret
     literals:
       - USERNAME=admin
       - PASSWORD=admin
-      - MONGO_URI=mongodb://$(USERNAME):$(PASSWORD)@mongo-service.open5gs.svc.cluster.local:27017
 
 generatorOptions:
   disableNameSuffixHash: true # 禁用名称哈希后缀

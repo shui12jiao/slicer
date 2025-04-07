@@ -3,9 +3,10 @@ kind: Service
 metadata:
   name: slicer-service
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
-    - port: 58888
-      targetPort: 58888
+    - port: 30001 # 集群内访问端口
+      targetPort: 30001 # 容器内访问端口
+      nodePort: 30001 # 集群外访问端口
   selector:
     app: slicer

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: slicer-app
+  name: slicer
 spec:
   replicas: 1
   selector:
@@ -12,6 +12,17 @@ spec:
       labels:
         app: slicer
     spec:
+      serviceAccountName: slicer-admin-sa
+      initContainers:
+        - name: wait-for-mongo
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "sh",
+              "-c",
+              'until nc -z -v -w30 mongodb.slicer.svc.cluster.local 27017; do echo "Waiting for MongoDB..."; sleep 2; done; echo "MongoDB is up!"',
+            ]
       containers:
         - name: slicer
           image: shui12jiao/slicer:latest
@@ -29,5 +40,16 @@ spec:
           envFrom:
             - configMapRef:
                 name: slicer-env
-            - secretRef:
-                name: mongo-secret
+          env:
+            - name: MONGO_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: USERNAME
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: PASSWORD
+            - name: MONGO_URI
+              value: "mongodb://$(MONGO_USERNAME):$(MONGO_PASSWORD)@mongodb.slicer.svc.cluster.local:27017/?authSource=admin"
