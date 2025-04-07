@@ -39,36 +39,36 @@ type KubeClient struct {
 }
 
 // NewKubeClient 创建Kubernetes客户端
-func NewKubeClient(uconfig util.Config) (kc *KubeClient, err error) {
-	var config *rest.Config
+func NewKubeClient(config util.Config) (kc *KubeClient, err error) {
+	var kconfig *rest.Config
 
 	// 从 kubeconfig 文件或 in-cluster 配置中创建 Kubernetes 配置
-	if uconfig.KubeconfigPath != "" {
-		config, err = clientcmd.BuildConfigFromFlags("", uconfig.KubeconfigPath)
+	if config.KubeconfigPath != "" {
+		kconfig, err = clientcmd.BuildConfigFromFlags("", config.KubeconfigPath)
 		if err != nil {
 			return nil, fmt.Errorf("创建Kubernetes配置失败: %v", err)
 		}
 	} else {
-		config, err = rest.InClusterConfig()
+		kconfig, err = rest.InClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("创建集群内配置失败: %v", err)
 		}
 	}
 
 	// clientset 用于核心API（如Pod、Service）
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(kconfig)
 	if err != nil {
 		return nil, fmt.Errorf("创建Kubernetes客户端失败: %v", err)
 	}
 
 	// dynamicClient 用于动态API（如CRD）
-	dynamicClient, err := dynamic.NewForConfig(config)
+	dynamicClient, err := dynamic.NewForConfig(kconfig)
 	if err != nil {
 		return nil, fmt.Errorf("创建动态客户端失败: %v", err)
 	}
 
 	// discoveryClient 用于发现API资源
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(kconfig)
 	if err != nil {
 		return nil, fmt.Errorf("创建发现客户端失败: %v", err)
 	}
@@ -77,7 +77,7 @@ func NewKubeClient(uconfig util.Config) (kc *KubeClient, err error) {
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(discoveryClient))
 
 	kc = &KubeClient{
-		config:        uconfig,
+		config:        config,
 		clientset:     clientset,
 		dynamicClient: dynamicClient,
 		restMapper:    restMapper,
@@ -89,7 +89,7 @@ func NewKubeClient(uconfig util.Config) (kc *KubeClient, err error) {
 		return nil, fmt.Errorf("获取命名空间失败: %v", err)
 	}
 	// 检查config中的namespace是否存在, 若不存在则创建
-	for _, ns := range []string{uconfig.Namespace, uconfig.MonitorNamespace} {
+	for _, ns := range []string{config.Namespace, config.MonitorNamespace} {
 		var exist bool
 		for _, namespace := range namespaces {
 			if namespace.Name == ns {

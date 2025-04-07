@@ -57,7 +57,7 @@ func LoadConfig() Config {
 		Namespace:        MustGetEnvString("NAMESPACE"),         //用于open5gs的namespace
 		MonitorNamespace: MustGetEnvString("MONITOR_NAMESPACE"), //监控系统所在的namespace
 
-		KubeconfigPath: MustGetEnvString("KUBECONFIG_PATH"),
+		KubeconfigPath: os.Getenv("KUBECONFIG_PATH"), // kubeconfig文件路径,可为空,如果不设置则使用集群内配置
 
 		// for http server
 		HTTPServerAddress: MustGetEnvString("HTTP_SERVER_ADDRESS"),
