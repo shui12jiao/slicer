@@ -30,7 +30,7 @@ spec:
       containers:
         - image: ghcr.io/niloysh/kpi-calculator-open5gs:v1.0.0-standard
           name: kpi-calculator
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - name: metrics
               containerPort: 9000
@@ -79,5 +79,3 @@ spec:
     {{- end }}
     app: monarch # target pods
     component: kpi-calculator
----
-

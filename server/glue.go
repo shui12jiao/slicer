@@ -245,6 +245,9 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
+		// yaml写入到tmp.yaml for test
+		// os.WriteFile("tmp.yaml", []byte(yaml), 0644)
+
 		// 部署kpic
 		if err := s.kubeclient.Apply(yaml, s.config.MonitorNamespace); err != nil {
 			http.Error(w, fmt.Sprintf("部署kpic失败: %v", err), http.StatusInternalServerError)
