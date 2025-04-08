@@ -31,7 +31,7 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	// 检查值是否有效
 	err := slice.Validate()
 	if err != nil {
-		http.Error(w, fmt.Sprintf("非法值: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("非法值: %v", err), http.StatusBadRequest)
 		return
 	}
 
