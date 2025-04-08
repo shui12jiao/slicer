@@ -15,7 +15,8 @@ cloc:
 
 
 # docker相关
-IMAGE_PREFIX := shui12jiao/slicer
+# IMAGE_PREFIX := shui12jiao/slicer
+IMAGE_PREFIX := crpi-sut5dyyu9y5gqtfq.cn-shanghai.personal.cr.aliyuncs.com/sminggg/slicer
 VERSION := $(VERSION)
 
 ifeq ($(VERSION),) # 如果未提供版本号，则使用默认值 'latest'

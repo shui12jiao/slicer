@@ -25,7 +25,7 @@ spec:
             ]
       containers:
         - name: slicer
-          image: shui12jiao/slicer:latest
+          image: crpi-sut5dyyu9y5gqtfq.cn-shanghai.personal.cr.aliyuncs.com/sminggg/slicer:latest
           imagePullPolicy: Always
           command: ["./main"]
           ports:
