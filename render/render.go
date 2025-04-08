@@ -3,7 +3,7 @@ package render
 import (
 	"bytes"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slicer/model"
@@ -116,7 +116,10 @@ func sliceToValue(ws model.SliceAndAddress) (
 	sv.SD = ws.SD
 
 	if len(ws.Sessions) != len(ws.SessionSubnets) {
-		log.Printf("会话数和会话子网数不一致")
+		slog.Warn("会话数和会话子网数不一致",
+			slog.String("sliceID", ws.SliceID()),
+			slog.Int("sessionCount", len(ws.Sessions)),
+			slog.Int("sessionSubnetCount", len(ws.SessionSubnets)))
 		return
 	}
 

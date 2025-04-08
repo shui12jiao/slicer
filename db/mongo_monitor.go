@@ -37,17 +37,14 @@ func (m *MongoDB) GetMonitor(id string) (model.Monitor, error) {
 
 func (m *MongoDB) ListMonitor() ([]model.Monitor, error) {
 	// 获取所有 Monitor
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-	defer cancel()
-
-	cursor, err := m.client.Database(m.database).Collection(m.config.MonitorStoreName).Find(ctx, primitive.M{})
+	cursor, err := m.findAll(m.config.MonitorStoreName)
 	if err != nil {
 		return nil, fmt.Errorf("查询Monitor失败：%w", err)
 	}
-	defer cursor.Close(ctx)
+	defer cursor.Close(context.Background())
 
 	var monitors []model.Monitor
-	if err := cursor.All(ctx, &monitors); err != nil {
+	if err := cursor.All(context.Background(), &monitors); err != nil {
 		return nil, fmt.Errorf("查询Monitor失败：%w", err)
 	}
 

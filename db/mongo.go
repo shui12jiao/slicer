@@ -6,6 +6,7 @@ import (
 	"slicer/util"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -79,6 +80,14 @@ func (m *MongoDB) find(collection string, id string) *mongo.SingleResult {
 	}
 
 	return m.client.Database(m.database).Collection(collection).FindOne(ctx, primitive.M{"_id": objID})
+}
+
+func (m *MongoDB) findAll(collection string) (*mongo.Cursor, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	defer cancel()
+
+	// 注意必须使用 bson.D{}(primitive.M{}等空结构体均可以)，而非nil(表示不查询) 网上用例教程等已过时
+	return m.client.Database(m.database).Collection(collection).Find(ctx, bson.D{})
 }
 
 // Close 关闭连接

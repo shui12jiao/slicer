@@ -58,36 +58,36 @@ func (m *MongoDB) GetSliceBySliceID(sliceID string) (model.SliceAndAddress, erro
 
 func (m *MongoDB) ListSlice() ([]model.SliceAndAddress, error) {
 	// 获取所有 Slice
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-	defer cancel()
-
-	cursor, err := m.client.Database(m.database).Collection(m.config.SliceStoreName).Find(ctx, nil)
+	cursor, err := m.findAll(m.config.SliceStoreName)
 	if err != nil {
 		return nil, fmt.Errorf("查询Slice失败：%w", err)
 	}
-	defer cursor.Close(ctx)
 
+	defer cursor.Close(context.Background())
 	var slices []model.SliceAndAddress
-	if err = cursor.All(ctx, &slices); err != nil {
+	for cursor.Next(context.Background()) {
+		var slice model.SliceAndAddress
+		if err = cursor.Decode(&slice); err != nil {
+			return nil, fmt.Errorf("查询Slice失败：%w", err)
+		}
+		slices = append(slices, slice)
+	}
+	if err = cursor.Err(); err != nil {
 		return nil, fmt.Errorf("查询Slice失败：%w", err)
 	}
-
 	return slices, nil
 }
 
 func (m *MongoDB) ListSliceID() ([]string, error) {
 	// 获取所有 Slice ID
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-	defer cancel()
-
-	cursor, err := m.client.Database(m.database).Collection(m.config.SliceStoreName).Find(ctx, nil)
+	cursor, err := m.findAll(m.config.SliceStoreName)
 	if err != nil {
 		return nil, fmt.Errorf("查询Slice ID失败：%w", err)
 	}
-	defer cursor.Close(ctx)
+	defer cursor.Close(context.Background())
 
 	var ids []string
-	for cursor.Next(ctx) {
+	for cursor.Next(context.Background()) {
 		var slice model.SliceAndAddress
 		if err = cursor.Decode(&slice); err != nil {
 			return nil, fmt.Errorf("查询Slice ID失败：%w", err)

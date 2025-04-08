@@ -2,9 +2,13 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"slicer/model"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // 获取支持的KPI
@@ -98,6 +102,12 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 	// 从monitor存储中获取sliceId
 	monitor, err := s.store.GetMonitor(monitorId)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
+			slog.Warn("监控不存在", "monitorID", monitorId)
+			http.Error(w, fmt.Sprintf("monitor不存在: %v", monitorId), http.StatusNotFound)
+			return
+		}
+
 		slog.Error("获取监控请求失败", "monitorID", monitorId, "error", err)
 		http.Error(w, "不存在该监控请求: "+err.Error(), http.StatusNotFound)
 		return
@@ -156,6 +166,12 @@ func (s *Server) getMonitor(w http.ResponseWriter, r *http.Request) {
 	// 获取Monitor
 	monitor, err := s.store.GetMonitor(monitorId)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
+			slog.Warn("监控不存在", "monitorID", monitorId)
+			http.Error(w, fmt.Sprintf("monitor不存在: %v", monitorId), http.StatusNotFound)
+			return
+		}
+
 		slog.Error("获取监控请求失败", "monitorID", monitorId, "error", err)
 		http.Error(w, "获取监控请求失败: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -176,6 +192,12 @@ func (s *Server) listMonitor(w http.ResponseWriter, r *http.Request) {
 
 	monitors, err := s.store.ListMonitor()
 	if err != nil {
+		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
+			slog.Debug("monitor列表为空")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		slog.Error("获取监控请求列表失败", "error", err)
 		http.Error(w, "获取监控请求失败: "+err.Error(), http.StatusInternalServerError)
 		return
