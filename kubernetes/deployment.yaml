@@ -26,7 +26,7 @@ spec:
       containers:
         - name: slicer
           image: shui12jiao/slicer:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["./main"]
           ports:
             - containerPort: 58888
