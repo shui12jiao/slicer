@@ -197,9 +197,32 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 
 // 用于响应监控系统的mde卸载请求
 // POST /nfv-orchestrator/mde/uninstall
-// func (s *Server) noMdeUninstall(w http.ResponseWriter, r *http.Request) {
-// 	// 无需实现，卸载直接由该系统完成，跳过监控系统
-// }
+func (s *Server) noMdeUninstall(w http.ResponseWriter, r *http.Request) {
+	// 实际请求参数为空, 直接由监控系统完成卸载
+
+	// 删除MDE
+	yaml, err := s.render.RenderMde("")
+	if err != nil {
+		slog.Error("NO: 渲染MDE yaml失败", "error", err)
+		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
+	if err != nil {
+		slog.Error("NO: 删除MDE失败", "namespace", s.config.MonitorNamespace, "error", err)
+		http.Error(w, "删除MDE失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 编码响应
+	w.WriteHeader(http.StatusOK)
+	encodeResponse(w, monitor.Response{
+		Status:  "success",
+		Message: "MDE 删除成功",
+	},
+	)
+	slog.Debug("NO: MDE卸载完成", "namespace", s.config.MonitorNamespace)
+}
 
 // 用于响应监控系统的mde检查请求
 // POST /nfv-orchestrator/mde/check
@@ -326,9 +349,32 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 
 // 用于响应监控系统的kpi计算组件卸载请求
 // POST /nfv-orchestrator/kpi-computation/uninstall
-// func (s *Server) noKpiComputationUninstall(w http.ResponseWriter, r *http.Request) {
-// 	// 无需实现，卸载直接由该系统完成，跳过监控系统
-// }
+func (s *Server) noKpiComputationUninstall(w http.ResponseWriter, r *http.Request) {
+	// 实际请求参数为空, 直接由监控系统完成卸载
+
+	// 删除KPI
+	yaml, err := s.render.RenderKpiCalc("")
+	if err != nil {
+		slog.Error("NO: 渲染KPI yaml失败", "error", err)
+		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
+	if err != nil {
+		slog.Error("NO: 删除KPI失败", "namespace", s.config.MonitorNamespace, "error", err)
+		http.Error(w, "删除KPI失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 编码响应
+	w.WriteHeader(http.StatusOK)
+	encodeResponse(w, monitor.Response{
+		Status:  "success",
+		Message: "KPI 删除成功",
+	},
+	)
+	slog.Debug("NO: KPI计算组件卸载完成", "namespace", s.config.MonitorNamespace)
+}
 
 // 用于响应监控系统的kpi计算组件检查请求
 // POST /nfv-orchestrator/kpi-computation/check

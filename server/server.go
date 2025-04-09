@@ -44,7 +44,9 @@ func (s *Server) routes() {
 
 	// 监控相关路由(目前只支持切片监控)
 	s.router.HandleFunc("POST /monitor", s.createMonitor)
+	s.router.HandleFunc("POST /monitor/external", s.createMonitorExternal) // 基于Monarch外部服务创建监控
 	s.router.HandleFunc("DELETE /monitor/{monitorId}", s.deleteMonitor)
+	s.router.HandleFunc("DELETE /monitor/external/{monitorId}", s.deleteMonitorExternal) // 基于Monarch外部服务删除监控
 	s.router.HandleFunc("GET /monitor/{monitorId}", s.getMonitor)
 	s.router.HandleFunc("GET /monitor", s.listMonitor)
 	s.router.HandleFunc("GET /monitor/supported_kpis", s.getSupportedKpis)
@@ -55,10 +57,10 @@ func (s *Server) routes() {
 	s.router.HandleFunc("GET /service-orchestrator/api/health", s.soCheckHealth)
 	// monarch调用nfv orchestration相关接口
 	s.router.HandleFunc("POST /nfv-orchestrator/mde/install", s.noMdeInstall)
-	// s.router.HandleFunc("POST /nfv-orchestrator/mde/uninstall", s.noMdeUninstall)
+	s.router.HandleFunc("POST /nfv-orchestrator/mde/uninstall", s.noMdeUninstall)
 	s.router.HandleFunc("POST /nfv-orchestrator/mde/check", s.noMdeCheck)
 	s.router.HandleFunc("POST /nfv-orchestrator/kpi-computation/install", s.noKpiComputationInstall)
-	// s.router.HandleFunc("POST /nfv-orchestrator/kpi-computation/uninstall", s.noKpiComputationUninstall)
+	s.router.HandleFunc("POST /nfv-orchestrator/kpi-computation/uninstall", s.noKpiComputationUninstall)
 	s.router.HandleFunc("POST /nfv-orchestrator/kpi-computation/check", s.noKpiComputationCheck)
 	s.router.HandleFunc("GET /nfv-orchestrator/api/health", s.noCheckHealth)
 }
