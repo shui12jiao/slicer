@@ -11,7 +11,7 @@ k3d:
 	--volume /sys/kernel/debug:/sys/kernel/debug:rw --volume /sys/kernel/tracing:/sys/kernel/tracing:rw && kubectl create namespace open5gs && kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 
 cloc:
-	cloc --exclude-dir=kubernetes,Monarch --exclude-ext=csv,py .
+	cloc --exclude-dir=open5gs,Monarch --exclude-ext=csv,py .
 
 
 # docker相关
