@@ -2,13 +2,10 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"slicer/model"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // 获取支持的KPI
@@ -63,6 +60,19 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	if sliceId == "" {
 		slog.Warn("缺少sliceId参数")
 		http.Error(w, "缺少sliceId参数", http.StatusBadRequest)
+		return
+	}
+
+	// 检查sliceId是否存在
+	if _, err := s.store.GetSliceBySliceID(sliceId); err != nil {
+		if isNotFoundError(err) { // MongoDB为空文档
+			slog.Warn("要求监控的sliceId不存在", "sliceID", sliceId)
+			http.Error(w, fmt.Sprintf("要求监控的sliceId不存在: %v", sliceId), http.StatusBadRequest)
+			return
+		}
+
+		slog.Error("获取sliceId失败", "sliceID", sliceId, "error", err)
+		http.Error(w, "获取sliceId失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -178,7 +188,7 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 	// 从monitor存储中获取sliceId
 	monitor, err := s.store.GetMonitor(monitorId)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
+		if isNotFoundError(err) { // MongoDB为空文档
 			slog.Warn("监控不存在", "monitorID", monitorId)
 			http.Error(w, fmt.Sprintf("monitor不存在: %v", monitorId), http.StatusNotFound)
 			return
@@ -249,7 +259,7 @@ func (s *Server) deleteMonitorExternal(w http.ResponseWriter, r *http.Request) {
 	// 从monitor存储中获取sliceId
 	monitor, err := s.store.GetMonitor(monitorId)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
+		if isNotFoundError(err) { // MongoDB为空文档
 			slog.Warn("监控不存在", "monitorID", monitorId)
 			http.Error(w, fmt.Sprintf("monitor不存在: %v", monitorId), http.StatusNotFound)
 			return
@@ -311,7 +321,7 @@ func (s *Server) getMonitor(w http.ResponseWriter, r *http.Request) {
 	// 获取Monitor
 	monitor, err := s.store.GetMonitor(monitorId)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
+		if isNotFoundError(err) { // MongoDB为空文档
 			slog.Warn("监控不存在", "monitorID", monitorId)
 			http.Error(w, fmt.Sprintf("monitor不存在: %v", monitorId), http.StatusNotFound)
 			return
@@ -336,12 +346,12 @@ func (s *Server) listMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取监控请求列表", "method", r.Method, "url", r.URL.String())
 
 	monitors, err := s.store.ListMonitor()
-	if err != nil {
-		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
-			slog.Debug("monitor列表为空")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+	if err != nil { // 为空时list不会返回错误
+		// if isNotFoundError(err) { // MongoDB为空文档
+		// 	slog.Debug("monitor列表为空")
+		// 	w.WriteHeader(http.StatusOK)
+		// 	return
+		// }
 
 		slog.Error("获取监控请求列表失败", "error", err)
 		http.Error(w, "获取监控请求失败: "+err.Error(), http.StatusInternalServerError)

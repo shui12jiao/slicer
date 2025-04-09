@@ -3,6 +3,7 @@ package kubeclient
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slicer/util"
@@ -229,11 +230,11 @@ func (kc *KubeClient) ApplyMulti(yamlDatas [][]byte, namespace string) error {
 }
 
 // Delete 删除 Kubernetes 资源，类似 `kubectl delete -f`
-func (kc *KubeClient) Delete(yamlData []byte, namespace string) error {
+func (kc *KubeClient) Delete(yamlData []byte, namespace string) (err error) {
 	decoder := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(yamlData), 100)
 	for {
 		var rawObj unstructured.Unstructured
-		if err := decoder.Decode(&rawObj); err != nil {
+		if err = decoder.Decode(&rawObj); err != nil {
 			if err == io.EOF {
 				break // 读取结束
 			}
@@ -268,13 +269,13 @@ func (kc *KubeClient) Delete(yamlData []byte, namespace string) error {
 		err = resourceClient.Delete(context.TODO(), resourceName, v1.DeleteOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
-				fmt.Printf("资源 %s/%s 已不存在，跳过删除\n", mapping.Resource.Resource, resourceName)
+				slog.Warn("资源已不存在，跳过删除", "resource", mapping.Resource.Resource, "name", resourceName)
 				continue
 			}
 			return fmt.Errorf("删除资源 %s 失败: %v", resourceName, err)
 		}
 
-		fmt.Printf("成功删除资源: %s/%s\n", mapping.Resource.Resource, resourceName)
+		slog.Info("成功删除资源", "resource", mapping.Resource.Resource, "name", resourceName)
 	}
 	return nil
 }

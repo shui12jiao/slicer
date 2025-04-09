@@ -2,13 +2,10 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"slicer/model"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // createSlice 创建一个新的slice
@@ -139,7 +136,7 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	// 从对象存储中获取slice对象
 	slice, err := s.store.GetSliceBySliceID(sliceId)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
+		if isNotFoundError(err) { // MongoDB为空文档
 			slog.Warn("slice不存在", "sliceID", sliceId)
 			http.Error(w, fmt.Sprintf("slice不存在: %v", sliceId), http.StatusNotFound)
 			return
@@ -205,7 +202,7 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 	// 从对象存储中获取slice对象
 	slice, err := s.store.GetSliceBySliceID(sliceId)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
+		if isNotFoundError(err) { // MongoDB为空文档
 			slog.Warn("slice不存在", "sliceID", sliceId)
 			http.Error(w, fmt.Sprintf("slice不存在: %v", sliceId), http.StatusNotFound)
 			return
@@ -240,12 +237,12 @@ func (s *Server) listSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取slice列表请求", "method", r.Method, "url", r.URL.String())
 
 	slices, err := s.store.ListSlice()
-	if err != nil {
-		if errors.Is(err, mongo.ErrNilDocument) { // MongoDB为空文档
-			slog.Debug("slice列表为空")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+	if err != nil { // 为空时list不会返回错误
+		// if isNotFoundError(err) { // MongoDB为空文档
+		// 	slog.Debug("slice列表为空")
+		// 	w.WriteHeader(http.StatusOK)
+		// 	return
+		// }
 
 		slog.Error("获取slice列表失败", "error", err)
 		http.Error(w, fmt.Sprintf("获取slice列表失败: %v", err), http.StatusInternalServerError)
