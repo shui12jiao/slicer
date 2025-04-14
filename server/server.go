@@ -51,6 +51,9 @@ func (s *Server) routes() {
 	s.router.HandleFunc("GET /monitor", s.listMonitor)
 	s.router.HandleFunc("GET /monitor/supported_kpis", s.getSupportedKpis)
 
+	// QOS相关路由
+	// SLA相关路由
+
 	// Monarch交互相关路由
 	// monarch调用service orchestrator相关接口
 	s.router.HandleFunc("GET /service-orchestrator/slices/{sliceId}", s.soGetSliceComponents)
