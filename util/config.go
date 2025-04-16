@@ -28,6 +28,8 @@ type Config struct {
 	SliceStoreName    string
 	KubeStoreName     string
 	MonitorStoreName  string
+	PlayStoreName     string
+	SLAStoreName      string
 
 	// for render
 	TemplatePath string
@@ -61,9 +63,11 @@ func LoadConfig() Config {
 
 		// for http server
 		HTTPServerAddress: MustGetEnvString("HTTP_SERVER_ADDRESS"),
-		SliceStoreName:    MustGetEnvString("SLICE_STORE_NAME"),
-		KubeStoreName:     MustGetEnvString("KUBE_STORE_NAME"), // 目前未使用
-		MonitorStoreName:  MustGetEnvString("MONITOR_STORE_NAME"),
+		SliceStoreName:    "slice",
+		KubeStoreName:     "kube",
+		MonitorStoreName:  "monitor",
+		PlayStoreName:     "play",
+		SLAStoreName:      "sla",
 
 		// for render
 		TemplatePath: MustGetEnvString("TEMPLATE_PATH"),

@@ -51,6 +51,18 @@ func (s *Server) routes() {
 	s.router.HandleFunc("GET /monitor", s.listMonitor)
 	s.router.HandleFunc("GET /monitor/supported_kpis", s.getSupportedKpis)
 
+	// 性能控制相关路由
+	s.router.HandleFunc("POST /play", s.createPlay)
+	s.router.HandleFunc("POST /play/{playId}", s.applyPlay) // 应用性能控制参数
+	s.router.HandleFunc("DELETE /play/{playId}", s.deletePlay)
+	s.router.HandleFunc("GET /play/{playId}", s.getPlay)
+
+	// SLA相关路由
+	s.router.HandleFunc("POST /sla", s.createSla)
+	s.router.HandleFunc("POST /sla/{slaId}", s.applySla) // 应用SLA
+	s.router.HandleFunc("DELETE /sla/{slaId}", s.deleteSla)
+	s.router.HandleFunc("GET /sla/{slaId}", s.getSla)
+
 	// Monarch交互相关路由
 	// monarch调用service orchestrator相关接口
 	s.router.HandleFunc("GET /service-orchestrator/slices/{sliceId}", s.soGetSliceComponents)

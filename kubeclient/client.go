@@ -158,6 +158,17 @@ func (kc *KubeClient) GetDeployments(namespace string, labelSelector ...string) 
 	return deploymentList.Items, nil
 }
 
+func (kc *KubeClient) GetNodes(labelSelector ...string) ([]corev1.Node, error) {
+	// 使用标签选择器过滤节点
+	nodeList, err := kc.clientset.CoreV1().Nodes().List(context.TODO(), v1.ListOptions{
+		LabelSelector: strings.Join(labelSelector, ","),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("获取节点列表失败: %v", err)
+	}
+	return nodeList.Items, nil
+}
+
 // Apply 将YAML配置应用到集群，支持多资源文档（以---分隔）
 func (kc *KubeClient) Apply(yamlData []byte, namespace string) error {
 	decoder := yaml.NewYAMLOrJSONDecoder(bytes.NewReader(yamlData), 100)
