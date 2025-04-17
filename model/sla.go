@@ -7,10 +7,12 @@ type SLA struct {
 	ID      primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	SliceID string             `json:"slice_id"`
 
-	// 带宽
-	Bandwidth string `json:"bandwidth"` // 例如 "100Mbps"
+	// 上行带宽
+	UpBandwidth float64 `json:"up_bandwidth"` // 单位Mbps 例如 "100Mbps" 为 100
+	// 下行带宽
+	DownBandwidth float64 `json:"down_bandwidth"` // 单位Mbps 例如 "100Mbps"
 	// 延迟
-	Latency string `json:"latency"` // 例如 "10ms"
+	Latency float64 `json:"latency"` // 单位ms 例如 "50ms" 为 50
 	// 可用性
-	Availability string `json:"availability"` // 例如 "99.9%"
+	Availability float64 `json:"availability"` // 例如 "99.9%" 为 99.9
 }

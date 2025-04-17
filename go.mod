@@ -6,6 +6,8 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/metal-stack/go-ipam v1.14.10
 	github.com/minio/minio-go/v7 v7.0.89
+	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/common v0.63.0
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.3
 	gopkg.in/yaml.v3 v3.0.1
@@ -53,6 +55,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/redis/go-redis/v9 v9.7.3 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect

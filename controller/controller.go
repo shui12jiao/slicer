@@ -16,15 +16,15 @@ type Controller interface {
 
 	Stop()
 
-	// 根据 SLA 与当前指标，生成新 Play 策略（可重复调用）
-	Reconcile(current model.Play, sla model.SLA, metrics UsedMetrics) (model.Play, error)
-
 	// 设置控制频率
 	SetFrequency(duration time.Duration)
 
 	AddSlice(sliceID string)
 	RemoveSlice(sliceID string)
 	ListSlices() []string
+
+	Strategy
+	SetStrategy(strategy Strategy)
 }
 
 type BasicController struct {
@@ -36,27 +36,26 @@ type BasicController struct {
 	ctx context.Context
 	// 控制器的取消函数
 	cancel context.CancelFunc
+
 	// 切片列表
 	slices []string
-	// 控制器的指标
-	metrics Metrics
-
 	// config
 	config util.Config
 	// 存储
 	store db.Store
 	// 控制器的配置
 	kclient *kubeclient.KubeClient
+	// 策略
+	strategy Strategy
 }
 
-func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.KubeClient, metrics Metrics) Controller {
+func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.KubeClient) Controller {
 	// 创建一个新的上下文和取消函数
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &BasicController{
 		running:   false,
 		frequency: 1 * time.Hour,
-		metrics:   metrics,
 		ctx:       ctx,
 		cancel:    cancel,
 		slices:    []string{},
@@ -68,14 +67,22 @@ func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.
 
 func (c *BasicController) Run() {
 	c.mu.Lock()
+	if c.running {
+		c.mu.Unlock()
+		return
+	}
 	c.running = true
 	c.mu.Unlock()
 
 	ticker := time.NewTicker(c.frequency)
 	defer ticker.Stop()
+
 	for {
 		select {
-		case <-c.ctx.Done():
+		case <-c.ctx.Done(): // 停止
+			c.mu.Lock()
+			c.running = false
+			c.mu.Unlock()
 			return
 		case <-ticker.C:
 			// 执行控制逻辑
@@ -91,9 +98,8 @@ func (c *BasicController) Run() {
 }
 
 // 核心逻辑, 根据 SLA 与当前指标，生成新 Play 策略
-func (c *BasicController) Reconcile(current model.Play, sla model.SLA, metrics UsedMetrics) (model.Play, error) {
-	// TODO
-	return model.Play{}, nil
+func (c *BasicController) Reconcile(current model.Play, sla model.SLA) (new model.Play, err error) {
+	return c.strategy.Reconcile(current, sla)
 }
 
 func (c *BasicController) control(sliceID string) error {
@@ -111,15 +117,8 @@ func (c *BasicController) control(sliceID string) error {
 		return err
 	}
 
-	// 获取指标
-	um, err := c.metrics.GetUsedMetrics(sliceID)
-	if err != nil {
-		slog.Error("获取指标失败", "sliceID", sliceID, "err", err)
-		return err
-	}
-
 	// 生成新的Play
-	newPlay, err := c.Reconcile(play, sla, um)
+	newPlay, err := c.Reconcile(play, sla)
 	if err != nil {
 		slog.Error("生成新Play失败", "sliceID", sliceID, "err", err)
 		return err
@@ -204,4 +203,10 @@ func (c *BasicController) Stop() {
 		// 重新创建上下文和取消函数
 		c.ctx, c.cancel = context.WithCancel(context.Background())
 	}
+}
+
+func (c *BasicController) SetStrategy(strategy Strategy) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.strategy = strategy
 }
