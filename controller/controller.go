@@ -49,7 +49,7 @@ type BasicController struct {
 	strategy Strategy
 }
 
-func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.KubeClient) Controller {
+func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.KubeClient, strategy Strategy) Controller {
 	// 创建一个新的上下文和取消函数
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -62,6 +62,7 @@ func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.
 		config:    config,
 		store:     store,
 		kclient:   kclient,
+		strategy:  strategy,
 	}
 }
 

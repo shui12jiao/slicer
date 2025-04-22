@@ -53,13 +53,13 @@ func (s *Server) routes() {
 
 	// 性能控制相关路由
 	s.router.HandleFunc("POST /play", s.createPlay)
-	s.router.HandleFunc("POST /play/{playId}", s.applyPlay) // 应用性能控制参数
+	s.router.HandleFunc("POST /play/{playId}", s.updatePlay)
 	s.router.HandleFunc("DELETE /play/{playId}", s.deletePlay)
 	s.router.HandleFunc("GET /play/{playId}", s.getPlay)
 
 	// SLA相关路由
 	s.router.HandleFunc("POST /sla", s.createSla)
-	s.router.HandleFunc("POST /sla/{slaId}", s.applySla) // 应用SLA
+	s.router.HandleFunc("POST /sla/{slaId}", s.updateSla)
 	s.router.HandleFunc("DELETE /sla/{slaId}", s.deleteSla)
 	s.router.HandleFunc("GET /sla/{slaId}", s.getSla)
 

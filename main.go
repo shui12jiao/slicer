@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"os"
+	"slicer/controller"
 	"slicer/db"
 	"slicer/kubeclient"
 	"slicer/monitor"
@@ -49,6 +50,21 @@ func main() {
 		slog.Error("创建IP地址管理失败", "error", err)
 		os.Exit(1)
 	}
+
+	// 初始化metrics源
+	metrics, err := controller.NewMetrics(config.MonarchThanosURI)
+	if err != nil {
+		slog.Error("创建指标源失败", "error", err)
+		os.Exit(1)
+	}
+	// 初始化策略
+	strategy := controller.NewBasicStrategy(metrics)
+
+	// 初始化控制器
+	controller := controller.NewBasicController(config, store, kubeclient, strategy)
+
+	// 启动控制器
+	go controller.Run()
 
 	// 初始化Server
 	server := server.NewServer(config, monitor, store, ipam, render, kubeclient)
