@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"slicer/controller"
 	"slicer/db"
 	"slicer/kubeclient"
 	"slicer/monitor"
@@ -19,17 +20,29 @@ type Server struct {
 	ipam       *db.IPAM
 	render     *render.Render
 	kubeclient *kubeclient.KubeClient
+	controller controller.Controller
 }
 
-func NewServer(config util.Config, monitor *monitor.Monitor, store db.Store, ipam *db.IPAM, render *render.Render, kubeclient *kubeclient.KubeClient) *Server {
+type NewSeverArg struct {
+	util.Config
+	*monitor.Monitor
+	db.Store
+	*db.IPAM
+	*render.Render
+	*kubeclient.KubeClient
+	controller.Controller
+}
+
+func NewServer(arg NewSeverArg) *Server {
 	s := &Server{
 		router:     http.NewServeMux(),
-		config:     config,
-		monitor:    monitor,
-		store:      store,
-		ipam:       ipam,
-		render:     render,
-		kubeclient: kubeclient,
+		config:     arg.Config,
+		monitor:    arg.Monitor,
+		store:      arg.Store,
+		ipam:       arg.IPAM,
+		render:     arg.Render,
+		kubeclient: arg.KubeClient,
+		controller: arg.Controller,
 	}
 	s.routes()
 	return s

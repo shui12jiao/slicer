@@ -67,7 +67,15 @@ func main() {
 	go controller.Run()
 
 	// 初始化Server
-	server := server.NewServer(config, monitor, store, ipam, render, kubeclient)
+	server := server.NewServer(server.NewSeverArg{
+		Config:     config,
+		Store:      store,
+		KubeClient: kubeclient,
+		Monitor:    monitor,
+		Render:     render,
+		IPAM:       ipam,
+		Controller: controller,
+	})
 
 	// 启动HTTP服务器
 	slog.Info("启动HTTP服务器", "address", config.HTTPServerAddress)
