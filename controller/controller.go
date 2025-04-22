@@ -126,7 +126,7 @@ func (c *BasicController) control(sliceID string) error {
 	}
 
 	// 应用新的Play
-	err = c.kclient.ApplyPlay(newPlay, c.config.Namespace)
+	err = c.kclient.Play(newPlay, c.config.Namespace)
 	if err != nil {
 		slog.Error("应用Play失败", "sliceID", sliceID, "err", err)
 		return err

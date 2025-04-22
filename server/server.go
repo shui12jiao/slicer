@@ -52,9 +52,8 @@ func (s *Server) routes() {
 	s.router.HandleFunc("GET /monitor/supported_kpis", s.getSupportedKpis)
 
 	// 性能控制相关路由
-	s.router.HandleFunc("POST /play", s.createPlay)
+	s.router.HandleFunc("POST /play", s.createPlay) // 应该合并到切片管理相关路由逻辑中, 不能删除
 	s.router.HandleFunc("POST /play/{playId}", s.updatePlay)
-	s.router.HandleFunc("DELETE /play/{playId}", s.deletePlay)
 	s.router.HandleFunc("GET /play/{playId}", s.getPlay)
 
 	// SLA相关路由

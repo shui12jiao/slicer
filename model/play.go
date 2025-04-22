@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	networkingv1 "k8s.io/api/networking/v1"
@@ -46,4 +48,34 @@ type SchedulingSpec struct {
 	SchedulerName string            `json:"scheduler_name"` // 自定义调度器名称，默认 "default-scheduler"
 	NodeName      string            `json:"node_name"`      // 若指定，Pod 将直接运行在此节点
 	NodeSelector  map[string]string `json:"node_selector"`  // 节点标签选择器
+}
+
+func (p *Play) Update(newPlay Play) error {
+	if newPlay.SliceID != "" && newPlay.SliceID != p.SliceID {
+		return fmt.Errorf("play的切片ID不匹配")
+	}
+
+	// 1. 资源请求与限制
+	if newPlay.Resources != (ResourceSpec{}) {
+		p.Resources = newPlay.Resources
+	}
+	// 2. 带宽限制
+	if newPlay.Bandwidth != (BandwidthSpec{}) {
+		p.Bandwidth = newPlay.Bandwidth
+	}
+	// 3. 调度规则
+	if newPlay.Scheduling.SchedulerName != "" || newPlay.Scheduling.NodeName != "" || len(newPlay.Scheduling.NodeSelector) > 0 {
+		p.Scheduling = newPlay.Scheduling
+	}
+	// 4. 网络策略
+	if !isNetworkPolicyEmpty(newPlay.NetworkPolicy) {
+		p.NetworkPolicy = newPlay.NetworkPolicy
+	}
+
+	return nil
+}
+
+// isNetworkPolicyEmpty checks if a NetworkPolicy is empty.
+func isNetworkPolicyEmpty(policy networkingv1.NetworkPolicy) bool {
+	return policy.ObjectMeta.Name == "" && policy.ObjectMeta.Namespace == "" && len(policy.Spec.PolicyTypes) == 0
 }
