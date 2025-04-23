@@ -1,4 +1,0 @@
-resources:
-- bsf-deployment.yaml
-- bsf-service.yaml
-- bsf-configmap.yaml

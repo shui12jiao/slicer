@@ -1,4 +1,0 @@
-resources:
-- smf-deployment.yaml
-- smf-service.yaml
-- smf-configmap.yaml
