@@ -147,10 +147,12 @@ iptables -t nat -A POSTROUTING -s 10.41.0.0/16 ! -o ogstun1 -j MASQUERADE;`)
 }
 
 var testConfig = util.Config{
-	TemplatePath:                "./template",
-	MonarchThanosURI:            "http://172.18.0.3:31004",
-	MonarchRequestTranslatorURI: "http://172.18.0.3:31005",
-	MonarchMonitoringInterval:   1,
+	TemplatePath: "./template",
+	MonitorConfig: util.MonitorConfig{
+		MonarchThanosURI:            "http://172.18.0.3:31004",
+		MonarchRequestTranslatorURI: "http://172.18.0.3:31005",
+		MonarchMonitoringInterval:   1,
+	},
 }
 
 var testRender = NewRender(testConfig)

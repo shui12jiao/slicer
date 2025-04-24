@@ -10,9 +10,11 @@ import (
 const NODE_IP = "172.18.0.3"
 
 var monitor = NewMonitor(util.Config{
-	MonarchThanosURI:            "http://" + NODE_IP + ":31004",
-	MonarchRequestTranslatorURI: "http://" + NODE_IP + ":30700",
-	MonitorTimeout:              255,
+	MonitorConfig: util.MonitorConfig{
+		MonarchThanosURI:            "http://" + NODE_IP + ":31004",
+		MonarchRequestTranslatorURI: "http://" + NODE_IP + ":30700",
+		MonitorTimeout:              255,
+	},
 })
 
 func TestGetSupportedKpis(t *testing.T) {

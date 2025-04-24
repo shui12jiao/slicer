@@ -329,9 +329,11 @@ metadata:
 func TestWithRealKubeClient(t *testing.T) {
 	// 创建一个真实的 KubeClient 实例
 	kc, err := NewKubeClient(util.Config{
-		Namespace:        "open5gs",
-		MonitorNamespace: "monarch",
-		KubeconfigPath:   "/home/sming/.kube/config",
+		KubeConfig: util.KubeConfig{
+			Namespace:        "open5gs",
+			MonitorNamespace: "monarch",
+			KubeconfigPath:   "/home/sming/.kube/config",
+		},
 	})
 	require.NoError(t, err)
 
@@ -349,9 +351,11 @@ func TestWithRealKubeClient(t *testing.T) {
 func TestWithRealKubeClientApply(t *testing.T) {
 	// 创建一个真实的 KubeClient 实例
 	kc, err := NewKubeClient(util.Config{
-		Namespace:        "open5gs",
-		MonitorNamespace: "monarch",
-		KubeconfigPath:   "/home/sming/.kube/config",
+		KubeConfig: util.KubeConfig{
+			Namespace:        "open5gs",
+			MonitorNamespace: "monarch",
+			KubeconfigPath:   "/home/sming/.kube/config",
+		},
 	})
 	require.NoError(t, err)
 
