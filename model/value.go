@@ -11,12 +11,15 @@ type SliceAndAddress struct {
 	AddressValue
 }
 
+// 格式均为x.x.x.x/x
 type AddressValue struct {
+	// Subnet是子网
 	SessionSubnets []string
-	UPFN3Addr      string
-	UPFN4Addr      string
-	SMFN3Addr      string
-	SMFN4Addr      string
+	// Addr是地址
+	UPFN3Addr string
+	UPFN4Addr string
+	SMFN3Addr string
+	SMFN4Addr string
 }
 
 func (s *SliceAndAddress) ToYAML() ([]byte, error) {

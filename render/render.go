@@ -9,6 +9,7 @@ import (
 	"slicer/model"
 	"slicer/util"
 	"strconv"
+	"strings"
 	"text/template"
 )
 
@@ -127,13 +128,12 @@ func sliceToValue(ws model.SliceAndAddress) (
 		sev := SessionValue{
 			DNN:    session.Name,
 			Subnet: ws.SessionSubnets[idx],
-			Dev:    "ogstun" + strconv.Itoa(idx),
 		}
 		sevs = append(sevs, sev)
 	}
 
 	smfcv.SliceValue = sv
-	smfcv.UPFN4Addr = ws.UPFN4Addr
+	smfcv.UPFN4AddrIP = ws.UPFN4Addr[:strings.Index(ws.UPFN4Addr, "/")]
 	smfcv.SessionValues = sevs
 
 	smfdv.SliceValue = sv

@@ -24,10 +24,16 @@ type SliceValue struct {
 type SessionValue struct {
 	Subnet string // 10.41.0.0/16
 	DNN    string
-	Dev    string
 }
 
-func (s *SessionValue) Gateway() string { // 10.41.0.1/16
+func (s *SessionValue) Gateway() string { // 10.41.0.1
+	_, ipnet, _ := net.ParseCIDR(s.Subnet)
+	ip := ipnet.IP.To4()
+	ip[3] = 1 // 主机位设为1（如10.41.0.1）
+	return ip.String()
+}
+
+func (s *SessionValue) GatewayWithCIDR() string { //10.41.0.1/16
 	_, ipnet, _ := net.ParseCIDR(s.Subnet)
 	ip := ipnet.IP.To4()
 	ip[3] = 1 // 主机位设为1（如10.41.0.1）
@@ -39,7 +45,7 @@ type SessionValues = []SessionValue
 
 type SmfConfigmapValue struct {
 	SliceValue
-	UPFN4Addr string
+	UPFN4AddrIP string
 	SessionValues
 }
 

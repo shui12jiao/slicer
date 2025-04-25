@@ -24,8 +24,8 @@ spec:
         name: upf{{.ID}}
       annotations:
         k8s.v1.cni.cncf.io/networks: '[
-          { "name": "n3network", "interface": "n3", "ips": [ "{{.N4Addr}}" ] },
-          { "name": "n4network", "interface": "n4", "ips": [ "{{.N3Addr}}" ] }
+          { "name": "n3network", "interface": "n3", "ips": [ "{{.N3Addr}}" ] },
+          { "name": "n4network", "interface": "n4", "ips": [ "{{.N4Addr}}" ] }
           ]'
     spec:
       # nodeSelector:
@@ -45,7 +45,7 @@ spec:
       containers:
         - name: upf
           image: docker.io/shui12jiao/open5gs:v2.7.2
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           command: ["/open5gs/config/wrapper.sh"]
           volumeMounts:
             - mountPath: /open5gs/config/

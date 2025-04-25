@@ -30,7 +30,11 @@ data:
           - dev: n4
         client:
           upf:
-            - address: {{.UPFN4Addr}}
+            - address: {{.UPFN4AddrIP}}
+              dnn:
+              {{- range .SessionValues }}
+                - {{.DNN}}
+              {{- end}}
       gtpc:
         server:
           - dev: eth0

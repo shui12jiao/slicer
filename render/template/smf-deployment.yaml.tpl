@@ -45,7 +45,7 @@ spec:
       containers:
         - image: docker.io/shui12jiao/open5gs:v2.7.2
           name: smf{{.ID}}
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - name: nsmf
               containerPort: 80

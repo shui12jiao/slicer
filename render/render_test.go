@@ -24,10 +24,10 @@ var testSlice = model.SliceAndAddress{
 	},
 	AddressValue: model.AddressValue{
 		SessionSubnets: []string{"10.40.0.0/16", "10.41.0.0/16"},
-		UPFN3Addr:      "10.10.3.1",
-		UPFN4Addr:      "10.10.4.1",
-		SMFN3Addr:      "10.10.3.2",
-		SMFN4Addr:      "10.10.4.2",
+		UPFN3Addr:      "10.10.3.1/16",
+		UPFN4Addr:      "10.10.4.1/16",
+		SMFN3Addr:      "10.10.3.2/16",
+		SMFN4Addr:      "10.10.4.2/16",
 	},
 }
 
@@ -141,6 +141,7 @@ iptables -t nat -A POSTROUTING -s 10.41.0.0/16 ! -o ogstun1 -j MASQUERADE;`)
 	// 执行所有子测试
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			fmt.Println(string(tc.content))
 			tc.validate(t, tc.content)
 		})
 	}
