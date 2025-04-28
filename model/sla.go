@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -44,4 +45,13 @@ func (s *SLA) Update(newSLA SLA) error {
 	}
 
 	return nil
+}
+
+func (s *SLA) String() string {
+	json, err := json.Marshal(s)
+	if err != nil {
+		return fmt.Sprintf("Error marshaling SLA: %v", err)
+	}
+
+	return string(json)
 }

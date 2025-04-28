@@ -100,28 +100,50 @@ func NewStrategyAgent(ctx context.Context, metricsTool tool.InvokableTool, model
 }
 
 func (s *StrategyAgent) Reconcile(current sm.Play, sla sm.SLA) (sm.Play, error) {
-	// TODO
-	return current, nil
-	// ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	// defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 
-	// // 构建请求
-	// request := &schema.ChatRequest{
-	// 	Prompt: g.prompt,
-	// 	Tools:  g.tools,
-	// }
+	// 获取切片ID
+	sliceID := current.SliceID
+	if sliceID == "" {
+		return current, fmt.Errorf("切片ID不能为空")
+	}
 
-	// // 调用模型
-	// response, err := g.model.Call(ctx, request)
-	// if err != nil {
-	// 	return current, err
-	// }
+	// 获取指标数据
+	metricsParams := MetricsToolParams{
+		SliceID:  sliceID,
+		Duration: int64(3 * time.Hour.Seconds()),
+		Step:     int64(time.Minute.Seconds()),
+	}
+	metricsParamsJSON, err := json.Marshal(metricsParams)
+	if err != nil {
+		return current, fmt.Errorf("参数序列化失败: %w", err)
+	}
+	metrics, err := s.MetricsTool.InvokableRun(ctx, string(metricsParamsJSON))
 
-	// // 解析响应
-	// play, err := parseResponse(response)
-	// if err != nil {
-	// 	return current, err
-	// }
+	// 构建请求
+	input := []*schema.Message{
+		schema.SystemMessage(StragetyPrompt),
+		schema.SystemMessage("限制: 当前策略不能被删除, 只能在当前策略的基础上进行修改, 暂时仅对策略中以下字段进行修改"),
+		schema.SystemMessage("1. 资源请求与限制\n2. 带宽限制\n"),
+		schema.UserMessage("当前策略: " + current.String()),
+		schema.UserMessage("当前指标: " + metrics),
+		schema.UserMessage("当前SLA: " + sla.String()),
+		schema.UserMessage("请根据当前指标和SLA, 生成新的Play策略"),
+		schema.UserMessage("注意: 只需要返回新的策略对应的JSON格式数据, 不要多余描述"),
+	}
 
-	// return play, nil
+	// agent处理
+	response, err := s.Agent.Generate(ctx, input)
+	if err != nil {
+		return current, err
+	}
+
+	// 解析响应
+	var play sm.Play
+	if err := json.Unmarshal([]byte(response.Content), &play); err != nil {
+		return current, fmt.Errorf("解析响应失败: %w", err)
+	}
+
+	return play, nil
 }

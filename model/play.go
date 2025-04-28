@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -78,4 +79,13 @@ func (p *Play) Update(newPlay Play) error {
 // isNetworkPolicyEmpty checks if a NetworkPolicy is empty.
 func isNetworkPolicyEmpty(policy networkingv1.NetworkPolicy) bool {
 	return policy.ObjectMeta.Name == "" && policy.ObjectMeta.Namespace == "" && len(policy.Spec.PolicyTypes) == 0
+}
+
+func (p *Play) String() string {
+	json, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Sprintf("Error marshaling Play: %v", err)
+	}
+
+	return string(json)
 }
