@@ -40,11 +40,11 @@ data:
 
     sysctl -w net.ipv6.conf.all.disable_ipv6=1;
     sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward";
-    {{- range .SessionValues }}
     ip tuntap add name ogstun mode tun;
+    {{- range .SessionValues }}
     ip addr add {{.GatewayWithCIDR}} dev ogstun;
-    ip link set ogstun up;
     iptables -t nat -A POSTROUTING -s {{.Subnet}} ! -o ogstun -j MASQUERADE;
     {{- end}}
+    ip link set ogstun up;
 
     /open5gs/install/bin/open5gs-upfd -c /open5gs/config/upfcfg.yaml
