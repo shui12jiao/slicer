@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"os"
+	"slicer/ai"
 	"slicer/controller"
 	"slicer/db"
 	"slicer/kubeclient"
@@ -51,14 +52,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 初始化metrics源
-	metrics, err := controller.NewMetrics(config.MonarchThanosURI)
-	if err != nil {
-		slog.Error("创建指标源失败", "error", err)
-		os.Exit(1)
-	}
 	// 初始化策略
-	strategy := controller.NewBasicStrategy(metrics)
+	strategy := newBasicStrategy(config)
 
 	// 初始化控制器
 	controller := controller.NewBasicController(config, store, kubeclient, strategy)
@@ -80,4 +75,27 @@ func main() {
 	// 启动HTTP服务器
 	slog.Info("启动HTTP服务器", "address", config.HTTPServerAddress)
 	server.Start()
+}
+
+// 测试用基本策略
+func newBasicStrategy(config util.Config) controller.Strategy {
+	// 初始化metrics源
+	metrics, err := controller.NewMetrics(config.MonarchThanosURI)
+	if err != nil {
+		slog.Error("创建指标源失败", "error", err)
+		os.Exit(1)
+	}
+	// 初始化策略
+	return controller.NewBasicStrategy(metrics)
+}
+
+// ai大模型支持的策略
+func newAIStrategy(config util.Config) controller.Strategy {
+	// 初始化ai
+	ai, err := ai.NewGeneralAI(config)
+	if err != nil {
+		slog.Error("创建AI失败", "error", err)
+		os.Exit(1)
+	}
+	return ai
 }
