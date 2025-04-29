@@ -62,11 +62,13 @@ type BasicController struct {
 	strategy Strategy
 }
 
-func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.KubeClient, strategy Strategy) Controller {
+// NewBasicController 创建一个新的控制器
+// 注册传入的所有strategy, 并将第一个strategy设置为默认策略, 若不传入则strategy为nil
+func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.KubeClient, strategy ...Strategy) Controller {
 	// 创建一个新的上下文和取消函数
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &BasicController{
+	c := &BasicController{
 		running:   false,
 		frequency: 1 * time.Hour,
 		ctx:       ctx,
@@ -75,8 +77,15 @@ func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.
 		config:    config,
 		store:     store,
 		kclient:   kclient,
-		strategy:  strategy,
+		strategy: func() Strategy {
+			if len(strategy) > 0 {
+				return strategy[0]
+			}
+			return nil
+		}(),
 	}
+	c.RegisterStrategy(strategy...) // 注册策略
+	return c
 }
 
 // 运行相关
@@ -225,7 +234,7 @@ func (c *BasicController) SetFrequency(duration time.Duration) {
 	if c.running {
 		c.Stop()
 		// 重新启动控制器
-		c.Run()
+		c.Start()
 	}
 }
 

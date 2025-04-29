@@ -52,14 +52,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 初始化策略
-	strategy := newBasicStrategy(config)
-
-	// 初始化控制器
-	controller := controller.NewBasicController(config, store, kubeclient, strategy)
-
 	// 启动控制器
-	go controller.Run()
+	controller := runController(config, store, kubeclient)
 
 	// 初始化Server
 	server := server.NewServer(server.NewSeverArg{
@@ -75,6 +69,16 @@ func main() {
 	// 启动HTTP服务器
 	slog.Info("启动HTTP服务器", "address", config.HTTPServerAddress)
 	server.Start()
+}
+
+// 注册并启动controller
+func runController(config util.Config, store db.Store, kclient *kubeclient.KubeClient) controller.Controller {
+	basicStrategy := newBasicStrategy(config)
+	aiStrategy := newAIStrategy(config)
+	controller := controller.NewBasicController(config, store, kclient, basicStrategy, aiStrategy)
+	controller.Start()
+	slog.Info("控制器已启动", "频率", controller.GetFrequency(), "策略", controller.GetStrategy().Name())
+	return controller
 }
 
 // 测试用基本策略
