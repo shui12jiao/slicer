@@ -36,7 +36,7 @@ type Controller interface {
 
 type BasicController struct {
 	// 互斥锁
-	mu sync.Mutex // 保护running, frequency, strategy, slices
+	mu sync.Mutex // 保护running, frequency以及切片和策略相关资源
 	// 控制器的上下文
 	ctx context.Context
 	// 控制器的取消函数
