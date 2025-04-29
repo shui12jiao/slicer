@@ -162,3 +162,22 @@ func (s *Server) deleteSla(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("删除SLA成功", "SLAID", sla.ID.Hex())
 	w.WriteHeader(http.StatusOK)
 }
+
+func (s *Server) listSla(w http.ResponseWriter, r *http.Request) {
+	slog.Debug("列出SLA请求", "method", r.Method, "url", r.URL.String())
+	slas, err := s.store.ListSLA()
+	if err != nil {
+		slog.Error("列出SLA失败", "error", err)
+		http.Error(w, "列出SLA失败", http.StatusInternalServerError)
+		return
+	}
+
+	// 返回
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(slas); err != nil {
+		slog.Error("响应编码失败", "error", err)
+		http.Error(w, "响应编码失败", http.StatusInternalServerError)
+		return
+	}
+	slog.Debug("列出SLA成功")
+}

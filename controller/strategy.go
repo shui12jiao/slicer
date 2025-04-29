@@ -11,6 +11,8 @@ import (
 )
 
 type Strategy interface {
+	// 返回策略名称
+	Name() string
 	// 根据SLA,Metrics以及当前策略，生成新 Play 策略
 	Reconcile(current model.Play, sla model.SLA) (model.Play, error)
 }
@@ -27,6 +29,10 @@ func NewBasicStrategy(metrics Metrics) *BasicStrategy {
 	return &BasicStrategy{
 		Metrics: metrics,
 	}
+}
+
+func (b *BasicStrategy) Name() string {
+	return "basic"
 }
 
 func (b *BasicStrategy) Reconcile(current model.Play, sla model.SLA) (model.Play, error) {

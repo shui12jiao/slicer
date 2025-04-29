@@ -99,6 +99,10 @@ func NewStrategyAgent(ctx context.Context, metricsTool tool.InvokableTool, model
 	}, nil
 }
 
+func (s *StrategyAgent) Name() string {
+	return "ai"
+}
+
 func (s *StrategyAgent) Reconcile(current sm.Play, sla sm.SLA) (sm.Play, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

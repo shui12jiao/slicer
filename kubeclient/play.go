@@ -46,7 +46,7 @@ func (kc *KubeClient) Play(play model.Play, namespace string) error {
 		return fmt.Errorf("获取Deployment失败: %v", err)
 	}
 
-	// 2. 更新资源请求/限制（修复关键错误）
+	// 2. 更新资源请求/限制
 	container := &deployment.Spec.Template.Spec.Containers[0]
 	container.Resources = corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
@@ -59,7 +59,7 @@ func (kc *KubeClient) Play(play model.Play, namespace string) error {
 		},
 	}
 
-	// 3. 注入带宽限制（通过CNI注解）[9,10](@ref)
+	// 3. 注入带宽限制（通过CNI注解）
 	if deployment.Spec.Template.Annotations == nil {
 		deployment.Spec.Template.Annotations = make(map[string]string)
 	}

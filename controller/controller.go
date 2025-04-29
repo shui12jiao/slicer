@@ -5,46 +5,59 @@ import (
 	"log/slog"
 	"slicer/db"
 	"slicer/kubeclient"
-	"slicer/model"
 	"slicer/util"
 	"sync"
 	"time"
 )
 
 type Controller interface {
-	Run()
-
+	// 运行
+	Start() // 异步运行
 	Stop()
+	IsRunning() bool // 控制器是否在运行
 
-	// 设置控制频率
-	SetFrequency(duration time.Duration)
+	// 频率
+	SetFrequency(duration time.Duration) // 设置控制频率
+	GetFrequency() time.Duration         // 获取控制频率
 
+	// 切片
 	AddSlice(sliceID string)
 	RemoveSlice(sliceID string)
 	ListSlices() []string
 
-	Strategy
+	// 策略
 	SetStrategy(strategy Strategy)
+	GetStrategy() Strategy
+	RegisterStrategy(strategy ...Strategy)
+	UnregisterStrategy(strategy ...Strategy)
+	ListStrategy() []Strategy
+	GetStrategyByName(name string) Strategy
 }
 
 type BasicController struct {
-	running bool
-	mu      sync.Mutex
-	// 控制频率
-	frequency time.Duration
+	// 互斥锁
+	mu sync.Mutex // 保护running, frequency, strategy, slices
 	// 控制器的上下文
 	ctx context.Context
 	// 控制器的取消函数
 	cancel context.CancelFunc
 
-	// 切片列表
-	slices []string
 	// config
 	config util.Config
 	// 存储
 	store db.Store
 	// 控制器的配置
 	kclient *kubeclient.KubeClient
+
+	// 运行状态
+	running bool
+	// 控制频率
+	frequency time.Duration
+
+	// 切片列表
+	slices []string
+	// 策略列表
+	strategies []Strategy
 	// 策略
 	strategy Strategy
 }
@@ -66,7 +79,12 @@ func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.
 	}
 }
 
-func (c *BasicController) Run() {
+// 运行相关
+func (c *BasicController) Start() {
+	go c.run()
+}
+
+func (c *BasicController) run() {
 	c.mu.Lock()
 	if c.running {
 		c.mu.Unlock()
@@ -98,11 +116,6 @@ func (c *BasicController) Run() {
 	}
 }
 
-// 核心逻辑, 根据 SLA 与当前指标，生成新 Play 策略
-func (c *BasicController) Reconcile(current model.Play, sla model.SLA) (new model.Play, err error) {
-	return c.strategy.Reconcile(current, sla)
-}
-
 func (c *BasicController) control(sliceID string) error {
 	// 获取SLA
 	sla, err := c.store.GetSLA(sliceID)
@@ -118,8 +131,10 @@ func (c *BasicController) control(sliceID string) error {
 		return err
 	}
 
+	// 核心控制逻辑
+	// 调用策略执行Reconcile
 	// 生成新的Play
-	newPlay, err := c.Reconcile(play, sla)
+	newPlay, err := c.strategy.Reconcile(play, sla)
 	if err != nil {
 		slog.Error("生成新Play失败", "sliceID", sliceID, "err", err)
 		return err
@@ -151,6 +166,28 @@ func (c *BasicController) control(sliceID string) error {
 	return nil
 }
 
+func (c *BasicController) Stop() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.running {
+		c.cancel() // 取消上下文
+		c.running = false
+
+		// 等待控制器停止
+		time.Sleep(100 * time.Millisecond)
+
+		// 重新创建上下文和取消函数
+		c.ctx, c.cancel = context.WithCancel(context.Background())
+	}
+}
+
+func (c *BasicController) IsRunning() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.running
+}
+
+// 切片相关
 func (c *BasicController) AddSlice(sliceID string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -178,6 +215,7 @@ func (c *BasicController) ListSlices() []string {
 	return c.slices
 }
 
+// 频率相关
 func (c *BasicController) SetFrequency(duration time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -191,23 +229,66 @@ func (c *BasicController) SetFrequency(duration time.Duration) {
 	}
 }
 
-func (c *BasicController) Stop() {
+func (c *BasicController) GetFrequency() time.Duration {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.running {
-		c.cancel() // 取消上下文
-		c.running = false
-
-		// 等待控制器停止
-		time.Sleep(100 * time.Millisecond)
-
-		// 重新创建上下文和取消函数
-		c.ctx, c.cancel = context.WithCancel(context.Background())
-	}
+	return c.frequency
 }
 
+// 策略相关
 func (c *BasicController) SetStrategy(strategy Strategy) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.strategy = strategy
+}
+
+func (c *BasicController) GetStrategy() Strategy {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.strategy
+}
+
+func (c *BasicController) RegisterStrategy(strategy ...Strategy) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	// range定义nil为len=0,不需要进行判断
+	for _, s := range strategy {
+		for _, st := range c.strategies {
+			if st.Name() == s.Name() {
+				slog.Warn("策略已存在, 跳过注册", "策略名称", s.Name())
+				continue
+			}
+			c.strategies = append(c.strategies, s)
+		}
+	}
+}
+
+func (c *BasicController) UnregisterStrategy(strategy ...Strategy) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, s := range strategy {
+		for i, st := range c.strategies {
+			if st.Name() == s.Name() {
+				c.strategies = append(c.strategies[:i], c.strategies[i+1:]...)
+				break
+			}
+		}
+	}
+}
+
+func (c *BasicController) ListStrategy() []Strategy {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.strategies
+}
+
+func (c *BasicController) GetStrategyByName(name string) Strategy {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, s := range c.strategies {
+		if s.Name() == name {
+			return s
+		}
+	}
+	return nil
 }

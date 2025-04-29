@@ -65,15 +65,20 @@ func (s *Server) routes() {
 	s.router.HandleFunc("GET /monitor/supported_kpis", s.getSupportedKpis)
 
 	// 性能控制相关路由
-	s.router.HandleFunc("POST /play", s.createPlay) // 应该合并到切片管理相关路由逻辑中, 不能删除
+	s.router.HandleFunc("POST /play", s.createPlay) // 或许应该合并到切片管理相关路由逻辑中, 生成默认值? 不允许删除
 	s.router.HandleFunc("POST /play/{playId}", s.updatePlay)
 	s.router.HandleFunc("GET /play/{playId}", s.getPlay)
 
 	// SLA相关路由
-	s.router.HandleFunc("POST /sla", s.createSla)
+	s.router.HandleFunc("POST /sla", s.createSla) //这里同时会将slice添加到controller中
 	s.router.HandleFunc("POST /sla/{slaId}", s.updateSla)
 	s.router.HandleFunc("DELETE /sla/{slaId}", s.deleteSla)
 	s.router.HandleFunc("GET /sla/{slaId}", s.getSla)
+	s.router.HandleFunc("GET /sla", s.listSla) // 列出所有SLA, 也用于controller获取 (controller没有持久化, 可能丢失)
+
+	// Controller相关路由
+	s.router.HandleFunc("GET /controller", s.getController)     // 获取controller的状态 包括切片列表, 策略等
+	s.router.HandleFunc("POST /controller", s.updateController) // 更新controller的状态
 
 	// Monarch交互相关路由
 	// monarch调用service orchestrator相关接口
