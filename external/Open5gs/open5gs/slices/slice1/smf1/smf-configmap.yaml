@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smf1-configmap
+  labels:
+    app: open5gs
+    nf: smf
+    name: smf1
+data:
+  smfcfg.yaml: |
+    logger:
+      file: /open5gs/install/var/log/open5gs/smf.log
+
+    global:
+      max:
+        ue: 1024
+
+    smf:
+      sbi:
+        server:
+          - dev: eth0
+            advertise: smf1-nsmf
+            port: 80
+        client:
+          scp:
+            - uri: http://scp-nscp:80
+      pfcp:
+        server:
+          - dev: n4
+        client:
+          upf:
+            - address: 10.10.4.1
+              dnn: internet
+      gtpc:
+        server:
+          - dev: eth0
+      gtpu:
+        server:
+          - dev: n3
+      metrics:
+        server:
+          - address: 0.0.0.0
+            port: 9090
+      session:
+        - subnet: 10.41.0.1/16
+      dns:
+        - 8.8.8.8
+        - 8.8.4.4
+      mtu: 1400
+      ctf:
+        enabled: auto
+      freeDiameter: /open5gs/install/etc/freeDiameter/smf.conf
+
+      info:
+        - s_nssai:
+          - sst: 1
+            sd: 000001
+            dnn:
+             - internet

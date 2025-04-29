@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bsf-configmap
+  labels:
+    app: open5gs
+data:
+  bsfcfg.yaml: |
+    logger:
+      file: /open5gs/install/var/log/open5gs/bsf.log
+
+    global:
+      max:
+        ue: 1024
+
+    bsf:
+      sbi:
+        server:
+          - dev: eth0
+            advertise: bsf-nbsf
+            port: 80
+        client:
+          scp:
+            - uri: http://scp-nscp:80
