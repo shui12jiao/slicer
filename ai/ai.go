@@ -74,7 +74,7 @@ func NewModel(ctx context.Context, config util.AIConfig) (cm model.ToolCallingCh
 		return &d
 	}
 
-	switch config.Model {
+	switch config.ModelType {
 	case DeepSeek:
 		cm, err = deepseek.NewChatModel(ctx, &deepseek.ChatModelConfig{
 			APIKey: config.APIKey,
