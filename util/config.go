@@ -11,14 +11,14 @@ import (
 type MongoConfig struct {
 	MongoURI     string
 	MongoDBName  string
-	MongoTimeout uint8 // 单位秒
+	MongoTimeout time.Duration
 }
 
 type MonitorConfig struct {
 	MonarchThanosURI            string
 	MonarchRequestTranslatorURI string
 	MonarchMonitoringInterval   uint8
-	MonitorTimeout              uint8
+	MonitorTimeout              time.Duration
 }
 
 type KubeConfig struct {
@@ -41,7 +41,7 @@ type IPAMConfig struct {
 	N4Network           string
 	SessionNetwork      string
 	SessionSubnetLength uint8
-	IPAMTimeout         uint8 // 单位秒
+	IPAMTimeout         time.Duration
 }
 
 type AIConfig struct {
@@ -84,14 +84,14 @@ func LoadConfig() Config {
 			MonarchThanosURI:            MustGetEnv("MONARCH_THANOS_URL"),
 			MonarchRequestTranslatorURI: MustGetEnv("MONARCH_REQUEST_TRANSLATOR_URI"),
 			MonarchMonitoringInterval:   String2Uint8(MustGetEnv("MONARCH_MONITORING_INTERVAL")),
-			MonitorTimeout:              String2Uint8(MustGetEnv("MONITOR_TIMEOUT")),
+			MonitorTimeout:              String2Duration(MustGetEnv("MONITOR_TIMEOUT")),
 		},
 
 		// for mongodb
 		MongoConfig: MongoConfig{
 			MongoURI:     MustGetEnv("MONGO_URI"),
 			MongoDBName:  MustGetEnv("MONGO_DB_NAME"),
-			MongoTimeout: String2Uint8(MustGetEnv("MONGO_TIMEOUT")),
+			MongoTimeout: String2Duration(MustGetEnv("MONGO_TIMEOUT")),
 		},
 
 		// for kubernetes client
@@ -120,7 +120,7 @@ func LoadConfig() Config {
 			N4Network:           MustGetEnv("N4_NETWORK"),
 			SessionNetwork:      MustGetEnv("SESSION_NETWORK"),
 			SessionSubnetLength: String2Uint8(MustGetEnv("SESSION_SUBNET_LENGTH")),
-			IPAMTimeout:         String2Uint8(MustGetEnv("IPAM_TIMEOUT")),
+			IPAMTimeout:         String2Duration(MustGetEnv("IPAM_TIMEOUT")),
 		},
 
 		// for ai
@@ -130,7 +130,7 @@ func LoadConfig() Config {
 			APIKey:    MustGetEnv("API_KEY"),
 			// 可选
 			BaseURL:   GetEnv("BASE_URL"),
-			Timeout:   String2Duration(("AI_TIMEOUT")),
+			Timeout:   String2Duration(GetEnv("AI_TIMEOUT")),
 			MaxTokens: String2Int(GetEnv("AI_MAX_TOKENS")),
 		},
 	}
@@ -176,10 +176,16 @@ func String2Int(s string) int {
 }
 
 func String2Duration(s string) time.Duration {
-	d, err := time.ParseDuration(s)
-	if err != nil {
-		slog.Error(fmt.Sprintf("环境变量 %s 转换失败", s))
-		os.Exit(1)
+	// 检查是否为纯数字
+	if seconds, err := strconv.Atoi(s); err == nil {
+		// 将纯数字视为秒
+		return time.Duration(seconds) * time.Second
+	} else {
+		d, err := time.ParseDuration(s)
+		if err != nil {
+			slog.Error(fmt.Sprintf("环境变量 %s 转换失败", s))
+			os.Exit(1)
+		}
+		return d
 	}
-	return d
 }

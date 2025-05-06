@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"slicer/model"
-	"time"
 )
 
 // 获取支持的KPIs
@@ -20,7 +19,7 @@ type getSupportedKpisResponse struct {
 // 联系Monarch request translator获取支持的KPIs
 func (m *Monitor) GetSupportedKpis() ([]model.SupportedKpi, error) {
 	httpClient := http.Client{
-		Timeout: time.Duration(m.config.MonitorTimeout) * time.Second,
+		Timeout: m.config.MonitorTimeout,
 	}
 	req, err := http.NewRequest("GET", m.config.MonarchRequestTranslatorURI+"/api/supported-kpis", nil)
 	if err != nil {
@@ -60,7 +59,7 @@ type submitMonitoringResponse struct {
 
 func (m *Monitor) SubmitMonitoring(monitor model.Monitor) (model.Monitor, error) {
 	httpClient := http.Client{
-		Timeout: time.Duration(m.config.MonitorTimeout) * time.Second,
+		Timeout: m.config.MonitorTimeout,
 	}
 
 	// 序列化请求体
@@ -105,7 +104,7 @@ type deleteMonitoringResponse = Response
 
 func (m *Monitor) DeleteMonitoring(requestID string) error {
 	httpClient := http.Client{
-		Timeout: time.Duration(m.config.MonitorTimeout) * time.Second,
+		Timeout: m.config.MonitorTimeout,
 	}
 	req, err := http.NewRequest("DELETE", m.config.MonarchRequestTranslatorURI+"/api/monitoring-requests/delete/"+requestID, nil)
 	if err != nil {
