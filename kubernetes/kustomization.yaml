@@ -25,13 +25,10 @@ configMapGenerator:
       # for kubernetes client
       - NAMESPACE=open5gs
       - MONITOR_NAMESPACE=monarch
-      # KUBECONFIG_PATH= (设置为空, 从集群中获取)
+      # KUBECONFIG_PATH=/home/sming/.kube/config (设置为空, 从集群中获取)
 
       # for http server
       - HTTP_SERVER_ADDRESS=0.0.0.0:30001
-      - SLICE_STORE_NAME=slice
-      - KUBE_STORE_NAME=kube
-      - MONITOR_STORE_NAME=monitor
 
       # for render
       - TEMPLATE_PATH=render/template
@@ -42,6 +39,15 @@ configMapGenerator:
       - SESSION_NETWORK=10.32.0.0/11
       - SESSION_SUBNET_LENGTH=16
       - IPAM_TIMEOUT=255
+
+      # for ai
+      - MODEL_TYPE=ark
+      - MODEL=deepseek-r1-250120
+      - API_KEY=9aff57ec-30ed-4c28-bf8e-b215d198e5fc
+          # 可选项
+      - AI_TIMEOUT=255
+      - BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+      - MaxTokens=4096
 
 secretGenerator:
   - name: mongodb-secret
