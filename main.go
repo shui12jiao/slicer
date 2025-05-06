@@ -11,14 +11,20 @@ import (
 	"slicer/render"
 	"slicer/server"
 	"slicer/util"
+	"time"
 
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/lmittmann/tint"
 )
 
 func main() {
 	// 采用slog作为日志库
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+	// slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+	// 	Level: slog.LevelDebug,
+	// })))
+	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+		Level:      slog.LevelDebug, // 设置日志级别
+		TimeFormat: time.DateTime,   // 设置时间格式，例如 "3:04PM"
 	})))
 
 	// 加载配置
