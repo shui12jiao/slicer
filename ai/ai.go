@@ -118,7 +118,7 @@ func NewModel(ctx context.Context, config util.AIConfig) (cm model.ToolCallingCh
 			}(config.Timeout),
 		})
 	default:
-		return nil, fmt.Errorf("不支持的模型类型: %s", config.Model)
+		return nil, fmt.Errorf("不支持的模型类型: %s", config.ModelType)
 	}
 
 	if err != nil {

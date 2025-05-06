@@ -139,7 +139,7 @@ func LoadConfig() Config {
 func GetEnv(key string) string {
 	s := os.Getenv(key)
 	if s == "" {
-		slog.Info(fmt.Sprintf("环境变量 %s 为空", key))
+		slog.Info(fmt.Sprintf("变量 %s 为空", key))
 	}
 	return s
 }
@@ -147,8 +147,8 @@ func GetEnv(key string) string {
 func MustGetEnv(key string) string {
 	s := os.Getenv(key)
 	if s == "" {
-		slog.Error(fmt.Sprintf("环境变量 %s 为空", key))
-		// os.Exit(1)
+		slog.Error(fmt.Sprintf("变量 %s 为空", key))
+		os.Exit(1)
 	}
 	return s
 }
@@ -156,11 +156,11 @@ func MustGetEnv(key string) string {
 func String2Uint8(s string) uint8 {
 	i, err := strconv.Atoi(s)
 	if err != nil {
-		slog.Error(fmt.Sprintf("环境变量 %s 转换失败", s))
+		slog.Warn(fmt.Sprintf("变量 %s 转换失败", s))
 		os.Exit(1)
 	}
 	if i < 0 || i > 255 {
-		slog.Error(fmt.Sprintf("环境变量 %s 超出范围", s))
+		slog.Warn(fmt.Sprintf("变量 %s 超出范围", s))
 		// os.Exit(1)
 	}
 	return uint8(i)
@@ -169,7 +169,7 @@ func String2Uint8(s string) uint8 {
 func String2Int(s string) int {
 	i, err := strconv.Atoi(s)
 	if err != nil {
-		slog.Error(fmt.Sprintf("环境变量 %s 转换失败", s))
+		slog.Warn(fmt.Sprintf("变量 %s 转换失败", s))
 		// os.Exit(1)
 	}
 	return i
@@ -183,7 +183,7 @@ func String2Duration(s string) time.Duration {
 	} else {
 		d, err := time.ParseDuration(s)
 		if err != nil {
-			slog.Error(fmt.Sprintf("环境变量 %s 转换失败", s))
+			slog.Warn(fmt.Sprintf("变量 %s 转换失败", s))
 			// os.Exit(1)
 		}
 		return d
