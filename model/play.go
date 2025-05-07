@@ -20,6 +20,10 @@ type Play struct {
 	// 网络带宽限制（适用于部分 CNI）
 	Bandwidth BandwidthSpec `json:"bandwidth"`
 
+	// 优先级
+	Priority Priority `json:"priority"` // 数值越大优先级越高，例如 1000
+
+	// 保留字段, 目前不使用
 	// Pod 调度规则
 	Scheduling SchedulingSpec `json:"scheduling"`
 
@@ -28,6 +32,23 @@ type Play struct {
 
 	// 特定插件使用的注解（如限速、带宽隔离）
 	Annotations map[string]string `json:"annotations"`
+}
+
+// Kubernetes中若不设置优先级,且无globalDefault为true的策略, 则默认优先级为0
+type Priority int
+
+func (p Priority) Validate() error {
+	if p < 0 {
+		return fmt.Errorf("优先级不能小于0")
+	}
+	if p > 1000000 {
+		return fmt.Errorf("优先级不能大于1000000")
+	}
+	return nil
+}
+
+func (p Priority) ClassName(sliceID string) string {
+	return fmt.Sprintf("priority-%s-%d", sliceID, p)
 }
 
 // 资源定义（CPU / 内存）

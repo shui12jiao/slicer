@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	networkingv1 "k8s.io/api/networking/v1"
+	schedulingv1 "k8s.io/api/scheduling/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -78,9 +79,47 @@ func (kc *KubeClient) Play(play model.Play, namespace string) error {
 		deployment.Spec.Template.Spec.NodeSelector[k] = v
 	}
 
-	// 5. 合并注解（保留系统注解）[16](@ref)
+	// 5. 合并注解（保留系统注解）
 	for k, v := range play.Annotations {
 		deployment.Spec.Template.Annotations[k] = v
+	}
+
+	// 6. 优先级Priority处理
+	if play.Priority != 0 { // 0表示不设置优先级
+		if err := play.Priority.Validate(); err != nil {
+			return fmt.Errorf("优先级参数错误: %v", err)
+		}
+
+		priorityClassName := play.Priority.ClassName(play.SliceID)
+		oldPriorityClassName := deployment.Spec.Template.Spec.PriorityClassName
+		// 若相同,直接跳过
+		if oldPriorityClassName != priorityClassName {
+			if oldPriorityClassName != "" {
+				// 删除旧的优先级类
+				if err := kc.clientset.SchedulingV1().PriorityClasses().Delete(ctx, oldPriorityClassName, metav1.DeleteOptions{}); err != nil {
+					return fmt.Errorf("删除旧的优先级类失败: %v", err)
+				}
+			}
+			// 创建新的优先级类
+			priorityClass := &schedulingv1.PriorityClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: priorityClassName,
+				},
+				Value:         int32(play.Priority),
+				GlobalDefault: false,
+				Description:   fmt.Sprintf("Priority class for slice %s", play.SliceID),
+				PreemptionPolicy: func() *corev1.PreemptionPolicy {
+					policy := corev1.PreemptLowerPriority
+					return &policy
+				}(),
+			}
+			_, err := kc.clientset.SchedulingV1().PriorityClasses().Create(ctx, priorityClass, metav1.CreateOptions{})
+			if err != nil {
+				return fmt.Errorf("创建新的优先级类失败: %v", err)
+			}
+			// 更新Deployment中的优先级类名称
+			deployment.Spec.Template.Spec.PriorityClassName = priorityClassName
+		}
 	}
 
 	// 6. 更新Deployment
@@ -88,7 +127,7 @@ func (kc *KubeClient) Play(play model.Play, namespace string) error {
 		return fmt.Errorf("更新Deployment失败: %v", err)
 	}
 
-	// 7. 创建/更新网络策略（需独立操作）[1,2](@ref)
+	// 7. 创建/更新网络策略
 	if err := kc.applyNetworkPolicy(&play.NetworkPolicy, namespace); err != nil {
 		return fmt.Errorf("网络策略更新失败: %v", err)
 	}
