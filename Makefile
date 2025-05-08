@@ -36,5 +36,6 @@ run:
 prepare:
 	cd external/Open5gs && kubectl create namespace open5gs || kubectl apply -f multus-daemonset-thick.yml &&
 	kubectl apply -k mongodb -n open5gs && kubectl apply -k networks5g -n open5gs && kubectl apply -k msd/overlays/open5gs-metrics -n open5gs
+	
 deploy:
 	kubectl apply -k kubernetes

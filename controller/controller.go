@@ -70,7 +70,7 @@ func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.
 
 	c := &BasicController{
 		running:   false,
-		frequency: 1 * time.Hour,
+		frequency: 6 * time.Hour,
 		ctx:       ctx,
 		cancel:    cancel,
 		slices:    []string{},
