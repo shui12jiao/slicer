@@ -9,6 +9,243 @@
     "host": "localhost:30001",
     "basePath": "/",
     "paths": {
+        "/sla": {
+            "get": {
+                "description": "获取系统内全部SLA列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "获取所有SLA",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.SLA"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败/响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "接收SLA对象并创建新资源\nslice id对应切片必须存在",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "创建SLA",
+                "parameters": [
+                    {
+                        "description": "SLA对象",
+                        "name": "sla",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "创建成功返回SLA对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    },
+                    "400": {
+                        "description": "请求解码失败/SLA已存在/参数非法",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "切片不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "存储失败/响应编码失败等服务器内部错误",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/sla/{slaId}": {
+            "get": {
+                "description": "根据SLA ID获取资源详情",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "获取单个SLA",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "SLA ID",
+                        "name": "slaId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少SLA ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "SLA不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败/响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "根据SLA ID更新资源",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "更新SLA",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "SLA ID",
+                        "name": "slaId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新后的SLA对象",
+                        "name": "sla",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功返回对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少SLA ID/请求解码失败/参数非法",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "SLA不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "更新失败/响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "根据SLA ID删除资源",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "删除SLA",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "SLA ID",
+                        "name": "slaId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除成功",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少SLA ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "SLA不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "删除失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/slice": {
             "get": {
                 "description": "获取当前系统中的所有切片列表",
@@ -19,7 +256,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "slice"
+                    "Slice"
                 ],
                 "summary": "获取所有切片",
                 "responses": {
@@ -49,7 +286,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "slice"
+                    "Slice"
                 ],
                 "summary": "创建切片",
                 "parameters": [
@@ -101,7 +338,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "slice"
+                    "Slice"
                 ],
                 "summary": "获取单个切片",
                 "parameters": [
@@ -149,7 +386,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "slice"
+                    "Slice"
                 ],
                 "summary": "删除切片",
                 "parameters": [
@@ -285,6 +522,33 @@
                 },
                 "mbr": {
                     "$ref": "#/definitions/model.MBR"
+                }
+            }
+        },
+        "model.SLA": {
+            "type": "object",
+            "properties": {
+                "availability": {
+                    "description": "可用性",
+                    "type": "number"
+                },
+                "down_bandwidth": {
+                    "description": "下行带宽",
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "latency": {
+                    "description": "延迟",
+                    "type": "number"
+                },
+                "slice_id": {
+                    "type": "string"
+                },
+                "up_bandwidth": {
+                    "description": "上行带宽",
+                    "type": "number"
                 }
             }
         },

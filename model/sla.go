@@ -55,3 +55,20 @@ func (s *SLA) String() string {
 
 	return string(json)
 }
+
+func (s *SLA) Validate() error {
+	// 检查上行带宽
+	if s.UpBandwidth <= 0 || s.DownBandwidth <= 0 {
+		return fmt.Errorf("带宽必须大于0")
+	}
+
+	// 检查延迟
+	if s.Latency <= 0 {
+		return fmt.Errorf("延迟必须大于0")
+	}
+	// 检查可用性
+	if s.Availability < 0 || s.Availability > 100 {
+		return fmt.Errorf("可用性必须在0到100之间")
+	}
+	return nil
+}

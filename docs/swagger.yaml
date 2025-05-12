@@ -64,6 +64,25 @@ definitions:
       mbr:
         $ref: '#/definitions/model.MBR'
     type: object
+  model.SLA:
+    properties:
+      availability:
+        description: 可用性
+        type: number
+      down_bandwidth:
+        description: 下行带宽
+        type: number
+      id:
+        type: string
+      latency:
+        description: 延迟
+        type: number
+      slice_id:
+        type: string
+      up_bandwidth:
+        description: 上行带宽
+        type: number
+    type: object
   model.Session:
     properties:
       ambr:
@@ -133,6 +152,165 @@ info:
   title: Slicer API
   version: "1.0"
 paths:
+  /sla:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统内全部SLA列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            items:
+              $ref: '#/definitions/model.SLA'
+            type: array
+        "500":
+          description: 获取失败/响应编码失败
+          schema:
+            type: string
+      summary: 获取所有SLA
+      tags:
+      - SLA
+    post:
+      consumes:
+      - application/json
+      description: |-
+        接收SLA对象并创建新资源
+        slice id对应切片必须存在
+      parameters:
+      - description: SLA对象
+        in: body
+        name: sla
+        required: true
+        schema:
+          $ref: '#/definitions/model.SLA'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功返回SLA对象
+          schema:
+            $ref: '#/definitions/model.SLA'
+        "400":
+          description: 请求解码失败/SLA已存在/参数非法
+          schema:
+            type: string
+        "404":
+          description: 切片不存在
+          schema:
+            type: string
+        "500":
+          description: 存储失败/响应编码失败等服务器内部错误
+          schema:
+            type: string
+      summary: 创建SLA
+      tags:
+      - SLA
+  /sla/{slaId}:
+    delete:
+      consumes:
+      - application/json
+      description: 根据SLA ID删除资源
+      parameters:
+      - description: SLA ID
+        in: path
+        name: slaId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            type: string
+        "400":
+          description: 缺少SLA ID
+          schema:
+            type: string
+        "404":
+          description: SLA不存在
+          schema:
+            type: string
+        "500":
+          description: 删除失败
+          schema:
+            type: string
+      summary: 删除SLA
+      tags:
+      - SLA
+    get:
+      consumes:
+      - application/json
+      description: 根据SLA ID获取资源详情
+      parameters:
+      - description: SLA ID
+        in: path
+        name: slaId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/model.SLA'
+        "400":
+          description: 缺少SLA ID
+          schema:
+            type: string
+        "404":
+          description: SLA不存在
+          schema:
+            type: string
+        "500":
+          description: 获取失败/响应编码失败
+          schema:
+            type: string
+      summary: 获取单个SLA
+      tags:
+      - SLA
+    put:
+      consumes:
+      - application/json
+      description: 根据SLA ID更新资源
+      parameters:
+      - description: SLA ID
+        in: path
+        name: slaId
+        required: true
+        type: string
+      - description: 更新后的SLA对象
+        in: body
+        name: sla
+        required: true
+        schema:
+          $ref: '#/definitions/model.SLA'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功返回对象
+          schema:
+            $ref: '#/definitions/model.SLA'
+        "400":
+          description: 缺少SLA ID/请求解码失败/参数非法
+          schema:
+            type: string
+        "404":
+          description: SLA不存在
+          schema:
+            type: string
+        "500":
+          description: 更新失败/响应编码失败
+          schema:
+            type: string
+      summary: 更新SLA
+      tags:
+      - SLA
   /slice:
     get:
       consumes:
@@ -153,7 +331,7 @@ paths:
             type: string
       summary: 获取所有切片
       tags:
-      - slice
+      - Slice
     post:
       consumes:
       - application/json
@@ -186,7 +364,7 @@ paths:
             type: string
       summary: 创建切片
       tags:
-      - slice
+      - Slice
   /slice/{sliceId}:
     delete:
       consumes:
@@ -217,7 +395,7 @@ paths:
             type: string
       summary: 删除切片
       tags:
-      - slice
+      - Slice
     get:
       consumes:
       - application/json
@@ -249,5 +427,5 @@ paths:
             type: string
       summary: 获取单个切片
       tags:
-      - slice
+      - Slice
 swagger: "2.0"
