@@ -30,23 +30,16 @@ func (s *Server) getSupportedKpis(w http.ResponseWriter, r *http.Request) {
 
 // 创建监控请求
 // POST /monitor
-type createMonitorRequest struct {
-	Monitor model.Monitor `json:"monitor"`
-}
-
-type createMonitorResponse = createMonitorRequest
-
 func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建监控请求", "method", r.Method, "url", r.URL.String())
 
 	// 解析请求
-	var createMonitorRequest createMonitorRequest
-	if err := json.NewDecoder(r.Body).Decode(&createMonitorRequest); err != nil {
+	var monitor model.Monitor
+	if err := json.NewDecoder(r.Body).Decode(&monitor); err != nil {
 		slog.Warn("请求解码失败", "error", err)
 		http.Error(w, "请求解码失败: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	monitor := createMonitorRequest.Monitor
 
 	// 检查请求参数
 	if err := monitor.Validate(); err != nil {
@@ -115,27 +108,21 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Debug("创建监控请求成功", "sliceID", sliceId, "monitorID", monitor.ID.Hex())
-	encodeResponse(w, createMonitorResponse{Monitor: monitor})
+	encodeResponse(w, monitor)
 }
 
 // 创建监控请求(基于Monarch外部服务)
 // createMonitorExternal
-
-type createMonitorExternalRequest = createMonitorRequest
-
-type createMonitorExternalResponse = createMonitorRequest
-
 func (s *Server) createMonitorExternal(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建监控请求", "method", r.Method, "url", r.URL.String())
 
 	// 解析请求
-	var createMonitorRequest createMonitorExternalRequest
-	if err := json.NewDecoder(r.Body).Decode(&createMonitorRequest); err != nil {
+	var monitor model.Monitor
+	if err := json.NewDecoder(r.Body).Decode(&monitor); err != nil {
 		slog.Warn("请求解码失败", "error", err)
 		http.Error(w, "请求解码失败: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	monitor := createMonitorRequest.Monitor
 
 	// 检查请求参数
 	if err := monitor.Validate(); err != nil {
@@ -169,7 +156,7 @@ func (s *Server) createMonitorExternal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Debug("创建监控请求成功", "sliceID", sliceId, "monitorID", monitor.ID.Hex())
-	encodeResponse(w, createMonitorExternalResponse{Monitor: monitor})
+	encodeResponse(w, monitor)
 }
 
 // 删除监控请求
@@ -303,10 +290,6 @@ func (s *Server) deleteMonitorExternal(w http.ResponseWriter, r *http.Request) {
 
 // 获取监控请求
 // GET /monitor/slice/{monitorId}
-type getMonitorResponse struct {
-	Monitor model.Monitor `json:"monitor"`
-}
-
 func (s *Server) getMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取监控请求", "method", r.Method, "url", r.URL.String())
 
@@ -333,15 +316,11 @@ func (s *Server) getMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Debug("获取监控请求成功", "monitorID", monitorId)
-	encodeResponse(w, getMonitorResponse{Monitor: monitor})
+	encodeResponse(w, monitor)
 }
 
 // 获取监控请求列表
 // GET /monitor
-type listMonitorResponse struct {
-	Monitors []model.Monitor `json:"monitors"`
-}
-
 func (s *Server) listMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取监控请求列表", "method", r.Method, "url", r.URL.String())
 
@@ -359,5 +338,5 @@ func (s *Server) listMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Debug("获取监控请求列表成功", "count", len(monitors))
-	encodeResponse(w, listMonitorResponse{Monitors: monitors})
+	encodeResponse(w, monitors)
 }
