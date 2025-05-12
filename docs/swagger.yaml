@@ -16,6 +16,15 @@ definitions:
       priority_level:
         type: integer
     type: object
+  model.BandwidthSpec:
+    properties:
+      egress:
+        description: 例如 "200Mbps"
+        type: string
+      ingress:
+        description: 例如 "100Mbps"
+        type: string
+    type: object
   model.BitRate:
     properties:
       unit:
@@ -53,6 +62,8 @@ definitions:
       qos:
         $ref: '#/definitions/model.QoS'
     type: object
+  model.Play:
+    type: object
   model.QoS:
     properties:
       arp:
@@ -63,6 +74,21 @@ definitions:
         type: integer
       mbr:
         $ref: '#/definitions/model.MBR'
+    type: object
+  model.ResourceSpec:
+    properties:
+      cpu_limit:
+        description: '"1"'
+        type: string
+      cpu_request:
+        description: '"500m"'
+        type: string
+      memory_limit:
+        description: '"1Gi"'
+        type: string
+      memory_request:
+        description: '"512Mi"'
+        type: string
     type: object
   model.SLA:
     properties:
@@ -82,6 +108,20 @@ definitions:
       up_bandwidth:
         description: 上行带宽
         type: number
+    type: object
+  model.SchedulingSpec:
+    properties:
+      node_name:
+        description: 若指定，Pod 将直接运行在此节点
+        type: string
+      node_selector:
+        additionalProperties:
+          type: string
+        description: 节点标签选择器
+        type: object
+      scheduler_name:
+        description: 自定义调度器名称，默认 "default-scheduler"
+        type: string
     type: object
   model.Session:
     properties:
@@ -152,6 +192,111 @@ info:
   title: Slicer API
   version: "1.0"
 paths:
+  /play:
+    post:
+      consumes:
+      - application/json
+      description: 接收Play对象并创建新资源，同时部署到Kubernetes集群
+      parameters:
+      - description: Play对象
+        in: body
+        name: play
+        required: true
+        schema:
+          $ref: '#/definitions/model.Play'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功返回Play对象
+          schema:
+            $ref: '#/definitions/model.Play'
+        "400":
+          description: 请求解码失败/参数非法/Slice不存在/Play已存在
+          schema:
+            type: string
+        "404":
+          description: 关联Slice不存在
+          schema:
+            type: string
+        "500":
+          description: 存储失败/部署失败/响应编码失败
+          schema:
+            type: string
+      summary: 创建Play资源
+      tags:
+      - Play
+  /play/{playId}:
+    get:
+      consumes:
+      - application/json
+      description: 根据Play ID获取资源详情
+      parameters:
+      - description: Play ID
+        in: path
+        name: playId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/model.Play'
+        "400":
+          description: 缺少Play ID
+          schema:
+            type: string
+        "404":
+          description: Play不存在
+          schema:
+            type: string
+        "500":
+          description: 获取失败/响应编码失败
+          schema:
+            type: string
+      summary: 获取单个Play
+      tags:
+      - Play
+    put:
+      consumes:
+      - application/json
+      description: 根据Play ID更新资源并重新部署
+      parameters:
+      - description: Play ID
+        in: path
+        name: playId
+        required: true
+        type: string
+      - description: 更新后的Play对象
+        in: body
+        name: play
+        required: true
+        schema:
+          $ref: '#/definitions/model.Play'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功返回对象
+          schema:
+            $ref: '#/definitions/model.Play'
+        "400":
+          description: 缺少Play ID/请求解码失败/参数非法
+          schema:
+            type: string
+        "404":
+          description: Play不存在
+          schema:
+            type: string
+        "500":
+          description: 更新失败/部署失败/响应编码失败
+          schema:
+            type: string
+      summary: 更新Play资源
+      tags:
+      - Play
   /sla:
     get:
       consumes:

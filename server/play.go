@@ -8,7 +8,18 @@ import (
 	"slicer/model"
 )
 
-// createPlay 创建一个新的play
+// createPlay godoc
+// @Summary      创建Play资源
+// @Description  接收Play对象并创建新资源，同时部署到Kubernetes集群
+// @Tags         Play
+// @Accept       json
+// @Produce      json
+// @Param        play body model.Play true "Play对象"
+// @Success      200 {object} model.Play "创建成功返回Play对象"
+// @Failure      400 {string} string "请求解码失败/参数非法/Slice不存在/Play已存在"
+// @Failure      404 {string} string "关联Slice不存在"
+// @Failure      500 {string} string "存储失败/部署失败/响应编码失败"
+// @Router       /play [post]
 func (s *Server) createPlay(w http.ResponseWriter, r *http.Request) {
 	var play model.Play
 	if err := json.NewDecoder(r.Body).Decode(&play); err != nil {
@@ -71,7 +82,18 @@ func (s *Server) createPlay(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建play成功", "playID", play.ID.Hex())
 }
 
-// getPlay 获取play
+// getPlay godoc
+// @Summary      获取单个Play
+// @Description  根据Play ID获取资源详情
+// @Tags         Play
+// @Accept       json
+// @Produce      json
+// @Param        playId path string true "Play ID"
+// @Success      200 {object} model.Play "获取成功"
+// @Failure      400 {string} string "缺少Play ID"
+// @Failure      404 {string} string "Play不存在"
+// @Failure      500 {string} string "获取失败/响应编码失败"
+// @Router       /play/{playId} [get]
 func (s *Server) getPlay(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取play请求", "method", r.Method, "url", r.URL.String())
 	playId := r.PathValue("playId")
@@ -104,7 +126,19 @@ func (s *Server) getPlay(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取play成功", "playID", play.ID.Hex(), "sliceID", play.SliceID)
 }
 
-// updatePlay 更新play
+// updatePlay godoc
+// @Summary      更新Play资源
+// @Description  根据Play ID更新资源并重新部署
+// @Tags         Play
+// @Accept       json
+// @Produce      json
+// @Param        playId path string true "Play ID"
+// @Param        play body model.Play true "更新后的Play对象"
+// @Success      200 {object} model.Play "更新成功返回对象"
+// @Failure      400 {string} string "缺少Play ID/请求解码失败/参数非法"
+// @Failure      404 {string} string "Play不存在"
+// @Failure      500 {string} string "更新失败/部署失败/响应编码失败"
+// @Router       /play/{playId} [put]
 func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 	// slog.Debug("更新play请求", "method", r.Method, "url", r.URL.String())
 
