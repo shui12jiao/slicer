@@ -17,6 +17,14 @@ import (
 	"github.com/lmittmann/tint"
 )
 
+// swag注释描述server信息
+// @title Slicer API
+// @version 1.0
+// @description Slicer API
+// @description 基于Kubernetes资源的切片管理系统API
+// @description 包括 切片管理 监控管理 性能保证 等功能
+// @host localhost:30001
+// @BasePath /
 func main() {
 	// 采用slog作为日志库
 	// slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{

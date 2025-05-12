@@ -8,28 +8,28 @@ import (
 	"slicer/model"
 )
 
-// createSlice 创建一个新的slice
-// POST /api/slice
-type createSliceRequest struct {
-	Slice model.Slice `json:"slice"`
-}
-
-type createSliceResponse struct {
-	Slice model.SliceAndAddress `json:"slice"`
-}
-
+// createSlice godoc
+// @Summary      创建切片
+// @Description  接受一个切片对象，创建一个新的切片，并返回创建的切片对象
+// @Tags         slice
+// @Accept       json
+// @Produce      json
+// @Param        slice body model.Slice true "切片对象"
+// @Success      200   {object}  model.SliceAndAddress "创建成功，返回切片及其地址"
+// @Failure      400   {string}  string "请求格式错误或参数非法"
+// @Failure      409   {string}  string "切片已存在"
+// @Failure      500   {string}  string "服务器内部错误，如分配IP或部署资源失败"
+// @Router       /slice [post]
 func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建slice请求", "method", r.Method, "url", r.URL.String())
 
-	var createSliceRequest createSliceRequest
+	var slice model.Slice
 
-	if err := json.NewDecoder(r.Body).Decode(&createSliceRequest); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&slice); err != nil {
 		slog.Warn("请求解码失败", "error", err)
 		http.Error(w, fmt.Sprintf("请求解码失败: %v", err), http.StatusBadRequest)
 		return
 	}
-
-	slice := createSliceRequest.Slice
 
 	// 检查值是否有效
 	err := slice.Validate()
@@ -43,7 +43,7 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	_, err = s.store.GetSliceBySliceID(slice.SliceID())
 	if err == nil {
 		slog.Warn("slice已存在", "sliceID", slice.SliceID())
-		http.Error(w, fmt.Sprintf("slice已存在: %v", slice.SliceID()), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("slice已存在: %v", slice.SliceID()), http.StatusConflict)
 		return
 	}
 
@@ -110,9 +110,7 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	//设置响应头
 	w.Header().Set("Content-Type", "application/json")
 	//编码响应
-	if err := json.NewEncoder(w).Encode(createSliceResponse{
-		Slice: wrappedSlice,
-	}); err != nil {
+	if err := json.NewEncoder(w).Encode(wrappedSlice); err != nil {
 		slog.Error("响应编码失败", "error", err)
 		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
 		return
@@ -121,8 +119,18 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建slice成功", "sliceID", wrappedSlice.ID.Hex())
 }
 
-// deleteSlice 删除一个slice
-// DELETE /api/slice/{sliceId}
+// deleteSlice godoc
+// @Summary      删除切片
+// @Description  根据切片ID删除指定的切片资源
+// @Tags         slice
+// @Accept       json
+// @Produce      json
+// @Param        sliceId path string true "切片ID"
+// @Success      204 "删除成功无内容"
+// @Failure      400 {string} string "缺少sliceId参数"
+// @Failure      404 {string} string "切片不存在"
+// @Failure      500 {string} string "服务器内部错误（获取/渲染/删除k8s资源失败、释放IP失败、存储删除失败）"
+// @Router       /slice/{sliceId} [delete]
 func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("删除slice请求", "method", r.Method, "url", r.URL.String())
 
@@ -183,12 +191,18 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// getSlice 获取一个slice
-// GET /api/slice/{sliceId}
-type getSliceResponse struct {
-	Slice model.SliceAndAddress `json:"slice"`
-}
-
+// getSlice godoc
+// @Summary      获取单个切片
+// @Description  根据切片ID获取指定切片的详细信息
+// @Tags         slice
+// @Accept       json
+// @Produce      json
+// @Param        sliceId path string true "切片ID"
+// @Success      200 {object} model.SliceAndAddress "获取成功"
+// @Failure      400 {string} string "缺少sliceId参数"
+// @Failure      404 {string} string "切片不存在"
+// @Failure      500 {string} string "服务器内部错误（获取失败、响应编码失败）"
+// @Router       /slice/{sliceId} [get]
 func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取slice请求", "method", r.Method, "url", r.URL.String())
 
@@ -216,9 +230,7 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 	//设置响应头
 	w.Header().Set("Content-Type", "application/json")
 	//编码响应
-	if err := json.NewEncoder(w).Encode(getSliceResponse{
-		Slice: slice,
-	}); err != nil {
+	if err := json.NewEncoder(w).Encode(slice); err != nil {
 		slog.Error("响应编码失败", "sliceID", sliceId, "error", err)
 		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
 		return
@@ -227,12 +239,15 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取slice成功", "sliceID", sliceId)
 }
 
-// listSlice 获取所有slice
-// GET /api/slice
-type listSliceResponse struct {
-	Slices []model.SliceAndAddress `json:"slices"`
-}
-
+// listSlice godoc
+// @Summary      获取所有切片
+// @Description  获取当前系统中的所有切片列表
+// @Tags         slice
+// @Accept       json
+// @Produce      json
+// @Success      200 {array} model.SliceAndAddress "获取成功，返回切片列表"
+// @Failure      500 {string} string "服务器内部错误（获取列表失败、响应编码失败）"
+// @Router       /slice [get]
 func (s *Server) listSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取slice列表请求", "method", r.Method, "url", r.URL.String())
 
@@ -252,9 +267,7 @@ func (s *Server) listSlice(w http.ResponseWriter, r *http.Request) {
 	//设置响应头
 	w.Header().Set("Content-Type", "application/json")
 	//编码响应
-	if err := json.NewEncoder(w).Encode(listSliceResponse{
-		Slices: slices,
-	}); err != nil {
+	if err := json.NewEncoder(w).Encode(slices); err != nil {
 		slog.Error("响应编码失败", "error", err)
 		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
 		return

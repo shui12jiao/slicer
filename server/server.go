@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"slicer/controller"
 	"slicer/db"
@@ -9,6 +10,10 @@ import (
 	"slicer/monitor"
 	"slicer/render"
 	"slicer/util"
+
+	_ "slicer/docs"
+
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // Server 负责处理HTTP请求
@@ -49,6 +54,19 @@ func NewServer(arg NewSeverArg) *Server {
 }
 
 func (s *Server) routes() {
+	// swagger相关路由
+	s.router.HandleFunc("GET /swagger/{any}", httpSwagger.WrapHandler)
+	// for test
+	s.router.HandleFunc("/ok",
+		func(w http.ResponseWriter, r *http.Request) {
+			slog.Info("ok")
+			w.Write([]byte("ok"))
+		})
+	s.router.HandleFunc("/panic", func(w http.ResponseWriter, r *http.Request) {
+		slog.Error("panic")
+		panic("panic")
+	})
+
 	// 切片管理相关路由
 	s.router.HandleFunc("POST /slice", s.createSlice)
 	s.router.HandleFunc("DELETE /slice/{sliceId}", s.deleteSlice)
