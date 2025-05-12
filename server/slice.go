@@ -11,7 +11,7 @@ import (
 // createSlice godoc
 // @Summary      创建切片
 // @Description  接受一个切片对象，创建一个新的切片，并返回创建的切片对象
-// @Tags         slice
+// @Tags         Slice
 // @Accept       json
 // @Produce      json
 // @Param        slice body model.Slice true "切片对象"
@@ -122,7 +122,7 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 // deleteSlice godoc
 // @Summary      删除切片
 // @Description  根据切片ID删除指定的切片资源
-// @Tags         slice
+// @Tags         Slice
 // @Accept       json
 // @Produce      json
 // @Param        sliceId path string true "切片ID"
@@ -194,7 +194,7 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 // getSlice godoc
 // @Summary      获取单个切片
 // @Description  根据切片ID获取指定切片的详细信息
-// @Tags         slice
+// @Tags         Slice
 // @Accept       json
 // @Produce      json
 // @Param        sliceId path string true "切片ID"
@@ -242,7 +242,7 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 // listSlice godoc
 // @Summary      获取所有切片
 // @Description  获取当前系统中的所有切片列表
-// @Tags         slice
+// @Tags         Slice
 // @Accept       json
 // @Produce      json
 // @Success      200 {array} model.SliceAndAddress "获取成功，返回切片列表"
