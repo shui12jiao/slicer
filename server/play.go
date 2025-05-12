@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"slicer/model"
@@ -16,7 +17,23 @@ func (s *Server) createPlay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 检查值是否有效
-	//TODO
+	if err := play.Validate(); err != nil {
+		slog.Error("非法值", "error", err)
+		http.Error(w, fmt.Sprintf("非法值: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// 检查slice是否存在
+	if _, err := s.store.GetSliceBySliceID(play.SliceID); err != nil {
+		if isNotFoundError(err) {
+			slog.Warn("切片不存在", "sliceID", play.SliceID)
+			http.Error(w, "切片不存在", http.StatusNotFound)
+			return
+		}
+		slog.Error("获取切片失败", "sliceID", play.SliceID, "error", err)
+		http.Error(w, "获取切片失败", http.StatusInternalServerError)
+		return
+	}
 
 	// 检查是否有重复的play
 	_, err := s.store.GetPlayBySliceID(play.SliceID)
@@ -108,7 +125,11 @@ func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 检查值是否有效
-	//TODO
+	if err := play.Validate(); err != nil {
+		slog.Error("非法值", "error", err)
+		http.Error(w, fmt.Sprintf("非法值: %v", err), http.StatusBadRequest)
+		return
+	}
 
 	// 检查是否存在
 	curPlay, err := s.store.GetPlay(play.ID.Hex())
