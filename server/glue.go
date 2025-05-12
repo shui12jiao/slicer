@@ -11,11 +11,11 @@ import (
 // for Monarch
 // 接受监控系统而非用户请求
 
-// service orchestrator相关接口
+// Service Orchestrator 接口
+//================================================================================
 
-// 用于响应监控系统request transltor的切片信息获取请求
-// GET /service-orchestrator/slices/{sliceId}
 type soGetSliceComponentsResponse struct {
+	// Example:
 	// {
 	// 	"pods": [
 	// 	  {
@@ -42,6 +42,18 @@ type soGetSliceComponentsResponse struct {
 	monitor.Response
 }
 
+// soGetSliceComponents godoc
+// @Summary      获取切片组件信息
+// @Description  查询指定切片下的NFV组件Pod详细信息（面向监控系统）
+// @Tags         Service Orchestrator
+// @Accept       json
+// @Produce      json
+// @Param        sliceId path string true "切片唯一标识符" Example(edge01)
+// @Success      200 {object} soGetSliceComponentsResponse
+// @Failure      400 {object} monitor.Response "参数校验失败"
+// @Failure      404 {object} monitor.Response "切片不存在"
+// @Failure      500 {object} monitor.Response "服务器内部错误"
+// @Router       /service-orchestrator/slices/{sliceId} [get]
 func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("SO: 处理切片组件请求", "method", r.Method, "path", r.URL.Path)
 	sliceId := r.PathValue("sliceId")
@@ -54,6 +66,12 @@ func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 	// 检查slice是否存在
 	_, err := s.store.GetSliceBySliceID(sliceId)
 	if err != nil {
+		if isNotFoundError(err) { // MongoDB为空文档
+			slog.Warn("SO: slice不存在", "sliceID", sliceId)
+			http.Error(w, fmt.Sprintf("slice不存在: %v", sliceId), http.StatusNotFound)
+			return
+		}
+
 		slog.Error("SO: 获取slice失败", "sliceID", sliceId, "error", err)
 		http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
 		return
@@ -98,24 +116,28 @@ func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("SO: 切片组件请求处理完成", "sliceID", sliceId, "podsCount", len(resp.Pods))
 }
 
-// 用于响应监控系统的so组件健康检查请求
-// GET /service-orchestrator/api/health
-
-type soCheckHealthResponse = monitor.Response
-
+// soCheckHealth godoc
+// @Summary      服务健康检查
+// @Description  验证Service Orchestrator组件运行状态
+// @Tags         Service Orchestrator
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} monitor.Response "服务正常运行"
+// @Router       /service-orchestrator/api/health [get]
 func (s *Server) soCheckHealth(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("SO: 处理健康检查请求")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	encodeResponse(w, soCheckHealthResponse{
+	encodeResponse(w, monitor.Response{
 		Status:  "success",
 		Message: "service orchestrator is healthy",
 	})
 	slog.Debug("SO: 健康检查完成")
 }
 
-// nfv orchestration相关接口
+// NFV Orchestrator 接口
+//================================================================================
 
 // 用于响应监控系统的mde安装请求
 // POST /nfv-orchestrator/mde/install
