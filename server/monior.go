@@ -10,10 +10,6 @@ import (
 
 // 获取支持的KPI
 // GET /monitor/supported_kpis
-type getSupportedKpisResponse struct {
-	SupportedKpis []model.SupportedKpi `json:"supported_kpis"`
-}
-
 func (s *Server) getSupportedKpis(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取支持的KPI请求", "method", r.Method, "url", r.URL.String())
 
@@ -25,7 +21,7 @@ func (s *Server) getSupportedKpis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Debug("获取支持的KPI成功", "count", len(kpis))
-	encodeResponse(w, getSupportedKpisResponse{SupportedKpis: kpis})
+	encodeResponse(w, kpis)
 }
 
 // 创建监控请求
