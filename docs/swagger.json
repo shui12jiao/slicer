@@ -9,6 +9,76 @@
     "host": "localhost:30001",
     "basePath": "/",
     "paths": {
+        "/controller": {
+            "get": {
+                "description": "返回控制器运行状态、策略列表及当前生效策略",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Controller"
+                ],
+                "summary": "获取控制器状态",
+                "responses": {
+                    "200": {
+                        "description": "成功获取控制器状态",
+                        "schema": {
+                            "$ref": "#/definitions/server.ControllerResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "动态更新运行状态、控制频率或切换调度策略",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Controller"
+                ],
+                "summary": "更新控制器配置",
+                "parameters": [
+                    {
+                        "description": "更新配置参数",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.UpdateControllerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "配置更新成功"
+                    },
+                    "400": {
+                        "description": "请求解析失败/策略不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "内部配置更新失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/monitor": {
             "get": {
                 "description": "获取系统中存在的所有监控配置列表",
@@ -1279,6 +1349,42 @@
                     "type": "string"
                 }
             }
+        },
+        "server.ControllerResponse": {
+            "type": "object",
+            "properties": {
+                "frequency": {
+                    "description": "控制频率",
+                    "type": "integer",
+                    "format": "nanoseconds",
+                    "example": 1000000000
+                },
+                "running": {
+                    "description": "运行状态",
+                    "type": "boolean"
+                },
+                "slices": {
+                    "description": "切片列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "strategies": {
+                    "description": "策略名称列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "used_strategy": {
+                    "description": "使用策略",
+                    "type": "string"
+                }
+            }
+        },
+        "server.UpdateControllerRequest": {
+            "type": "object"
         }
     }
 }

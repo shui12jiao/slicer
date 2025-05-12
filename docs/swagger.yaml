@@ -255,6 +255,32 @@ definitions:
       kpi_unit:
         type: string
     type: object
+  server.ControllerResponse:
+    properties:
+      frequency:
+        description: 控制频率
+        example: 1000000000
+        format: nanoseconds
+        type: integer
+      running:
+        description: 运行状态
+        type: boolean
+      slices:
+        description: 切片列表
+        items:
+          type: string
+        type: array
+      strategies:
+        description: 策略名称列表
+        items:
+          type: string
+        type: array
+      used_strategy:
+        description: 使用策略
+        type: string
+    type: object
+  server.UpdateControllerRequest:
+    type: object
 host: localhost:30001
 info:
   contact: {}
@@ -265,6 +291,52 @@ info:
   title: Slicer API
   version: "1.0"
 paths:
+  /controller:
+    get:
+      consumes:
+      - application/json
+      description: 返回控制器运行状态、策略列表及当前生效策略
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取控制器状态
+          schema:
+            $ref: '#/definitions/server.ControllerResponse'
+        "500":
+          description: 响应编码失败
+          schema:
+            type: string
+      summary: 获取控制器状态
+      tags:
+      - Controller
+    put:
+      consumes:
+      - application/json
+      description: 动态更新运行状态、控制频率或切换调度策略
+      parameters:
+      - description: 更新配置参数
+        in: body
+        name: config
+        required: true
+        schema:
+          $ref: '#/definitions/server.UpdateControllerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 配置更新成功
+        "400":
+          description: 请求解析失败/策略不存在
+          schema:
+            type: string
+        "500":
+          description: 内部配置更新失败
+          schema:
+            type: string
+      summary: 更新控制器配置
+      tags:
+      - Controller
   /monitor:
     get:
       consumes:
