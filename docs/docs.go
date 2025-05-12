@@ -15,6 +15,315 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/monitor": {
+            "get": {
+                "description": "获取系统中存在的所有监控配置列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "获取所有监控配置",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Monitor"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "获取数据失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "创建监控请求并部署到Kubernetes集群，包含MDE和KPI组件",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "创建监控资源（内置部署）",
+                "parameters": [
+                    {
+                        "description": "监控配置对象",
+                        "name": "monitor",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "创建成功返回监控对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    },
+                    "400": {
+                        "description": "请求解码失败/参数验证失败/Slice不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "关联Slice不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "渲染YAML失败/部署失败/存储失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/monitor/external": {
+            "post": {
+                "description": "通过Monarch外部服务提交监控请求",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "创建监控资源（外部服务）",
+                "parameters": [
+                    {
+                        "description": "监控配置对象",
+                        "name": "monitor",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "创建成功返回监控对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    },
+                    "400": {
+                        "description": "请求解码失败/参数验证失败/Slice不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "提交外部请求失败/存储失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/monitor/external/{monitorId}": {
+            "delete": {
+                "description": "通过Monarch外部服务删除监控请求",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "删除监控资源（外部服务）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "监控记录ID",
+                        "name": "monitorId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "外部服务请求ID",
+                        "name": "requestId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "资源删除成功"
+                    },
+                    "400": {
+                        "description": "缺少监控ID或请求ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "监控记录不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "外部服务删除失败/存储删除失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/monitor/slice/{monitorId}": {
+            "get": {
+                "description": "根据监控ID获取详细配置信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "获取单个监控配置",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "监控记录ID",
+                        "name": "monitorId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少监控ID参数",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "监控记录不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "获取数据失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "根据ID删除监控资源并清理Kubernetes组件",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "删除监控资源（内置部署）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "监控记录ID",
+                        "name": "monitorId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "资源删除成功"
+                    },
+                    "400": {
+                        "description": "缺少监控ID参数",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "监控记录不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "YAML渲染失败/组件删除失败/存储删除失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/monitor/supported_kpis": {
+            "get": {
+                "description": "返回系统支持的所有KPI指标定义",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "获取支持监控的KPI列表",
+                "responses": {
+                    "200": {
+                        "description": "成功获取KPI列表",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.SupportedKpi"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误（获取失败）",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/play": {
             "post": {
                 "description": "接收Play对象并创建新资源，同时部署到Kubernetes集群",
@@ -639,6 +948,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Duration": {
+            "type": "object",
+            "properties": {
+                "end_time": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                }
+            }
+        },
         "model.Flow": {
             "type": "object",
             "properties": {
@@ -661,6 +981,23 @@ const docTemplate = `{
                 }
             }
         },
+        "model.KPI": {
+            "type": "object",
+            "properties": {
+                "kpi_description": {
+                    "type": "string"
+                },
+                "kpi_name": {
+                    "type": "string"
+                },
+                "sub_counter": {
+                    "$ref": "#/definitions/model.SubCounter"
+                },
+                "units": {
+                    "type": "string"
+                }
+            }
+        },
         "model.MBR": {
             "type": "object",
             "properties": {
@@ -669,6 +1006,53 @@ const docTemplate = `{
                 },
                 "uplink": {
                     "$ref": "#/definitions/model.BitRate"
+                }
+            }
+        },
+        "model.Monitor": {
+            "type": "object",
+            "properties": {
+                "api_version": {
+                    "description": "通用",
+                    "type": "string"
+                },
+                "duration": {
+                    "$ref": "#/definitions/model.Duration"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kpi": {
+                    "description": "核心内容",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.KPI"
+                        }
+                    ]
+                },
+                "monitoring_interval": {
+                    "$ref": "#/definitions/model.MonitoringInterval"
+                },
+                "request_description": {
+                    "type": "string"
+                },
+                "request_id": {
+                    "description": "用于request translator",
+                    "type": "string"
+                },
+                "scope": {
+                    "$ref": "#/definitions/model.Scope"
+                }
+            }
+        },
+        "model.MonitoringInterval": {
+            "type": "object",
+            "properties": {
+                "adaptive": {
+                    "type": "boolean"
+                },
+                "interval_seconds": {
+                    "type": "integer"
                 }
             }
         },
@@ -774,6 +1158,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Scope": {
+            "type": "object",
+            "properties": {
+                "scope_id": {
+                    "type": "string"
+                },
+                "scope_type": {
+                    "type": "string"
+                }
+            }
+        },
         "model.Session": {
             "type": "object",
             "properties": {
@@ -859,6 +1254,34 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "upfn4Addr": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SubCounter": {
+            "type": "object",
+            "properties": {
+                "sub_counter_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sub_counter_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SupportedKpi": {
+            "type": "object",
+            "properties": {
+                "kpi_description": {
+                    "type": "string"
+                },
+                "kpi_name": {
+                    "type": "string"
+                },
+                "kpi_unit": {
                     "type": "string"
                 }
             }

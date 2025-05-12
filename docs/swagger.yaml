@@ -32,6 +32,13 @@ definitions:
       value:
         type: integer
     type: object
+  model.Duration:
+    properties:
+      end_time:
+        type: string
+      start_time:
+        type: string
+    type: object
   model.Flow:
     properties:
       description:
@@ -46,12 +53,53 @@ definitions:
       uplink:
         $ref: '#/definitions/model.BitRate'
     type: object
+  model.KPI:
+    properties:
+      kpi_description:
+        type: string
+      kpi_name:
+        type: string
+      sub_counter:
+        $ref: '#/definitions/model.SubCounter'
+      units:
+        type: string
+    type: object
   model.MBR:
     properties:
       downlink:
         $ref: '#/definitions/model.BitRate'
       uplink:
         $ref: '#/definitions/model.BitRate'
+    type: object
+  model.Monitor:
+    properties:
+      api_version:
+        description: 通用
+        type: string
+      duration:
+        $ref: '#/definitions/model.Duration'
+      id:
+        type: string
+      kpi:
+        allOf:
+        - $ref: '#/definitions/model.KPI'
+        description: 核心内容
+      monitoring_interval:
+        $ref: '#/definitions/model.MonitoringInterval'
+      request_description:
+        type: string
+      request_id:
+        description: 用于request translator
+        type: string
+      scope:
+        $ref: '#/definitions/model.Scope'
+    type: object
+  model.MonitoringInterval:
+    properties:
+      adaptive:
+        type: boolean
+      interval_seconds:
+        type: integer
     type: object
   model.PCCRule:
     properties:
@@ -123,6 +171,13 @@ definitions:
         description: 自定义调度器名称，默认 "default-scheduler"
         type: string
     type: object
+  model.Scope:
+    properties:
+      scope_id:
+        type: string
+      scope_type:
+        type: string
+    type: object
   model.Session:
     properties:
       ambr:
@@ -182,6 +237,24 @@ definitions:
       upfn4Addr:
         type: string
     type: object
+  model.SubCounter:
+    properties:
+      sub_counter_ids:
+        items:
+          type: string
+        type: array
+      sub_counter_type:
+        type: string
+    type: object
+  model.SupportedKpi:
+    properties:
+      kpi_description:
+        type: string
+      kpi_name:
+        type: string
+      kpi_unit:
+        type: string
+    type: object
 host: localhost:30001
 info:
   contact: {}
@@ -192,6 +265,210 @@ info:
   title: Slicer API
   version: "1.0"
 paths:
+  /monitor:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统中存在的所有监控配置列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            items:
+              $ref: '#/definitions/model.Monitor'
+            type: array
+        "500":
+          description: 获取数据失败
+          schema:
+            type: string
+      summary: 获取所有监控配置
+      tags:
+      - Monitor
+    post:
+      consumes:
+      - application/json
+      description: 创建监控请求并部署到Kubernetes集群，包含MDE和KPI组件
+      parameters:
+      - description: 监控配置对象
+        in: body
+        name: monitor
+        required: true
+        schema:
+          $ref: '#/definitions/model.Monitor'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功返回监控对象
+          schema:
+            $ref: '#/definitions/model.Monitor'
+        "400":
+          description: 请求解码失败/参数验证失败/Slice不存在
+          schema:
+            type: string
+        "404":
+          description: 关联Slice不存在
+          schema:
+            type: string
+        "500":
+          description: 渲染YAML失败/部署失败/存储失败
+          schema:
+            type: string
+      summary: 创建监控资源（内置部署）
+      tags:
+      - Monitor
+  /monitor/external:
+    post:
+      consumes:
+      - application/json
+      description: 通过Monarch外部服务提交监控请求
+      parameters:
+      - description: 监控配置对象
+        in: body
+        name: monitor
+        required: true
+        schema:
+          $ref: '#/definitions/model.Monitor'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功返回监控对象
+          schema:
+            $ref: '#/definitions/model.Monitor'
+        "400":
+          description: 请求解码失败/参数验证失败/Slice不存在
+          schema:
+            type: string
+        "500":
+          description: 提交外部请求失败/存储失败
+          schema:
+            type: string
+      summary: 创建监控资源（外部服务）
+      tags:
+      - Monitor
+  /monitor/external/{monitorId}:
+    delete:
+      consumes:
+      - application/json
+      description: 通过Monarch外部服务删除监控请求
+      parameters:
+      - description: 监控记录ID
+        in: path
+        name: monitorId
+        required: true
+        type: string
+      - description: 外部服务请求ID
+        in: query
+        name: requestId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 资源删除成功
+        "400":
+          description: 缺少监控ID或请求ID
+          schema:
+            type: string
+        "404":
+          description: 监控记录不存在
+          schema:
+            type: string
+        "500":
+          description: 外部服务删除失败/存储删除失败
+          schema:
+            type: string
+      summary: 删除监控资源（外部服务）
+      tags:
+      - Monitor
+  /monitor/slice/{monitorId}:
+    delete:
+      consumes:
+      - application/json
+      description: 根据ID删除监控资源并清理Kubernetes组件
+      parameters:
+      - description: 监控记录ID
+        in: path
+        name: monitorId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 资源删除成功
+        "400":
+          description: 缺少监控ID参数
+          schema:
+            type: string
+        "404":
+          description: 监控记录不存在
+          schema:
+            type: string
+        "500":
+          description: YAML渲染失败/组件删除失败/存储删除失败
+          schema:
+            type: string
+      summary: 删除监控资源（内置部署）
+      tags:
+      - Monitor
+    get:
+      consumes:
+      - application/json
+      description: 根据监控ID获取详细配置信息
+      parameters:
+      - description: 监控记录ID
+        in: path
+        name: monitorId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            $ref: '#/definitions/model.Monitor'
+        "400":
+          description: 缺少监控ID参数
+          schema:
+            type: string
+        "404":
+          description: 监控记录不存在
+          schema:
+            type: string
+        "500":
+          description: 获取数据失败
+          schema:
+            type: string
+      summary: 获取单个监控配置
+      tags:
+      - Monitor
+  /monitor/supported_kpis:
+    get:
+      consumes:
+      - application/json
+      description: 返回系统支持的所有KPI指标定义
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功获取KPI列表
+          schema:
+            items:
+              $ref: '#/definitions/model.SupportedKpi'
+            type: array
+        "500":
+          description: 服务器内部错误（获取失败）
+          schema:
+            type: string
+      summary: 获取支持监控的KPI列表
+      tags:
+      - Monitor
   /play:
     post:
       consumes:

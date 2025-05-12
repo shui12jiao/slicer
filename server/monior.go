@@ -8,8 +8,15 @@ import (
 	"slicer/model"
 )
 
-// 获取支持的KPI
-// GET /monitor/supported_kpis
+// getSupportedKpis godoc
+// @Summary      获取支持监控的KPI列表
+// @Description  返回系统支持的所有KPI指标定义
+// @Tags         Monitor
+// @Accept       json
+// @Produce      json
+// @Success      200 {array} model.SupportedKpi "成功获取KPI列表"
+// @Failure      500 {string} string "服务器内部错误（获取失败）"
+// @Router       /monitor/supported_kpis [get]
 func (s *Server) getSupportedKpis(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取支持的KPI请求", "method", r.Method, "url", r.URL.String())
 
@@ -24,8 +31,18 @@ func (s *Server) getSupportedKpis(w http.ResponseWriter, r *http.Request) {
 	encodeResponse(w, kpis)
 }
 
-// 创建监控请求
-// POST /monitor
+// createMonitor godoc
+// @Summary      创建监控资源（内置部署）
+// @Description  创建监控请求并部署到Kubernetes集群，包含MDE和KPI组件
+// @Tags         Monitor
+// @Accept       json
+// @Produce      json
+// @Param        monitor body model.Monitor true "监控配置对象"
+// @Success      201 {object} model.Monitor "创建成功返回监控对象"
+// @Failure      400 {string} string "请求解码失败/参数验证失败/Slice不存在"
+// @Failure      404 {string} string "关联Slice不存在"
+// @Failure      500 {string} string "渲染YAML失败/部署失败/存储失败"
+// @Router       /monitor [post]
 func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建监控请求", "method", r.Method, "url", r.URL.String())
 
@@ -107,8 +124,17 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	encodeResponse(w, monitor)
 }
 
-// 创建监控请求(基于Monarch外部服务)
-// createMonitorExternal
+// createMonitorExternal godoc
+// @Summary      创建监控资源（外部服务）
+// @Description  通过Monarch外部服务提交监控请求
+// @Tags         Monitor
+// @Accept       json
+// @Produce      json
+// @Param        monitor body model.Monitor true "监控配置对象"
+// @Success      201 {object} model.Monitor "创建成功返回监控对象"
+// @Failure      400 {string} string "请求解码失败/参数验证失败/Slice不存在"
+// @Failure      500 {string} string "提交外部请求失败/存储失败"
+// @Router       /monitor/external [post]
 func (s *Server) createMonitorExternal(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建监控请求", "method", r.Method, "url", r.URL.String())
 
@@ -155,8 +181,18 @@ func (s *Server) createMonitorExternal(w http.ResponseWriter, r *http.Request) {
 	encodeResponse(w, monitor)
 }
 
-// 删除监控请求
-// DELETE /monitor/slice/{monitorId}
+// deleteMonitor godoc
+// @Summary      删除监控资源（内置部署）
+// @Description  根据ID删除监控资源并清理Kubernetes组件
+// @Tags         Monitor
+// @Accept       json
+// @Produce      json
+// @Param        monitorId path string true "监控记录ID"
+// @Success      204 "资源删除成功"
+// @Failure      400 {string} string "缺少监控ID参数"
+// @Failure      404 {string} string "监控记录不存在"
+// @Failure      500 {string} string "YAML渲染失败/组件删除失败/存储删除失败"
+// @Router       /monitor/slice/{monitorId} [delete]
 func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("删除监控请求", "method", r.Method, "url", r.URL.String())
 
@@ -225,9 +261,19 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// 删除监控请求(基于Monarch外部服务)
-// DELETE /monitor/external/{monitorId}
-
+// deleteMonitorExternal godoc
+// @Summary      删除监控资源（外部服务）
+// @Description  通过Monarch外部服务删除监控请求
+// @Tags         Monitor
+// @Accept       json
+// @Produce      json
+// @Param        monitorId path string true "监控记录ID"
+// @Param        requestId query string true "外部服务请求ID"
+// @Success      204 "资源删除成功"
+// @Failure      400 {string} string "缺少监控ID或请求ID"
+// @Failure      404 {string} string "监控记录不存在"
+// @Failure      500 {string} string "外部服务删除失败/存储删除失败"
+// @Router       /monitor/external/{monitorId} [delete]
 func (s *Server) deleteMonitorExternal(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("删除监控请求", "method", r.Method, "url", r.URL.String())
 
@@ -284,8 +330,18 @@ func (s *Server) deleteMonitorExternal(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// 获取监控请求
-// GET /monitor/slice/{monitorId}
+// getMonitor godoc
+// @Summary      获取单个监控配置
+// @Description  根据监控ID获取详细配置信息
+// @Tags         Monitor
+// @Accept       json
+// @Produce      json
+// @Param        monitorId path string true "监控记录ID"
+// @Success      200 {object} model.Monitor "获取成功"
+// @Failure      400 {string} string "缺少监控ID参数"
+// @Failure      404 {string} string "监控记录不存在"
+// @Failure      500 {string} string "获取数据失败"
+// @Router       /monitor/slice/{monitorId} [get]
 func (s *Server) getMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取监控请求", "method", r.Method, "url", r.URL.String())
 
@@ -315,8 +371,15 @@ func (s *Server) getMonitor(w http.ResponseWriter, r *http.Request) {
 	encodeResponse(w, monitor)
 }
 
-// 获取监控请求列表
-// GET /monitor
+// listMonitor godoc
+// @Summary      获取所有监控配置
+// @Description  获取系统中存在的所有监控配置列表
+// @Tags         Monitor
+// @Accept       json
+// @Produce      json
+// @Success      200 {array} model.Monitor "获取成功"
+// @Failure      500 {string} string "获取数据失败"
+// @Router       /monitor [get]
 func (s *Server) listMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取监控请求列表", "method", r.Method, "url", r.URL.String())
 
