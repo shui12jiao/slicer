@@ -388,6 +388,243 @@
                 }
             }
         },
+        "/nfv-orchestrator/api/health": {
+            "get": {
+                "description": "验证NFV编排组件的运行状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "NFV Orchestrator健康检查",
+                "responses": {
+                    "200": {
+                        "description": "服务健康状态",
+                        "schema": {
+                            "$ref": "#/definitions/server.noCheckHealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/kpi-computation/check": {
+            "post": {
+                "description": "验证KPI计算引擎Pod的运行状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "检查KPI组件状态",
+                "responses": {
+                    "200": {
+                        "description": "Pod状态列表",
+                        "schema": {
+                            "$ref": "#/definitions/server.noKpiComputationCheckResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Pod查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/server.noKpiComputationCheckResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/kpi-computation/install": {
+            "post": {
+                "description": "部署实时KPI计算引擎到监控命名空间",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "安装KPI计算组件",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.noKpiComputationInstallRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "KPI组件安装成功",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "参数校验失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "YAML渲染/K8s部署失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/kpi-computation/uninstall": {
+            "post": {
+                "description": "移除KPI计算引擎相关资源",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "卸载KPI计算组件",
+                "responses": {
+                    "200": {
+                        "description": "KPI组件卸载成功",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "YAML渲染/K8s删除失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/mde/check": {
+            "post": {
+                "description": "验证监控数据采集器的服务端点是否就绪",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "检查MDE运行状态",
+                "responses": {
+                    "200": {
+                        "description": "MDE服务列表",
+                        "schema": {
+                            "$ref": "#/definitions/server.noMdeCheckResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/server.noMdeCheckResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/mde/install": {
+            "post": {
+                "description": "根据切片ID部署Prometheus exporter组件到指定命名空间",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "安装监控数据采集器（MDE）",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.noMdeInstallRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "MDE安装成功",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数不合法",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "切片不存在",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "渲染YAML失败/K8s部署失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/mde/uninstall": {
+            "post": {
+                "description": "移除当前命名空间下的Prometheus exporter组件",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "卸载监控数据采集器（MDE）",
+                "responses": {
+                    "200": {
+                        "description": "MDE卸载成功",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "YAML渲染失败/K8s删除失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/play": {
             "post": {
                 "description": "接收Play对象并创建新资源，同时部署到Kubernetes集群",
@@ -542,6 +779,80 @@
                         "description": "更新失败/部署失败/响应编码失败",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/service-orchestrator/api/health": {
+            "get": {
+                "description": "验证Service Orchestrator组件运行状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service Orchestrator"
+                ],
+                "summary": "服务健康检查",
+                "responses": {
+                    "200": {
+                        "description": "服务正常运行",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/service-orchestrator/slices/{sliceId}": {
+            "get": {
+                "description": "查询指定切片下的NFV组件Pod详细信息（面向监控系统）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service Orchestrator"
+                ],
+                "summary": "获取切片组件信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "edge01",
+                        "description": "切片唯一标识符",
+                        "name": "sliceId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.soGetSliceComponentsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数校验失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "切片不存在",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
                         }
                     }
                 }
@@ -1350,6 +1661,17 @@
                 }
             }
         },
+        "monitor.Response": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "server.ControllerResponse": {
             "type": "object",
             "properties": {
@@ -1385,6 +1707,95 @@
         },
         "server.UpdateControllerRequest": {
             "type": "object"
+        },
+        "server.noCheckHealthResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.noKpiComputationCheckResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "output": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.noKpiComputationInstallRequest": {
+            "type": "object",
+            "properties": {
+                "slice_id": {
+                    "description": "monitornig_manager向no发送的请求实际为空, 故使用omitempty\n当sliceId为空时,暂且认为是监控全部slice",
+                    "type": "string"
+                }
+            }
+        },
+        "server.noMdeCheckResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "output": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.noMdeInstallRequest": {
+            "type": "object",
+            "properties": {
+                "slice_id": {
+                    "description": "monitornig_manager向no发送的请求实际为空, 故使用omitempty\n当sliceId为空时,暂且认为是监控全部slice",
+                    "type": "string"
+                }
+            }
+        },
+        "server.soGetSliceComponentsResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "pods": {
+                    "description": "Example:\n{\n\t\"pods\": [\n\t  {\n\t\t\"name\": \"open5gs-smf1-000001-67cf5ccccd-rzvl6\",\n\t\t\"nf\": \"smf\",\n\t\t\"nss\": \"edge\",\n\t\t\"pod_ip\": \"\"\n\t  },\n\t  {\n\t\t\"name\": \"open5gs-upf1-000001-7f6b8444f-grp98\",\n\t\t\"nf\": \"upf\",\n\t\t\"nss\": \"edge\",\n\t\t\"pod_ip\": \"\"\n\t  }\n\t],\n\t\"status\": \"success\"\n  }",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "nf": {
+                                "type": "string"
+                            },
+                            "nss": {
+                                "type": "string"
+                            },
+                            "pod_ip": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
         }
     }
 }

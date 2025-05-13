@@ -255,6 +255,13 @@ definitions:
       kpi_unit:
         type: string
     type: object
+  monitor.Response:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
   server.ControllerResponse:
     properties:
       frequency:
@@ -280,6 +287,72 @@ definitions:
         type: string
     type: object
   server.UpdateControllerRequest:
+    type: object
+  server.noCheckHealthResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  server.noKpiComputationCheckResponse:
+    properties:
+      message:
+        type: string
+      output:
+        type: string
+      status:
+        type: string
+    type: object
+  server.noKpiComputationInstallRequest:
+    properties:
+      slice_id:
+        description: |-
+          monitornig_manager向no发送的请求实际为空, 故使用omitempty
+          当sliceId为空时,暂且认为是监控全部slice
+        type: string
+    type: object
+  server.noMdeCheckResponse:
+    properties:
+      message:
+        type: string
+      output:
+        type: string
+      status:
+        type: string
+    type: object
+  server.noMdeInstallRequest:
+    properties:
+      slice_id:
+        description: |-
+          monitornig_manager向no发送的请求实际为空, 故使用omitempty
+          当sliceId为空时,暂且认为是监控全部slice
+        type: string
+    type: object
+  server.soGetSliceComponentsResponse:
+    properties:
+      message:
+        type: string
+      pods:
+        description: "Example:\n{\n\t\"pods\": [\n\t  {\n\t\t\"name\": \"open5gs-smf1-000001-67cf5ccccd-rzvl6\",\n\t\t\"nf\":
+          \"smf\",\n\t\t\"nss\": \"edge\",\n\t\t\"pod_ip\": \"\"\n\t  },\n\t  {\n\t\t\"name\":
+          \"open5gs-upf1-000001-7f6b8444f-grp98\",\n\t\t\"nf\": \"upf\",\n\t\t\"nss\":
+          \"edge\",\n\t\t\"pod_ip\": \"\"\n\t  }\n\t],\n\t\"status\": \"success\"\n
+          \ }"
+        items:
+          properties:
+            name:
+              type: string
+            nf:
+              type: string
+            nss:
+              type: string
+            pod_ip:
+              type: string
+          type: object
+        type: array
+      status:
+        type: string
     type: object
 host: localhost:30001
 info:
@@ -541,6 +614,161 @@ paths:
       summary: 获取支持监控的KPI列表
       tags:
       - Monitor
+  /nfv-orchestrator/api/health:
+    get:
+      consumes:
+      - application/json
+      description: 验证NFV编排组件的运行状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务健康状态
+          schema:
+            $ref: '#/definitions/server.noCheckHealthResponse'
+      summary: NFV Orchestrator健康检查
+      tags:
+      - NFV Orchestrator
+  /nfv-orchestrator/kpi-computation/check:
+    post:
+      consumes:
+      - application/json
+      description: 验证KPI计算引擎Pod的运行状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pod状态列表
+          schema:
+            $ref: '#/definitions/server.noKpiComputationCheckResponse'
+        "500":
+          description: Pod查询失败
+          schema:
+            $ref: '#/definitions/server.noKpiComputationCheckResponse'
+      summary: 检查KPI组件状态
+      tags:
+      - NFV Orchestrator
+  /nfv-orchestrator/kpi-computation/install:
+    post:
+      consumes:
+      - application/json
+      description: 部署实时KPI计算引擎到监控命名空间
+      parameters:
+      - description: 请求参数
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.noKpiComputationInstallRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: KPI组件安装成功
+          schema:
+            $ref: '#/definitions/monitor.Response'
+        "400":
+          description: 参数校验失败
+          schema:
+            $ref: '#/definitions/monitor.Response'
+        "500":
+          description: YAML渲染/K8s部署失败
+          schema:
+            $ref: '#/definitions/monitor.Response'
+      summary: 安装KPI计算组件
+      tags:
+      - NFV Orchestrator
+  /nfv-orchestrator/kpi-computation/uninstall:
+    post:
+      consumes:
+      - application/json
+      description: 移除KPI计算引擎相关资源
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: KPI组件卸载成功
+          schema:
+            $ref: '#/definitions/monitor.Response'
+        "500":
+          description: YAML渲染/K8s删除失败
+          schema:
+            $ref: '#/definitions/monitor.Response'
+      summary: 卸载KPI计算组件
+      tags:
+      - NFV Orchestrator
+  /nfv-orchestrator/mde/check:
+    post:
+      consumes:
+      - application/json
+      description: 验证监控数据采集器的服务端点是否就绪
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: MDE服务列表
+          schema:
+            $ref: '#/definitions/server.noMdeCheckResponse'
+        "500":
+          description: 服务查询失败
+          schema:
+            $ref: '#/definitions/server.noMdeCheckResponse'
+      summary: 检查MDE运行状态
+      tags:
+      - NFV Orchestrator
+  /nfv-orchestrator/mde/install:
+    post:
+      consumes:
+      - application/json
+      description: 根据切片ID部署Prometheus exporter组件到指定命名空间
+      parameters:
+      - description: 请求参数
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.noMdeInstallRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: MDE安装成功
+          schema:
+            $ref: '#/definitions/monitor.Response'
+        "400":
+          description: 请求参数不合法
+          schema:
+            $ref: '#/definitions/monitor.Response'
+        "404":
+          description: 切片不存在
+          schema:
+            $ref: '#/definitions/monitor.Response'
+        "500":
+          description: 渲染YAML失败/K8s部署失败
+          schema:
+            $ref: '#/definitions/monitor.Response'
+      summary: 安装监控数据采集器（MDE）
+      tags:
+      - NFV Orchestrator
+  /nfv-orchestrator/mde/uninstall:
+    post:
+      consumes:
+      - application/json
+      description: 移除当前命名空间下的Prometheus exporter组件
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: MDE卸载成功
+          schema:
+            $ref: '#/definitions/monitor.Response'
+        "500":
+          description: YAML渲染失败/K8s删除失败
+          schema:
+            $ref: '#/definitions/monitor.Response'
+      summary: 卸载监控数据采集器（MDE）
+      tags:
+      - NFV Orchestrator
   /play:
     post:
       consumes:
@@ -646,6 +874,55 @@ paths:
       summary: 更新Play资源
       tags:
       - Play
+  /service-orchestrator/api/health:
+    get:
+      consumes:
+      - application/json
+      description: 验证Service Orchestrator组件运行状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务正常运行
+          schema:
+            $ref: '#/definitions/monitor.Response'
+      summary: 服务健康检查
+      tags:
+      - Service Orchestrator
+  /service-orchestrator/slices/{sliceId}:
+    get:
+      consumes:
+      - application/json
+      description: 查询指定切片下的NFV组件Pod详细信息（面向监控系统）
+      parameters:
+      - description: 切片唯一标识符
+        example: edge01
+        in: path
+        name: sliceId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.soGetSliceComponentsResponse'
+        "400":
+          description: 参数校验失败
+          schema:
+            $ref: '#/definitions/monitor.Response'
+        "404":
+          description: 切片不存在
+          schema:
+            $ref: '#/definitions/monitor.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/monitor.Response'
+      summary: 获取切片组件信息
+      tags:
+      - Service Orchestrator
   /sla:
     get:
       consumes:
