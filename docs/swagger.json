@@ -1,0 +1,1801 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Slicer API\n基于Kubernetes资源的切片管理系统API\n包括 切片管理 监控管理 性能保证 等功能",
+        "title": "Slicer API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:30001",
+    "basePath": "/",
+    "paths": {
+        "/controller": {
+            "get": {
+                "description": "返回控制器运行状态、策略列表及当前生效策略",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Controller"
+                ],
+                "summary": "获取控制器状态",
+                "responses": {
+                    "200": {
+                        "description": "成功获取控制器状态",
+                        "schema": {
+                            "$ref": "#/definitions/server.ControllerResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "动态更新运行状态、控制频率或切换调度策略",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Controller"
+                ],
+                "summary": "更新控制器配置",
+                "parameters": [
+                    {
+                        "description": "更新配置参数",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.UpdateControllerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "配置更新成功"
+                    },
+                    "400": {
+                        "description": "请求解析失败/策略不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "内部配置更新失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/monitor": {
+            "get": {
+                "description": "获取系统中存在的所有监控配置列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "获取所有监控配置",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Monitor"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "获取数据失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "创建监控请求并部署到Kubernetes集群，包含MDE和KPI组件",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "创建监控资源（内置部署）",
+                "parameters": [
+                    {
+                        "description": "监控配置对象",
+                        "name": "monitor",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "创建成功返回监控对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    },
+                    "400": {
+                        "description": "请求解码失败/参数验证失败/Slice不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "关联Slice不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "渲染YAML失败/部署失败/存储失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/monitor/external": {
+            "post": {
+                "description": "通过Monarch外部服务提交监控请求",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "创建监控资源（外部服务）",
+                "parameters": [
+                    {
+                        "description": "监控配置对象",
+                        "name": "monitor",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "创建成功返回监控对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    },
+                    "400": {
+                        "description": "请求解码失败/参数验证失败/Slice不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "提交外部请求失败/存储失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/monitor/external/{monitorId}": {
+            "delete": {
+                "description": "通过Monarch外部服务删除监控请求",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "删除监控资源（外部服务）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "监控记录ID",
+                        "name": "monitorId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "外部服务请求ID",
+                        "name": "requestId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "资源删除成功"
+                    },
+                    "400": {
+                        "description": "缺少监控ID或请求ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "监控记录不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "外部服务删除失败/存储删除失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/monitor/slice/{monitorId}": {
+            "get": {
+                "description": "根据监控ID获取详细配置信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "获取单个监控配置",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "监控记录ID",
+                        "name": "monitorId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/model.Monitor"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少监控ID参数",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "监控记录不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "获取数据失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "根据ID删除监控资源并清理Kubernetes组件",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "删除监控资源（内置部署）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "监控记录ID",
+                        "name": "monitorId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "资源删除成功"
+                    },
+                    "400": {
+                        "description": "缺少监控ID参数",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "监控记录不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "YAML渲染失败/组件删除失败/存储删除失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/monitor/supported_kpis": {
+            "get": {
+                "description": "返回系统支持的所有KPI指标定义",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitor"
+                ],
+                "summary": "获取支持监控的KPI列表",
+                "responses": {
+                    "200": {
+                        "description": "成功获取KPI列表",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.SupportedKpi"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误（获取失败）",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/api/health": {
+            "get": {
+                "description": "验证NFV编排组件的运行状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "NFV Orchestrator健康检查",
+                "responses": {
+                    "200": {
+                        "description": "服务健康状态",
+                        "schema": {
+                            "$ref": "#/definitions/server.noCheckHealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/kpi-computation/check": {
+            "post": {
+                "description": "验证KPI计算引擎Pod的运行状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "检查KPI组件状态",
+                "responses": {
+                    "200": {
+                        "description": "Pod状态列表",
+                        "schema": {
+                            "$ref": "#/definitions/server.noKpiComputationCheckResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Pod查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/server.noKpiComputationCheckResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/kpi-computation/install": {
+            "post": {
+                "description": "部署实时KPI计算引擎到监控命名空间",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "安装KPI计算组件",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.noKpiComputationInstallRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "KPI组件安装成功",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "参数校验失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "YAML渲染/K8s部署失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/kpi-computation/uninstall": {
+            "post": {
+                "description": "移除KPI计算引擎相关资源",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "卸载KPI计算组件",
+                "responses": {
+                    "200": {
+                        "description": "KPI组件卸载成功",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "YAML渲染/K8s删除失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/mde/check": {
+            "post": {
+                "description": "验证监控数据采集器的服务端点是否就绪",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "检查MDE运行状态",
+                "responses": {
+                    "200": {
+                        "description": "MDE服务列表",
+                        "schema": {
+                            "$ref": "#/definitions/server.noMdeCheckResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/server.noMdeCheckResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/mde/install": {
+            "post": {
+                "description": "根据切片ID部署Prometheus exporter组件到指定命名空间",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "安装监控数据采集器（MDE）",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.noMdeInstallRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "MDE安装成功",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数不合法",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "切片不存在",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "渲染YAML失败/K8s部署失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/nfv-orchestrator/mde/uninstall": {
+            "post": {
+                "description": "移除当前命名空间下的Prometheus exporter组件",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFV Orchestrator"
+                ],
+                "summary": "卸载监控数据采集器（MDE）",
+                "responses": {
+                    "200": {
+                        "description": "MDE卸载成功",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "YAML渲染失败/K8s删除失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/play": {
+            "post": {
+                "description": "接收Play对象并创建新资源，同时部署到Kubernetes集群",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Play"
+                ],
+                "summary": "创建Play资源",
+                "parameters": [
+                    {
+                        "description": "Play对象",
+                        "name": "play",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Play"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "创建成功返回Play对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.Play"
+                        }
+                    },
+                    "400": {
+                        "description": "请求解码失败/参数非法/Slice不存在/Play已存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "关联Slice不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "存储失败/部署失败/响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/play/{playId}": {
+            "get": {
+                "description": "根据Play ID获取资源详情",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Play"
+                ],
+                "summary": "获取单个Play",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Play ID",
+                        "name": "playId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/model.Play"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少Play ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Play不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败/响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "根据Play ID更新资源并重新部署",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Play"
+                ],
+                "summary": "更新Play资源",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Play ID",
+                        "name": "playId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新后的Play对象",
+                        "name": "play",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Play"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功返回对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.Play"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少Play ID/请求解码失败/参数非法",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Play不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "更新失败/部署失败/响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/service-orchestrator/api/health": {
+            "get": {
+                "description": "验证Service Orchestrator组件运行状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service Orchestrator"
+                ],
+                "summary": "服务健康检查",
+                "responses": {
+                    "200": {
+                        "description": "服务正常运行",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/service-orchestrator/slices/{sliceId}": {
+            "get": {
+                "description": "查询指定切片下的NFV组件Pod详细信息（面向监控系统）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service Orchestrator"
+                ],
+                "summary": "获取切片组件信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "edge01",
+                        "description": "切片唯一标识符",
+                        "name": "sliceId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.soGetSliceComponentsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数校验失败",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "切片不存在",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/monitor.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/sla": {
+            "get": {
+                "description": "获取系统内全部SLA列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "获取所有SLA",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.SLA"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败/响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "接收SLA对象并创建新资源\nslice id对应切片必须存在",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "创建SLA",
+                "parameters": [
+                    {
+                        "description": "SLA对象",
+                        "name": "sla",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "创建成功返回SLA对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    },
+                    "400": {
+                        "description": "请求解码失败/SLA已存在/参数非法",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "切片不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "存储失败/响应编码失败等服务器内部错误",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/sla/{slaId}": {
+            "get": {
+                "description": "根据SLA ID获取资源详情",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "获取单个SLA",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "SLA ID",
+                        "name": "slaId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少SLA ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "SLA不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败/响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "根据SLA ID更新资源",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "更新SLA",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "SLA ID",
+                        "name": "slaId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新后的SLA对象",
+                        "name": "sla",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功返回对象",
+                        "schema": {
+                            "$ref": "#/definitions/model.SLA"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少SLA ID/请求解码失败/参数非法",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "SLA不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "更新失败/响应编码失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "根据SLA ID删除资源",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA"
+                ],
+                "summary": "删除SLA",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "SLA ID",
+                        "name": "slaId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除成功",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少SLA ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "SLA不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "删除失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/slice": {
+            "get": {
+                "description": "获取当前系统中的所有切片列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Slice"
+                ],
+                "summary": "获取所有切片",
+                "responses": {
+                    "200": {
+                        "description": "获取成功，返回切片列表",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.SliceAndAddress"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误（获取列表失败、响应编码失败）",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "接受一个切片对象，创建一个新的切片，并返回创建的切片对象",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Slice"
+                ],
+                "summary": "创建切片",
+                "parameters": [
+                    {
+                        "description": "切片对象",
+                        "name": "slice",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Slice"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "创建成功，返回切片及其地址",
+                        "schema": {
+                            "$ref": "#/definitions/model.SliceAndAddress"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式错误或参数非法",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "切片已存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误，如分配IP或部署资源失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/slice/{sliceId}": {
+            "get": {
+                "description": "根据切片ID获取指定切片的详细信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Slice"
+                ],
+                "summary": "获取单个切片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "切片ID",
+                        "name": "sliceId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "$ref": "#/definitions/model.SliceAndAddress"
+                        }
+                    },
+                    "400": {
+                        "description": "缺少sliceId参数",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "切片不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误（获取失败、响应编码失败）",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "根据切片ID删除指定的切片资源",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Slice"
+                ],
+                "summary": "删除切片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "切片ID",
+                        "name": "sliceId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "删除成功无内容"
+                    },
+                    "400": {
+                        "description": "缺少sliceId参数",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "切片不存在",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误（获取/渲染/删除k8s资源失败、释放IP失败、存储删除失败）",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "model.AMBR": {
+            "type": "object",
+            "properties": {
+                "downlink": {
+                    "$ref": "#/definitions/model.BitRate"
+                },
+                "uplink": {
+                    "$ref": "#/definitions/model.BitRate"
+                }
+            }
+        },
+        "model.ARP": {
+            "type": "object",
+            "properties": {
+                "pre_emption_capability": {
+                    "type": "integer"
+                },
+                "pre_emption_vulnerability": {
+                    "type": "integer"
+                },
+                "priority_level": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.BandwidthSpec": {
+            "type": "object",
+            "properties": {
+                "egress": {
+                    "description": "例如 \"200Mbps\"",
+                    "type": "string"
+                },
+                "ingress": {
+                    "description": "例如 \"100Mbps\"",
+                    "type": "string"
+                }
+            }
+        },
+        "model.BitRate": {
+            "type": "object",
+            "properties": {
+                "unit": {
+                    "type": "integer"
+                },
+                "value": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Duration": {
+            "type": "object",
+            "properties": {
+                "end_time": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Flow": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.GBR": {
+            "type": "object",
+            "properties": {
+                "downlink": {
+                    "$ref": "#/definitions/model.BitRate"
+                },
+                "uplink": {
+                    "$ref": "#/definitions/model.BitRate"
+                }
+            }
+        },
+        "model.KPI": {
+            "type": "object",
+            "properties": {
+                "kpi_description": {
+                    "type": "string"
+                },
+                "kpi_name": {
+                    "type": "string"
+                },
+                "sub_counter": {
+                    "$ref": "#/definitions/model.SubCounter"
+                },
+                "units": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.MBR": {
+            "type": "object",
+            "properties": {
+                "downlink": {
+                    "$ref": "#/definitions/model.BitRate"
+                },
+                "uplink": {
+                    "$ref": "#/definitions/model.BitRate"
+                }
+            }
+        },
+        "model.Monitor": {
+            "type": "object",
+            "properties": {
+                "api_version": {
+                    "description": "通用",
+                    "type": "string"
+                },
+                "duration": {
+                    "$ref": "#/definitions/model.Duration"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kpi": {
+                    "description": "核心内容",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.KPI"
+                        }
+                    ]
+                },
+                "monitoring_interval": {
+                    "$ref": "#/definitions/model.MonitoringInterval"
+                },
+                "request_description": {
+                    "type": "string"
+                },
+                "request_id": {
+                    "description": "用于request translator",
+                    "type": "string"
+                },
+                "scope": {
+                    "$ref": "#/definitions/model.Scope"
+                }
+            }
+        },
+        "model.MonitoringInterval": {
+            "type": "object",
+            "properties": {
+                "adaptive": {
+                    "type": "boolean"
+                },
+                "interval_seconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.PCCRule": {
+            "type": "object",
+            "properties": {
+                "flow": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Flow"
+                    }
+                },
+                "qos": {
+                    "$ref": "#/definitions/model.QoS"
+                }
+            }
+        },
+        "model.Play": {
+            "type": "object"
+        },
+        "model.QoS": {
+            "type": "object",
+            "properties": {
+                "arp": {
+                    "$ref": "#/definitions/model.ARP"
+                },
+                "gbr": {
+                    "$ref": "#/definitions/model.GBR"
+                },
+                "index": {
+                    "type": "integer"
+                },
+                "mbr": {
+                    "$ref": "#/definitions/model.MBR"
+                }
+            }
+        },
+        "model.ResourceSpec": {
+            "type": "object",
+            "properties": {
+                "cpu_limit": {
+                    "description": "\"1\"",
+                    "type": "string"
+                },
+                "cpu_request": {
+                    "description": "\"500m\"",
+                    "type": "string"
+                },
+                "memory_limit": {
+                    "description": "\"1Gi\"",
+                    "type": "string"
+                },
+                "memory_request": {
+                    "description": "\"512Mi\"",
+                    "type": "string"
+                }
+            }
+        },
+        "model.SLA": {
+            "type": "object",
+            "properties": {
+                "availability": {
+                    "description": "可用性",
+                    "type": "number"
+                },
+                "down_bandwidth": {
+                    "description": "下行带宽",
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "latency": {
+                    "description": "延迟",
+                    "type": "number"
+                },
+                "slice_id": {
+                    "type": "string"
+                },
+                "up_bandwidth": {
+                    "description": "上行带宽",
+                    "type": "number"
+                }
+            }
+        },
+        "model.SchedulingSpec": {
+            "type": "object",
+            "properties": {
+                "node_name": {
+                    "description": "若指定，Pod 将直接运行在此节点",
+                    "type": "string"
+                },
+                "node_selector": {
+                    "description": "节点标签选择器",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "scheduler_name": {
+                    "description": "自定义调度器名称，默认 \"default-scheduler\"",
+                    "type": "string"
+                }
+            }
+        },
+        "model.Scope": {
+            "type": "object",
+            "properties": {
+                "scope_id": {
+                    "type": "string"
+                },
+                "scope_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Session": {
+            "type": "object",
+            "properties": {
+                "ambr": {
+                    "$ref": "#/definitions/model.AMBR"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pcc_rule": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.PCCRule"
+                    }
+                },
+                "qos": {
+                    "$ref": "#/definitions/model.QoS"
+                },
+                "type": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Slice": {
+            "type": "object",
+            "properties": {
+                "default_indicator": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "sd": {
+                    "type": "string"
+                },
+                "session": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Session"
+                    }
+                },
+                "sst": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.SliceAndAddress": {
+            "type": "object",
+            "properties": {
+                "default_indicator": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "sd": {
+                    "type": "string"
+                },
+                "session": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Session"
+                    }
+                },
+                "sessionSubnets": {
+                    "description": "Subnet是子网",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "smfn3Addr": {
+                    "type": "string"
+                },
+                "smfn4Addr": {
+                    "type": "string"
+                },
+                "sst": {
+                    "type": "integer"
+                },
+                "upfn3Addr": {
+                    "description": "Addr是地址",
+                    "type": "string"
+                },
+                "upfn4Addr": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SubCounter": {
+            "type": "object",
+            "properties": {
+                "sub_counter_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sub_counter_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SupportedKpi": {
+            "type": "object",
+            "properties": {
+                "kpi_description": {
+                    "type": "string"
+                },
+                "kpi_name": {
+                    "type": "string"
+                },
+                "kpi_unit": {
+                    "type": "string"
+                }
+            }
+        },
+        "monitor.Response": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.ControllerResponse": {
+            "type": "object",
+            "properties": {
+                "frequency": {
+                    "description": "控制频率",
+                    "type": "integer",
+                    "format": "nanoseconds",
+                    "example": 1000000000
+                },
+                "running": {
+                    "description": "运行状态",
+                    "type": "boolean"
+                },
+                "slices": {
+                    "description": "切片列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "strategies": {
+                    "description": "策略名称列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "used_strategy": {
+                    "description": "使用策略",
+                    "type": "string"
+                }
+            }
+        },
+        "server.UpdateControllerRequest": {
+            "type": "object"
+        },
+        "server.noCheckHealthResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.noKpiComputationCheckResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "output": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.noKpiComputationInstallRequest": {
+            "type": "object",
+            "properties": {
+                "slice_id": {
+                    "description": "monitornig_manager向no发送的请求实际为空, 故使用omitempty\n当sliceId为空时,暂且认为是监控全部slice",
+                    "type": "string"
+                }
+            }
+        },
+        "server.noMdeCheckResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "output": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.noMdeInstallRequest": {
+            "type": "object",
+            "properties": {
+                "slice_id": {
+                    "description": "monitornig_manager向no发送的请求实际为空, 故使用omitempty\n当sliceId为空时,暂且认为是监控全部slice",
+                    "type": "string"
+                }
+            }
+        },
+        "server.soGetSliceComponentsResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "pods": {
+                    "description": "Example:\n{\n\t\"pods\": [\n\t  {\n\t\t\"name\": \"open5gs-smf1-000001-67cf5ccccd-rzvl6\",\n\t\t\"nf\": \"smf\",\n\t\t\"nss\": \"edge\",\n\t\t\"pod_ip\": \"\"\n\t  },\n\t  {\n\t\t\"name\": \"open5gs-upf1-000001-7f6b8444f-grp98\",\n\t\t\"nf\": \"upf\",\n\t\t\"nss\": \"edge\",\n\t\t\"pod_ip\": \"\"\n\t  }\n\t],\n\t\"status\": \"success\"\n  }",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "nf": {
+                                "type": "string"
+                            },
+                            "nss": {
+                                "type": "string"
+                            },
+                            "pod_ip": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

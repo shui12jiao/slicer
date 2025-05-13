@@ -21,9 +21,9 @@ type MetricsTool struct {
 }
 
 type MetricsToolParams struct {
-	SliceID  string `json:"slice_id"`
-	Duration int64  `json:"duration"` // in seconds
-	Step     int64  `json:"step"`     // in seconds
+	SliceID  string        `json:"slice_id"`
+	Duration time.Duration `json:"duration"`
+	Step     time.Duration `json:"step"`
 }
 
 func (m *MetricsTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
@@ -60,7 +60,7 @@ func (m *MetricsTool) InvokableRun(ctx context.Context, argumentsInJSON string, 
 	}
 
 	// 获取指标数据
-	metrics, err := m.GetUsedMetrics(params.SliceID, time.Duration(params.Duration)*time.Second, time.Duration(params.Step)*time.Second)
+	metrics, err := m.GetUsedMetrics(params.SliceID, params.Duration, params.Step)
 	if err != nil {
 		return "", err
 	}
@@ -99,6 +99,10 @@ func NewStrategyAgent(ctx context.Context, metricsTool tool.InvokableTool, model
 	}, nil
 }
 
+func (s *StrategyAgent) Name() string {
+	return "ai"
+}
+
 func (s *StrategyAgent) Reconcile(current sm.Play, sla sm.SLA) (sm.Play, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -112,14 +116,17 @@ func (s *StrategyAgent) Reconcile(current sm.Play, sla sm.SLA) (sm.Play, error) 
 	// 获取指标数据
 	metricsParams := MetricsToolParams{
 		SliceID:  sliceID,
-		Duration: int64(3 * time.Hour.Seconds()),
-		Step:     int64(time.Minute.Seconds()),
+		Duration: 3 * time.Hour,
+		Step:     time.Minute,
 	}
 	metricsParamsJSON, err := json.Marshal(metricsParams)
 	if err != nil {
 		return current, fmt.Errorf("参数序列化失败: %w", err)
 	}
 	metrics, err := s.MetricsTool.InvokableRun(ctx, string(metricsParamsJSON))
+	if err != nil {
+		return current, fmt.Errorf("获取指标数据失败: %w", err)
+	}
 
 	// 构建请求
 	input := []*schema.Message{
@@ -136,7 +143,7 @@ func (s *StrategyAgent) Reconcile(current sm.Play, sla sm.SLA) (sm.Play, error) 
 	// agent处理
 	response, err := s.Agent.Generate(ctx, input)
 	if err != nil {
-		return current, err
+		return current, fmt.Errorf("生成响应失败: %w", err)
 	}
 
 	// 解析响应

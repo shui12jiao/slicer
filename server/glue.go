@@ -11,11 +11,11 @@ import (
 // for Monarch
 // 接受监控系统而非用户请求
 
-// service orchestrator相关接口
+// Service Orchestrator 接口
+//================================================================================
 
-// 用于响应监控系统request transltor的切片信息获取请求
-// GET /service-orchestrator/slices/{sliceId}
 type soGetSliceComponentsResponse struct {
+	// Example:
 	// {
 	// 	"pods": [
 	// 	  {
@@ -42,6 +42,18 @@ type soGetSliceComponentsResponse struct {
 	monitor.Response
 }
 
+// soGetSliceComponents godoc
+// @Summary      获取切片组件信息
+// @Description  查询指定切片下的NFV组件Pod详细信息（面向监控系统）
+// @Tags         Service Orchestrator
+// @Accept       json
+// @Produce      json
+// @Param        sliceId path string true "切片唯一标识符" Example(edge01)
+// @Success      200 {object} soGetSliceComponentsResponse
+// @Failure      400 {object} monitor.Response "参数校验失败"
+// @Failure      404 {object} monitor.Response "切片不存在"
+// @Failure      500 {object} monitor.Response "服务器内部错误"
+// @Router       /service-orchestrator/slices/{sliceId} [get]
 func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("SO: 处理切片组件请求", "method", r.Method, "path", r.URL.Path)
 	sliceId := r.PathValue("sliceId")
@@ -54,6 +66,12 @@ func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 	// 检查slice是否存在
 	_, err := s.store.GetSliceBySliceID(sliceId)
 	if err != nil {
+		if isNotFoundError(err) { // MongoDB为空文档
+			slog.Warn("SO: slice不存在", "sliceID", sliceId)
+			http.Error(w, fmt.Sprintf("slice不存在: %v", sliceId), http.StatusNotFound)
+			return
+		}
+
 		slog.Error("SO: 获取slice失败", "sliceID", sliceId, "error", err)
 		http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
 		return
@@ -98,33 +116,47 @@ func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("SO: 切片组件请求处理完成", "sliceID", sliceId, "podsCount", len(resp.Pods))
 }
 
-// 用于响应监控系统的so组件健康检查请求
-// GET /service-orchestrator/api/health
-
-type soCheckHealthResponse = monitor.Response
-
+// soCheckHealth godoc
+// @Summary      服务健康检查
+// @Description  验证Service Orchestrator组件运行状态
+// @Tags         Service Orchestrator
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} monitor.Response "服务正常运行"
+// @Router       /service-orchestrator/api/health [get]
 func (s *Server) soCheckHealth(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("SO: 处理健康检查请求")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	encodeResponse(w, soCheckHealthResponse{
+	encodeResponse(w, monitor.Response{
 		Status:  "success",
 		Message: "service orchestrator is healthy",
 	})
 	slog.Debug("SO: 健康检查完成")
 }
 
-// nfv orchestration相关接口
+// NFV Orchestrator 接口
+//================================================================================
 
-// 用于响应监控系统的mde安装请求
-// POST /nfv-orchestrator/mde/install
 type noMdeInstallRequest struct {
 	// monitornig_manager向no发送的请求实际为空, 故使用omitempty
 	// 当sliceId为空时,暂且认为是监控全部slice
 	SliceId string `json:"slice_id,omitempty"`
 }
 
+// noMdeInstall godoc
+// @Summary      安装监控数据采集器（MDE）
+// @Description  根据切片ID部署Prometheus exporter组件到指定命名空间
+// @Tags         NFV Orchestrator
+// @Accept       json
+// @Produce      json
+// @Param        body body noMdeInstallRequest true "请求参数"
+// @Success      200 {object} monitor.Response "MDE安装成功"
+// @Failure      400 {object} monitor.Response "请求参数不合法"
+// @Failure      404 {object} monitor.Response "切片不存在"
+// @Failure      500 {object} monitor.Response "渲染YAML失败/K8s部署失败"
+// @Router       /nfv-orchestrator/mde/install [post]
 func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: 处理MDE安装请求", "method", r.Method, "path", r.URL.Path)
 	// monarch的monitor manager组件中，process_slice_throughput_directive负责向no发送mdeinstall请求
@@ -169,6 +201,12 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	// 检查slice是否存在
 	_, err := s.store.GetSliceBySliceID(req.SliceId)
 	if err != nil {
+		if isNotFoundError(err) { // MongoDB为空文档
+			slog.Warn("NO: slice不存在", "sliceID", req.SliceId)
+			http.Error(w, fmt.Sprintf("slice不存在: %v", req.SliceId), http.StatusNotFound)
+			return
+		}
+
 		slog.Error("NO: 获取slice失败", "sliceID", req.SliceId, "error", err)
 		http.Error(w, "获取slice失败", http.StatusInternalServerError)
 		return
@@ -195,8 +233,15 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	slog.Info("NO: MDE安装成功", "sliceID", req.SliceId)
 }
 
-// 用于响应监控系统的mde卸载请求
-// POST /nfv-orchestrator/mde/uninstall
+// noMdeUninstall godoc
+// @Summary      卸载监控数据采集器（MDE）
+// @Description  移除当前命名空间下的Prometheus exporter组件
+// @Tags         NFV Orchestrator
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} monitor.Response "MDE卸载成功"
+// @Failure      500 {object} monitor.Response "YAML渲染失败/K8s删除失败"
+// @Router       /nfv-orchestrator/mde/uninstall [post]
 func (s *Server) noMdeUninstall(w http.ResponseWriter, r *http.Request) {
 	// 实际请求参数为空, 直接由监控系统完成卸载
 
@@ -224,14 +269,20 @@ func (s *Server) noMdeUninstall(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: MDE卸载完成", "namespace", s.config.MonitorNamespace)
 }
 
-// 用于响应监控系统的mde检查请求
-// POST /nfv-orchestrator/mde/check
-
 type noMdeCheckResponse struct {
 	monitor.Response
 	Output string `json:"output"`
 }
 
+// noMdeCheck godoc
+// @Summary      检查MDE运行状态
+// @Description  验证监控数据采集器的服务端点是否就绪
+// @Tags         NFV Orchestrator
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} noMdeCheckResponse "MDE服务列表"
+// @Failure      500 {object} noMdeCheckResponse "服务查询失败"
+// @Router       /nfv-orchestrator/mde/check [post]
 func (s *Server) noMdeCheck(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: 开始MDE检查")
 	// kubectl get svc -n open5gs -l app=monarch -o json | jq .items[].metadata.name
@@ -269,11 +320,19 @@ func (s *Server) noMdeCheck(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: MDE检查完成", "servicesCount", len(serviceNames))
 }
 
-// 用于响应监控系统的kpi计算组件安装请求
-// POST /nfv-orchestrator/kpi-computation/install
-
 type noKpiComputationInstallRequest = noMdeInstallRequest
 
+// noKpiComputationInstall godoc
+// @Summary      安装KPI计算组件
+// @Description  部署实时KPI计算引擎到监控命名空间
+// @Tags         NFV Orchestrator
+// @Accept       json
+// @Produce      json
+// @Param        body body noKpiComputationInstallRequest true "请求参数"
+// @Success      200 {object} monitor.Response "KPI组件安装成功"
+// @Failure      400 {object} monitor.Response "参数校验失败"
+// @Failure      500 {object} monitor.Response "YAML渲染/K8s部署失败"
+// @Router       /nfv-orchestrator/kpi-computation/install [post]
 func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: 处理KPI计算组件安装请求", "method", r.Method, "path", r.URL.Path)
 	// monarch的monitor manager组件中，process_slice_throughput_directive负责向no发送mdeinstall请求
@@ -347,8 +406,15 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 	slog.Info("NO: KPI计算组件安装成功", "sliceID", req.SliceId)
 }
 
-// 用于响应监控系统的kpi计算组件卸载请求
-// POST /nfv-orchestrator/kpi-computation/uninstall
+// noKpiComputationUninstall godoc
+// @Summary      卸载KPI计算组件
+// @Description  移除KPI计算引擎相关资源
+// @Tags         NFV Orchestrator
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} monitor.Response "KPI组件卸载成功"
+// @Failure      500 {object} monitor.Response "YAML渲染/K8s删除失败"
+// @Router       /nfv-orchestrator/kpi-computation/uninstall [post]
 func (s *Server) noKpiComputationUninstall(w http.ResponseWriter, r *http.Request) {
 	// 实际请求参数为空, 直接由监控系统完成卸载
 
@@ -376,11 +442,17 @@ func (s *Server) noKpiComputationUninstall(w http.ResponseWriter, r *http.Reques
 	slog.Debug("NO: KPI计算组件卸载完成", "namespace", s.config.MonitorNamespace)
 }
 
-// 用于响应监控系统的kpi计算组件检查请求
-// POST /nfv-orchestrator/kpi-computation/check
-
 type noKpiComputationCheckResponse = noMdeCheckResponse
 
+// noKpiComputationCheck godoc
+// @Summary      检查KPI组件状态
+// @Description  验证KPI计算引擎Pod的运行状态
+// @Tags         NFV Orchestrator
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} noKpiComputationCheckResponse "Pod状态列表"
+// @Failure      500 {object} noKpiComputationCheckResponse "Pod查询失败"
+// @Router       /nfv-orchestrator/kpi-computation/check [post]
 func (s *Server) noKpiComputationCheck(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: 开始KPI计算组件检查")
 	// kubectl get pods -n monarch -l app=monarch,component=kpi-calculator -o json | jq .items[].metadata.name
@@ -419,10 +491,16 @@ func (s *Server) noKpiComputationCheck(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: KPI计算组件检查完成", "podsCount", len(podNames))
 }
 
-// 用于响应监控系统的健康检查请求
-// GET /nfv-orchestrator/api/health
 type noCheckHealthResponse = monitor.Response
 
+// noCheckHealth godoc
+// @Summary      NFV Orchestrator健康检查
+// @Description  验证NFV编排组件的运行状态
+// @Tags         NFV Orchestrator
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} noCheckHealthResponse "服务健康状态"
+// @Router       /nfv-orchestrator/api/health [get]
 func (s *Server) noCheckHealth(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: 处理健康检查请求")
 	w.Header().Set("Content-Type", "application/json")

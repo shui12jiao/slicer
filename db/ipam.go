@@ -128,7 +128,7 @@ func toNetipPrefix(ip *ipam.IP) (netip.Prefix, error) {
 
 // 分配IP
 func (i *IPAM) allocateIP(network string) (netip.Prefix, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(i.config.IPAMTimeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), i.config.IPAMTimeout)
 	defer cancel()
 
 	alloc, err := i.ipam.AcquireIP(ctx, network)
@@ -141,7 +141,7 @@ func (i *IPAM) allocateIP(network string) (netip.Prefix, error) {
 
 // AllocateSessionSubnet 从 SessionNetwork 范围内分配一个子网
 func (i *IPAM) AllocateSessionSubnet() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(i.config.IPAMTimeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), i.config.IPAMTimeout)
 	defer cancel()
 
 	// 从SessionNetwork分配子网，子网掩码由SessionSubnetMask指定
@@ -184,7 +184,7 @@ func (i *IPAM) ReleaseN4Addr(addr string) error {
 }
 
 func (i *IPAM) releaseIP(ip netip.Prefix) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(i.config.IPAMTimeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), i.config.IPAMTimeout)
 	defer cancel()
 
 	// 执行释放
@@ -200,7 +200,7 @@ func (i *IPAM) releaseIP(ip netip.Prefix) error {
 
 // ReleaseSessionSubnet 释放一个子网
 func (i *IPAM) ReleaseSessionSubnet(subnet string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(i.config.IPAMTimeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), i.config.IPAMTimeout)
 	defer cancel()
 
 	// 验证子网格式

@@ -2,21 +2,23 @@ package util
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
+	"time"
 )
 
 type MongoConfig struct {
 	MongoURI     string
 	MongoDBName  string
-	MongoTimeout uint8 // 单位秒
+	MongoTimeout time.Duration
 }
 
 type MonitorConfig struct {
 	MonarchThanosURI            string
 	MonarchRequestTranslatorURI string
 	MonarchMonitoringInterval   uint8
-	MonitorTimeout              uint8
+	MonitorTimeout              time.Duration
 }
 
 type KubeConfig struct {
@@ -39,13 +41,17 @@ type IPAMConfig struct {
 	N4Network           string
 	SessionNetwork      string
 	SessionSubnetLength uint8
-	IPAMTimeout         uint8 // 单位秒
+	IPAMTimeout         time.Duration
 }
 
 type AIConfig struct {
 	ModelType string
 	Model     string
 	APIKey    string
+	// 可选
+	BaseURL   string
+	Timeout   time.Duration
+	MaxTokens int
 }
 
 type Config struct {
@@ -75,29 +81,29 @@ func LoadConfig() Config {
 	return Config{
 		// for monitor
 		MonitorConfig: MonitorConfig{
-			MonarchThanosURI:            MustGetEnvString("MONARCH_THANOS_URL"),
-			MonarchRequestTranslatorURI: MustGetEnvString("MONARCH_REQUEST_TRANSLATOR_URI"),
-			MonarchMonitoringInterval:   MustGetEnvUInt8("MONARCH_MONITORING_INTERVAL"),
-			MonitorTimeout:              MustGetEnvUInt8("MONITOR_TIMEOUT"),
+			MonarchThanosURI:            MustGetEnv("MONARCH_THANOS_URL"),
+			MonarchRequestTranslatorURI: MustGetEnv("MONARCH_REQUEST_TRANSLATOR_URI"),
+			MonarchMonitoringInterval:   String2Uint8(MustGetEnv("MONARCH_MONITORING_INTERVAL")),
+			MonitorTimeout:              String2Duration(MustGetEnv("MONITOR_TIMEOUT")),
 		},
 
 		// for mongodb
 		MongoConfig: MongoConfig{
-			MongoURI:     MustGetEnvString("MONGO_URI"),
-			MongoDBName:  MustGetEnvString("MONGO_DB_NAME"),
-			MongoTimeout: MustGetEnvUInt8("MONGO_TIMEOUT"),
+			MongoURI:     MustGetEnv("MONGO_URI"),
+			MongoDBName:  MustGetEnv("MONGO_DB_NAME"),
+			MongoTimeout: String2Duration(MustGetEnv("MONGO_TIMEOUT")),
 		},
 
 		// for kubernetes client
 		KubeConfig: KubeConfig{
-			Namespace:        MustGetEnvString("NAMESPACE"),         //用于open5gs的namespace
-			MonitorNamespace: MustGetEnvString("MONITOR_NAMESPACE"), //监控系统所在的namespace
-			KubeconfigPath:   os.Getenv("KUBECONFIG_PATH"),          // kubeconfig文件路径,可为空,如果不设置则使用集群内配置
+			Namespace:        MustGetEnv("NAMESPACE"),         //用于open5gs的namespace
+			MonitorNamespace: MustGetEnv("MONITOR_NAMESPACE"), //监控系统所在的namespace
+			KubeconfigPath:   os.Getenv("KUBECONFIG_PATH"),    // kubeconfig文件路径,可为空,如果不设置则使用集群内配置
 		},
 
 		// for http server
 		ServerConfig: ServerConfig{
-			HTTPServerAddress: MustGetEnvString("HTTP_SERVER_ADDRESS"),
+			HTTPServerAddress: MustGetEnv("HTTP_SERVER_ADDRESS"),
 			SliceStoreName:    "slice",
 			KubeStoreName:     "kube",
 			MonitorStoreName:  "monitor",
@@ -106,39 +112,80 @@ func LoadConfig() Config {
 		},
 
 		// for render
-		TemplatePath: MustGetEnvString("TEMPLATE_PATH"),
+		TemplatePath: MustGetEnv("TEMPLATE_PATH"),
 
 		// for ipam
 		IPAMConfig: IPAMConfig{
-			N3Network:           MustGetEnvString("N3_NETWORK"),
-			N4Network:           MustGetEnvString("N4_NETWORK"),
-			SessionNetwork:      MustGetEnvString("SESSION_NETWORK"),
-			SessionSubnetLength: MustGetEnvUInt8("SESSION_SUBNET_LENGTH"),
-			IPAMTimeout:         MustGetEnvUInt8("IPAM_TIMEOUT"),
+			N3Network:           MustGetEnv("N3_NETWORK"),
+			N4Network:           MustGetEnv("N4_NETWORK"),
+			SessionNetwork:      MustGetEnv("SESSION_NETWORK"),
+			SessionSubnetLength: String2Uint8(MustGetEnv("SESSION_SUBNET_LENGTH")),
+			IPAMTimeout:         String2Duration(MustGetEnv("IPAM_TIMEOUT")),
 		},
 
 		// for ai
 		AIConfig: AIConfig{
-			ModelType: MustGetEnvString("MODEL_TYPE"),
-			Model:     MustGetEnvString("MODEL"),
-			APIKey:    MustGetEnvString("API_KEY"),
+			ModelType: MustGetEnv("MODEL_TYPE"),
+			Model:     MustGetEnv("MODEL"),
+			APIKey:    MustGetEnv("API_KEY"),
+			// 可选
+			BaseURL:   GetEnv("BASE_URL"),
+			Timeout:   String2Duration(GetEnv("AI_TIMEOUT")),
+			MaxTokens: String2Int(GetEnv("AI_MAX_TOKENS")),
 		},
 	}
 }
 
-func MustGetEnvUInt8(key string) uint8 {
-	s := os.Getenv(key)
-	val, err := strconv.Atoi(s)
-	if err != nil {
-		panic(fmt.Sprintf("invalid int for env %s: %v", key, err))
-	}
-	return uint8(val)
-}
-
-func MustGetEnvString(key string) string {
+func GetEnv(key string) string {
 	s := os.Getenv(key)
 	if s == "" {
-		panic(fmt.Sprintf("env %s is empty", key))
+		slog.Info(fmt.Sprintf("变量 %s 为空", key))
 	}
 	return s
+}
+
+func MustGetEnv(key string) string {
+	s := os.Getenv(key)
+	if s == "" {
+		slog.Error(fmt.Sprintf("变量 %s 为空", key))
+		os.Exit(1)
+	}
+	return s
+}
+
+func String2Uint8(s string) uint8 {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		slog.Warn(fmt.Sprintf("变量 %s 转换失败", s))
+		os.Exit(1)
+	}
+	if i < 0 || i > 255 {
+		slog.Warn(fmt.Sprintf("变量 %s 超出范围", s))
+		// os.Exit(1)
+	}
+	return uint8(i)
+}
+
+func String2Int(s string) int {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		slog.Warn(fmt.Sprintf("变量 %s 转换失败", s))
+		// os.Exit(1)
+	}
+	return i
+}
+
+func String2Duration(s string) time.Duration {
+	// 检查是否为纯数字
+	if seconds, err := strconv.Atoi(s); err == nil {
+		// 将纯数字视为秒
+		return time.Duration(seconds) * time.Second
+	} else {
+		d, err := time.ParseDuration(s)
+		if err != nil {
+			slog.Warn(fmt.Sprintf("变量 %s 转换失败", s))
+			// os.Exit(1)
+		}
+		return d
+	}
 }

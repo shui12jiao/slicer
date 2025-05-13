@@ -21,7 +21,7 @@ type MongoDB struct {
 
 // New 创建MongoDB实例（单例模式推荐）
 func NewMongoDB(config util.Config, opts ...*options.ClientOptions) (*MongoDB, error) {
-	timeout := time.Duration(config.MongoTimeout) * time.Second
+	timeout := config.MongoTimeout
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 

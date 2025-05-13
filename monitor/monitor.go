@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"slicer/util"
-	"time"
 )
 
 // 与Monarch监控系统沟通客户端
@@ -30,7 +29,7 @@ func (m *Monitor) checkHealth() error {
 
 	// 创建一个HTTP客户端，设置超时时间
 	httpClient := http.Client{
-		Timeout: time.Duration(config.MonitorTimeout) * time.Second,
+		Timeout: config.MonitorTimeout,
 	}
 	// 测试monarch request translator是否可用
 	// 通过config.MONARCH_REQUEST_TRANSLATOR_URI/api/supported-kpis发送一个GET请求给monarch request translator, 返回status_code 200则成功
