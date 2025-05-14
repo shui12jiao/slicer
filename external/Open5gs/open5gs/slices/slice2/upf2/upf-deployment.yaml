@@ -29,41 +29,46 @@ spec:
       #   kubernetes.io/hostname: cn201
 
       initContainers:
-      - name: wait-smf
-        image: busybox:1.32.0
-        env:
-        - name: DEPENDENCIES
-          value: smf2-nsmf:80
-        command: ["sh", "-c", "until nc -z $DEPENDENCIES; do echo waiting for the SMF; sleep 2; done;"]
+        - name: wait-smf
+          image: busybox:1.32.0
+          env:
+            - name: DEPENDENCIES
+              value: smf2-nsmf:80
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z $DEPENDENCIES; do echo waiting for the SMF; sleep 2; done;",
+            ]
       containers:
-      - name: upf
-        image: docker.io/shui12jiao/open5gs:v2.7.2
-        imagePullPolicy: Always
-        command: [ "/open5gs/config/wrapper.sh" ]
-        volumeMounts:
-        - mountPath: /open5gs/config/
-          name: upf-volume
-        ports:
-        - containerPort: 8805
-          name: n4
-          protocol: UDP
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "200m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        securityContext:
-          privileged: true
+        - name: upf
+          image: ghcr.io/niloysh/open5gs:v2.7.0-upf-metrics-v2
+          imagePullPolicy: Always
+          command: ["/open5gs/config/wrapper.sh"]
+          volumeMounts:
+            - mountPath: /open5gs/config/
+              name: upf-volume
+          ports:
+            - containerPort: 8805
+              name: n4
+              protocol: UDP
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          securityContext:
+            privileged: true
       restartPolicy: Always
       volumes:
-      - name: upf-volume
-        configMap:
-          name: upf2-configmap
-          items:
-          - key: upfcfg.yaml
-            path: upfcfg.yaml
-          - key: wrapper.sh
-            path: wrapper.sh
-            mode: 0777
+        - name: upf-volume
+          configMap:
+            name: upf2-configmap
+            items:
+              - key: upfcfg.yaml
+                path: upfcfg.yaml
+              - key: wrapper.sh
+                path: wrapper.sh
+                mode: 0777

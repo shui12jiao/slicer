@@ -44,7 +44,7 @@ spec:
             ]
       containers:
         - name: upf
-          image: docker.io/shui12jiao/open5gs:v2.7.2
+          image: ghcr.io/niloysh/open5gs:v2.7.0-upf-metrics-v2
           imagePullPolicy: IfNotPresent
           command: ["/open5gs/config/wrapper.sh"]
           volumeMounts:

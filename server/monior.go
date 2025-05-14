@@ -64,22 +64,21 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	// 获取sliceId
 	sliceId := monitor.KPI.SubCounter.SubCounterIDs[0]
 	if sliceId == "" {
-		slog.Warn("缺少sliceId参数")
-		http.Error(w, "缺少sliceId参数", http.StatusBadRequest)
-		return
-	}
+		slog.Debug("无sliceID参数, 默认进行全部监控")
+	} else {
+		slog.Debug("获取sliceId参数", "sliceID", sliceId)
+		// 检查sliceId是否存在
+		if _, err := s.store.GetSliceBySliceID(sliceId); err != nil {
+			if isNotFoundError(err) { // MongoDB为空文档
+				slog.Warn("要求监控的sliceId不存在", "sliceID", sliceId)
+				http.Error(w, fmt.Sprintf("要求监控的sliceId不存在: %v", sliceId), http.StatusBadRequest)
+				return
+			}
 
-	// 检查sliceId是否存在
-	if _, err := s.store.GetSliceBySliceID(sliceId); err != nil {
-		if isNotFoundError(err) { // MongoDB为空文档
-			slog.Warn("要求监控的sliceId不存在", "sliceID", sliceId)
-			http.Error(w, fmt.Sprintf("要求监控的sliceId不存在: %v", sliceId), http.StatusBadRequest)
+			slog.Error("获取sliceId失败", "sliceID", sliceId, "error", err)
+			http.Error(w, "获取sliceId失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		slog.Error("获取sliceId失败", "sliceID", sliceId, "error", err)
-		http.Error(w, "获取sliceId失败: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	// 渲染mde yaml
@@ -99,14 +98,16 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 部署MDE
-	if err := s.kubeclient.Apply(yamlMde, s.config.MonitorNamespace); err != nil {
+	// 注意这里使用了s.config.Namespace, 使用metrics+annotations的方式使prometheus进行抓取
+	// 如果使用了crd: service monitor, 需要使用s.config.MonitorNamespace(service中没有定义metrics, 直接使用service monitor似乎不工作因为port: metrics没有定义)
+	if err := s.kubeclient.ApplyMDE(yamlMde); err != nil {
 		slog.Error("部署MDE失败", "sliceID", sliceId, "error", err)
 		http.Error(w, "部署MDE失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// 部署KPI
-	if err := s.kubeclient.Apply(yamlKpi, s.config.MonitorNamespace); err != nil {
+	if err := s.kubeclient.ApplyKpic(yamlKpi); err != nil {
 		slog.Error("部署KPI失败", "sliceID", sliceId, "error", err)
 		http.Error(w, "部署KPI失败: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -228,7 +229,7 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
+	err = s.kubeclient.DeleteMDE(yaml) // 注意这里使用了s.config.Namespace, 和上面创建时必须一致
 	if err != nil {
 		slog.Error("删除MDE失败", "sliceID", sliceId, "error", err)
 		http.Error(w, "删除MDE失败: "+err.Error(), http.StatusInternalServerError)
@@ -242,7 +243,7 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
+	err = s.kubeclient.DeleteKpic(yaml)
 	if err != nil {
 		slog.Error("删除KPI失败", "sliceID", sliceId, "error", err)
 		http.Error(w, "删除KPI失败: "+err.Error(), http.StatusInternalServerError)

@@ -177,7 +177,7 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// 部署mde
-		if err := s.kubeclient.Apply(yaml, s.config.MonitorNamespace); err != nil {
+		if err := s.kubeclient.ApplyMDE(yaml); err != nil {
 			slog.Error("NO: 部署全局MDE失败", "namespace", s.config.MonitorNamespace, "error", err)
 			http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
 			return
@@ -221,7 +221,7 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 部署mde
-	if err := s.kubeclient.Apply(yaml, s.config.MonitorNamespace); err != nil {
+	if err := s.kubeclient.ApplyMDE(yaml); err != nil {
 		slog.Error("NO: 部署MDE失败", "sliceID", req.SliceId, "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
 		return
@@ -252,7 +252,7 @@ func (s *Server) noMdeUninstall(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
+	err = s.kubeclient.DeleteMDE(yaml)
 	if err != nil {
 		slog.Error("NO: 删除MDE失败", "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, "删除MDE失败: "+err.Error(), http.StatusInternalServerError)
@@ -356,7 +356,7 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 		// os.WriteFile("tmp.yaml", []byte(yaml), 0644)
 
 		// 部署kpic
-		if err := s.kubeclient.Apply(yaml, s.config.MonitorNamespace); err != nil {
+		if err := s.kubeclient.ApplyKpic(yaml); err != nil {
 			slog.Error("NO: 部署全局KPI计算组件失败", "namespace", s.config.MonitorNamespace, "error", err)
 			http.Error(w, fmt.Sprintf("部署kpic失败: %v", err), http.StatusInternalServerError)
 			return
@@ -394,7 +394,7 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 	}
 
 	// 部署kpic
-	if err := s.kubeclient.Apply(yaml, s.config.MonitorNamespace); err != nil {
+	if err := s.kubeclient.ApplyKpic(yaml); err != nil {
 		slog.Error("NO: 部署KPI计算组件失败", "sliceID", req.SliceId, "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
 		return
@@ -425,7 +425,7 @@ func (s *Server) noKpiComputationUninstall(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = s.kubeclient.Delete(yaml, s.config.MonitorNamespace)
+	err = s.kubeclient.DeleteKpic(yaml)
 	if err != nil {
 		slog.Error("NO: 删除KPI失败", "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, "删除KPI失败: "+err.Error(), http.StatusInternalServerError)

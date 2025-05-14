@@ -39,7 +39,8 @@ func (r *Render) RenderMde(sliceID string) (content []byte, err error) {
 		Interval: r.config.MonarchMonitoringInterval,
 	}
 
-	return r.render("metrics-servicemonitor.yaml.tpl", v)
+	// return r.render("metrics-servicemonitor.yaml.tpl", v)
+	return r.render("metrics-service.yaml.tpl", v)
 }
 
 func (r *Render) RenderSlice(slice model.SliceAndAddress) (contents [][]byte, err error) {
