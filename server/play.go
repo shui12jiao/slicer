@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"slicer/model"
+
+	"github.com/go-chi/chi"
 )
 
 // createPlay godoc
@@ -88,38 +90,38 @@ func (s *Server) createPlay(w http.ResponseWriter, r *http.Request) {
 // @Tags         Play
 // @Accept       json
 // @Produce      json
-// @Param        playId path string true "Play ID"
+// @Param        playID path string true "Play ID"
 // @Success      200 {object} model.Play "获取成功"
 // @Failure      400 {string} string "缺少Play ID"
 // @Failure      404 {string} string "Play不存在"
 // @Failure      500 {string} string "获取失败/响应编码失败"
-// @Router       /play/{playId} [get]
+// @Router       /play/{play_id} [get]
 func (s *Server) getPlay(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取play请求", "method", r.Method, "url", r.URL.String())
-	playId := r.PathValue("playId")
-	if playId == "" {
-		slog.Warn("缺少playId参数")
-		http.Error(w, "缺少playId参数", http.StatusBadRequest)
+	playID := chi.URLParam(r, "play_id")
+	if playID == "" {
+		slog.Warn("缺少playID参数")
+		http.Error(w, "缺少playID参数", http.StatusBadRequest)
 		return
 	}
 
 	// 从对象存储中获取play对象
-	play, err := s.store.GetPlay(playId)
+	play, err := s.store.GetPlay(playID)
 	if err != nil {
 		if isNotFoundError(err) { // MongoDB为空文档
-			slog.Warn("play不存在", "playID", playId)
+			slog.Warn("play不存在", "playID", playID)
 			http.Error(w, "play不存在", http.StatusNotFound)
 			return
 		}
 
-		slog.Error("获取play失败", "playID", playId, "error", err)
+		slog.Error("获取play失败", "playID", playID, "error", err)
 		http.Error(w, "获取play失败", http.StatusInternalServerError)
 		return
 	}
 	// 返回
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(play); err != nil {
-		slog.Error("响应编码失败", "playID", playId, "sliceID", play.SliceID, "error", err)
+		slog.Error("响应编码失败", "playID", playID, "sliceID", play.SliceID, "error", err)
 		http.Error(w, "响应编码失败", http.StatusInternalServerError)
 		return
 	}
@@ -132,21 +134,21 @@ func (s *Server) getPlay(w http.ResponseWriter, r *http.Request) {
 // @Tags         Play
 // @Accept       json
 // @Produce      json
-// @Param        playId path string true "Play ID"
+// @Param        playID path string true "Play ID"
 // @Param        play body model.Play true "更新后的Play对象"
 // @Success      200 {object} model.Play "更新成功返回对象"
 // @Failure      400 {string} string "缺少Play ID/请求解码失败/参数非法"
 // @Failure      404 {string} string "Play不存在"
 // @Failure      500 {string} string "更新失败/部署失败/响应编码失败"
-// @Router       /play/{playId} [put]
+// @Router       /play/{play_id} [put]
 func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 	// slog.Debug("更新play请求", "method", r.Method, "url", r.URL.String())
 
-	// 获取playId
-	playId := r.PathValue("playId")
-	if playId == "" {
-		slog.Warn("缺少playId参数")
-		http.Error(w, "缺少playId参数", http.StatusBadRequest)
+	// 获取playID
+	playID := chi.URLParam(r, "play_id")
+	if playID == "" {
+		slog.Warn("缺少playID参数")
+		http.Error(w, "缺少playID参数", http.StatusBadRequest)
 		return
 	}
 
@@ -169,12 +171,12 @@ func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 	curPlay, err := s.store.GetPlay(play.ID.Hex())
 	if err != nil {
 		if isNotFoundError(err) { // MongoDB为空文档
-			slog.Warn("play不存在", "playID", playId)
+			slog.Warn("play不存在", "playID", playID)
 			http.Error(w, "play不存在", http.StatusNotFound)
 			return
 		}
 
-		slog.Error("获取play失败", "playID", playId, "error", err)
+		slog.Error("获取play失败", "playID", playID, "error", err)
 		http.Error(w, "获取play失败", http.StatusInternalServerError)
 		return
 	}
@@ -182,7 +184,7 @@ func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 	// 更新play
 	err = curPlay.Update(play)
 	if err != nil {
-		slog.Error("更新play失败", "playID", playId, "error", err)
+		slog.Error("更新play失败", "playID", playID, "error", err)
 		http.Error(w, "更新play失败", http.StatusBadRequest)
 		return
 	}
@@ -190,7 +192,7 @@ func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 	// 更新存储
 	_, err = s.store.UpdatePlay(curPlay)
 	if err != nil {
-		slog.Error("更新play失败", "playID", playId, "error", err)
+		slog.Error("更新play失败", "playID", playID, "error", err)
 		http.Error(w, "更新play失败", http.StatusInternalServerError)
 		return
 	}
@@ -198,7 +200,7 @@ func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 	// 更新部署
 	err = s.kubeclient.Play(curPlay, s.config.Namespace)
 	if err != nil {
-		slog.Error("更新play部署失败", "playID", playId, "error", err)
+		slog.Error("更新play部署失败", "playID", playID, "error", err)
 		http.Error(w, "更新play部署失败", http.StatusInternalServerError)
 		return
 	}
@@ -206,7 +208,7 @@ func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 	// 返回
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(curPlay); err != nil {
-		slog.Error("响应编码失败", "playID", playId, "sliceID", curPlay.SliceID, "error", err)
+		slog.Error("响应编码失败", "playID", playID, "sliceID", curPlay.SliceID, "error", err)
 		http.Error(w, "响应编码失败", http.StatusInternalServerError)
 		return
 	}

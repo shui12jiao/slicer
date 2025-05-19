@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"slicer/model"
+
+	"github.com/go-chi/chi"
 )
 
 // createSla godoc
@@ -79,36 +81,36 @@ func (s *Server) createSla(w http.ResponseWriter, r *http.Request) {
 // @Tags         SLA
 // @Accept       json
 // @Produce      json
-// @Param        slaId path string true "SLA ID"
+// @Param        slaID path string true "SLA ID"
 // @Success      200 {object} model.SLA "获取成功"
 // @Failure      400 {string} string "缺少SLA ID"
 // @Failure      404 {string} string "SLA不存在"
 // @Failure      500 {string} string "获取失败/响应编码失败"
-// @Router       /sla/{slaId} [get]
+// @Router       /sla/{sla_id} [get]
 func (s *Server) getSla(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取SLA请求", "method", r.Method, "url", r.URL.String())
-	slaId := r.PathValue("slaId")
-	if slaId == "" {
+	slaID := chi.URLParam(r, "sla_id")
+	if slaID == "" {
 		slog.Error("缺少SLA ID")
 		http.Error(w, "缺少SLA ID", http.StatusBadRequest)
 		return
 	}
 
-	sla, err := s.store.GetSLA(slaId)
+	sla, err := s.store.GetSLA(slaID)
 	if err != nil {
 		if isNotFoundError(err) {
-			slog.Warn("SLA不存在", "SLAID", slaId)
+			slog.Warn("SLA不存在", "SLAID", slaID)
 			http.Error(w, "SLA不存在", http.StatusNotFound)
 			return
 		}
-		slog.Error("获取SLA失败", "SLAID", slaId, "error", err)
+		slog.Error("获取SLA失败", "SLAID", slaID, "error", err)
 		http.Error(w, "获取SLA失败", http.StatusInternalServerError)
 		return
 	}
 	// 返回
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(sla); err != nil {
-		slog.Error("响应编码失败", "SLAID", slaId, "sliceID", sla.SliceID, "error", err)
+		slog.Error("响应编码失败", "SLAID", slaID, "sliceID", sla.SliceID, "error", err)
 		http.Error(w, "响应编码失败", http.StatusInternalServerError)
 		return
 	}
@@ -121,17 +123,17 @@ func (s *Server) getSla(w http.ResponseWriter, r *http.Request) {
 // @Tags         SLA
 // @Accept       json
 // @Produce      json
-// @Param        slaId path string true "SLA ID"
+// @Param        slaID path string true "SLA ID"
 // @Param        sla body model.SLA true "更新后的SLA对象"
 // @Success      200 {object} model.SLA "更新成功返回对象"
 // @Failure      400 {string} string "缺少SLA ID/请求解码失败/参数非法"
 // @Failure      404 {string} string "SLA不存在"
 // @Failure      500 {string} string "更新失败/响应编码失败"
-// @Router       /sla/{slaId} [put]
+// @Router       /sla/{sla_id} [put]
 func (s *Server) updateSla(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("更新SLA请求", "method", r.Method, "url", r.URL.String())
-	slaId := r.PathValue("slaId")
-	if slaId == "" {
+	slaID := chi.URLParam(r, "sla_id")
+	if slaID == "" {
 		slog.Error("缺少SLA ID")
 		http.Error(w, "缺少SLA ID", http.StatusBadRequest)
 		return
@@ -151,14 +153,14 @@ func (s *Server) updateSla(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 检查是否存在SLA
-	curSLA, err := s.store.GetSLA(slaId)
+	curSLA, err := s.store.GetSLA(slaID)
 	if err != nil {
 		if isNotFoundError(err) {
-			slog.Warn("SLA不存在", "SLAID", slaId)
+			slog.Warn("SLA不存在", "SLAID", slaID)
 			http.Error(w, "SLA不存在", http.StatusNotFound)
 			return
 		}
-		slog.Error("获取SLA失败", "SLAID", slaId, "error", err)
+		slog.Error("获取SLA失败", "SLAID", slaID, "error", err)
 		http.Error(w, "获取SLA失败", http.StatusInternalServerError)
 		return
 	}
@@ -166,7 +168,7 @@ func (s *Server) updateSla(w http.ResponseWriter, r *http.Request) {
 	// 更新SLA
 	err = curSLA.Update(sla)
 	if err != nil {
-		slog.Error("更新SLA失败", "SLAID", slaId, "error", err)
+		slog.Error("更新SLA失败", "SLAID", slaID, "error", err)
 		http.Error(w, "更新SLA失败", http.StatusBadRequest)
 		return
 	}
@@ -174,7 +176,7 @@ func (s *Server) updateSla(w http.ResponseWriter, r *http.Request) {
 	// 更新存储
 	_, err = s.store.UpdateSLA(curSLA)
 	if err != nil {
-		slog.Error("更新SLA存储失败", "SLAID", slaId, "error", err)
+		slog.Error("更新SLA存储失败", "SLAID", slaID, "error", err)
 		http.Error(w, "更新SLA存储失败", http.StatusInternalServerError)
 		return
 	}
@@ -194,34 +196,34 @@ func (s *Server) updateSla(w http.ResponseWriter, r *http.Request) {
 // @Tags         SLA
 // @Accept       json
 // @Produce      json
-// @Param        slaId path string true "SLA ID"
+// @Param        slaID path string true "SLA ID"
 // @Success      200 {string} string "删除成功"
 // @Failure      400 {string} string "缺少SLA ID"
 // @Failure      404 {string} string "SLA不存在"
 // @Failure      500 {string} string "删除失败"
-// @Router       /sla/{slaId} [delete]
+// @Router       /sla/{sla_id} [delete]
 func (s *Server) deleteSla(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("删除SLA请求", "method", r.Method, "url", r.URL.String())
-	slaId := r.PathValue("slaId")
-	if slaId == "" {
+	slaID := chi.URLParam(r, "sla_id")
+	if slaID == "" {
 		slog.Error("缺少SLA ID")
 		http.Error(w, "缺少SLA ID", http.StatusBadRequest)
 		return
 	}
 
 	// 获取SLA
-	sla, err := s.store.GetSLA(slaId)
+	sla, err := s.store.GetSLA(slaID)
 	if err != nil {
 		if isNotFoundError(err) {
-			slog.Warn("SLA不存在", "SLAID", slaId)
+			slog.Warn("SLA不存在", "SLAID", slaID)
 			http.Error(w, "SLA不存在", http.StatusNotFound)
 			return
 		}
 	}
 
 	// 删除SLA
-	if err := s.store.DeleteSLA(slaId); err != nil {
-		slog.Error("删除SLA失败", "SLAID", slaId, "error", err)
+	if err := s.store.DeleteSLA(slaID); err != nil {
+		slog.Error("删除SLA失败", "SLAID", slaID, "error", err)
 		http.Error(w, "删除SLA失败", http.StatusInternalServerError)
 		return
 	}

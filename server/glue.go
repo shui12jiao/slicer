@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"slicer/monitor"
+
+	"github.com/go-chi/chi"
 )
 
 // for Monarch
@@ -48,31 +50,31 @@ type soGetSliceComponentsResponse struct {
 // @Tags         Service Orchestrator
 // @Accept       json
 // @Produce      json
-// @Param        sliceId path string true "切片唯一标识符" Example(edge01)
+// @Param        sliceID path string true "切片唯一标识符" Example(edge01)
 // @Success      200 {object} soGetSliceComponentsResponse
 // @Failure      400 {object} monitor.Response "参数校验失败"
 // @Failure      404 {object} monitor.Response "切片不存在"
 // @Failure      500 {object} monitor.Response "服务器内部错误"
-// @Router       /service-orchestrator/slices/{sliceId} [get]
+// @Router       /service-orchestrator/slices/{slice_id} [get]
 func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("SO: 处理切片组件请求", "method", r.Method, "path", r.URL.Path)
-	sliceId := r.PathValue("sliceId")
-	if sliceId == "" {
-		slog.Warn("SO: 缺少sliceId参数")
-		http.Error(w, "缺少sliceId参数", http.StatusBadRequest)
+	sliceID := chi.URLParam(r, "slice_id")
+	if sliceID == "" {
+		slog.Warn("SO: 缺少sliceID参数")
+		http.Error(w, "缺少sliceID参数", http.StatusBadRequest)
 		return
 	}
 
 	// 检查slice是否存在
-	_, err := s.store.GetSliceBySliceID(sliceId)
+	_, err := s.store.GetSliceBySliceID(sliceID)
 	if err != nil {
 		if isNotFoundError(err) { // MongoDB为空文档
-			slog.Warn("SO: slice不存在", "sliceID", sliceId)
-			http.Error(w, fmt.Sprintf("slice不存在: %v", sliceId), http.StatusNotFound)
+			slog.Warn("SO: slice不存在", "sliceID", sliceID)
+			http.Error(w, fmt.Sprintf("slice不存在: %v", sliceID), http.StatusNotFound)
 			return
 		}
 
-		slog.Error("SO: 获取slice失败", "sliceID", sliceId, "error", err)
+		slog.Error("SO: 获取slice失败", "sliceID", sliceID, "error", err)
 		http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -88,7 +90,7 @@ func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 	for _, pod := range pods {
 		labels := pod.Labels
 		// ex: name=smf1-000001, nf=smf
-		if labels["name"] == labels["nf"]+sliceId {
+		if labels["name"] == labels["nf"]+sliceID {
 			resp.Pods = append(resp.Pods, struct {
 				Name  string `json:"name"`
 				NF    string `json:"nf"`
@@ -113,7 +115,7 @@ func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
 		return
 	}
-	slog.Debug("SO: 切片组件请求处理完成", "sliceID", sliceId, "podsCount", len(resp.Pods))
+	slog.Debug("SO: 切片组件请求处理完成", "sliceID", sliceID, "podsCount", len(resp.Pods))
 }
 
 // soCheckHealth godoc
@@ -141,8 +143,8 @@ func (s *Server) soCheckHealth(w http.ResponseWriter, r *http.Request) {
 
 type noMdeInstallRequest struct {
 	// monitornig_manager向no发送的请求实际为空, 故使用omitempty
-	// 当sliceId为空时,暂且认为是监控全部slice
-	SliceId string `json:"slice_id,omitempty"`
+	// 当sliceID为空时,暂且认为是监控全部slice
+	SliceID string `json:"slice_id,omitempty"`
 }
 
 // noMdeInstall godoc
@@ -163,7 +165,7 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	// 并未对directive（包含SliceComponents信息）进行解析
 
 	// 对监控系统暂时的单独处理
-	// 暂时认为如果sliceId为空, 则监控全部slice
+	// 暂时认为如果sliceID为空, 则监控全部slice
 	if r.Body == http.NoBody {
 		// 处理空请求体的逻辑
 		slog.Info("NO: 接收到空请求体，安装全局MDE")
@@ -199,30 +201,30 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 检查slice是否存在
-	_, err := s.store.GetSliceBySliceID(req.SliceId)
+	_, err := s.store.GetSliceBySliceID(req.SliceID)
 	if err != nil {
 		if isNotFoundError(err) { // MongoDB为空文档
-			slog.Warn("NO: slice不存在", "sliceID", req.SliceId)
-			http.Error(w, fmt.Sprintf("slice不存在: %v", req.SliceId), http.StatusNotFound)
+			slog.Warn("NO: slice不存在", "sliceID", req.SliceID)
+			http.Error(w, fmt.Sprintf("slice不存在: %v", req.SliceID), http.StatusNotFound)
 			return
 		}
 
-		slog.Error("NO: 获取slice失败", "sliceID", req.SliceId, "error", err)
+		slog.Error("NO: 获取slice失败", "sliceID", req.SliceID, "error", err)
 		http.Error(w, "获取slice失败", http.StatusInternalServerError)
 		return
 	}
 
 	// 渲染mde的yaml文件
-	yaml, err := s.render.RenderMde(req.SliceId)
+	yaml, err := s.render.RenderMde(req.SliceID)
 	if err != nil {
-		slog.Error("NO: 渲染MDE yaml失败", "sliceID", req.SliceId, "error", err)
+		slog.Error("NO: 渲染MDE yaml失败", "sliceID", req.SliceID, "error", err)
 		http.Error(w, fmt.Sprintf("渲染yaml失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// 部署mde
 	if err := s.kubeclient.ApplyMDE(yaml); err != nil {
-		slog.Error("NO: 部署MDE失败", "sliceID", req.SliceId, "namespace", s.config.MonitorNamespace, "error", err)
+		slog.Error("NO: 部署MDE失败", "sliceID", req.SliceID, "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -230,7 +232,7 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	// 返回响应
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	slog.Info("NO: MDE安装成功", "sliceID", req.SliceId)
+	slog.Info("NO: MDE安装成功", "sliceID", req.SliceID)
 }
 
 // noMdeUninstall godoc
@@ -339,7 +341,7 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 	// 并未对directive（包含SliceComponents信息）进行解析
 
 	// 对监控系统暂时的单独处理
-	// 暂时认为如果sliceId为空, 则监控全部slice
+	// 暂时认为如果sliceID为空, 则监控全部slice
 	if r.Body == http.NoBody {
 		// 处理空请求体的逻辑
 		slog.Info("NO: 接收到空请求体，安装全局KPI计算组件")
@@ -378,24 +380,24 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 	}
 
 	// 检查slice是否存在
-	_, err := s.store.GetSliceBySliceID(req.SliceId)
+	_, err := s.store.GetSliceBySliceID(req.SliceID)
 	if err != nil {
-		slog.Error("NO: 获取slice失败", "sliceID", req.SliceId, "error", err)
+		slog.Error("NO: 获取slice失败", "sliceID", req.SliceID, "error", err)
 		http.Error(w, "获取slice失败", http.StatusInternalServerError)
 		return
 	}
 
 	// 渲染kpsc的yaml文件
-	yaml, err := s.render.RenderKpiCalc(req.SliceId)
+	yaml, err := s.render.RenderKpiCalc(req.SliceID)
 	if err != nil {
-		slog.Error("NO: 渲染KPI计算组件yaml失败", "sliceID", req.SliceId, "error", err)
+		slog.Error("NO: 渲染KPI计算组件yaml失败", "sliceID", req.SliceID, "error", err)
 		http.Error(w, fmt.Sprintf("渲染yaml失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// 部署kpic
 	if err := s.kubeclient.ApplyKpic(yaml); err != nil {
-		slog.Error("NO: 部署KPI计算组件失败", "sliceID", req.SliceId, "namespace", s.config.MonitorNamespace, "error", err)
+		slog.Error("NO: 部署KPI计算组件失败", "sliceID", req.SliceID, "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -403,7 +405,7 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 	// 返回响应
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	slog.Info("NO: KPI计算组件安装成功", "sliceID", req.SliceId)
+	slog.Info("NO: KPI计算组件安装成功", "sliceID", req.SliceID)
 }
 
 // noKpiComputationUninstall godoc
