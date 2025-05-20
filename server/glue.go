@@ -79,7 +79,7 @@ func (s *Server) soGetSliceComponents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pods, err := s.kubeclient.GetPods(s.config.Namespace)
+	pods, err := s.kubeClient.GetPods(s.config.Namespace)
 	if err != nil {
 		slog.Error("SO: 获取Pods失败", "namespace", s.config.Namespace, "error", err)
 		http.Error(w, fmt.Sprintf("获取Pods失败: %v", err), http.StatusInternalServerError)
@@ -179,7 +179,7 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// 部署mde
-		if err := s.kubeclient.ApplyMDE(yaml); err != nil {
+		if err := s.kubeClient.ApplyMDE(yaml); err != nil {
 			slog.Error("NO: 部署全局MDE失败", "namespace", s.config.MonitorNamespace, "error", err)
 			http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
 			return
@@ -223,7 +223,7 @@ func (s *Server) noMdeInstall(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 部署mde
-	if err := s.kubeclient.ApplyMDE(yaml); err != nil {
+	if err := s.kubeClient.ApplyMDE(yaml); err != nil {
 		slog.Error("NO: 部署MDE失败", "sliceID", req.SliceID, "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
 		return
@@ -254,7 +254,7 @@ func (s *Server) noMdeUninstall(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = s.kubeclient.DeleteMDE(yaml)
+	err = s.kubeClient.DeleteMDE(yaml)
 	if err != nil {
 		slog.Error("NO: 删除MDE失败", "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, "删除MDE失败: "+err.Error(), http.StatusInternalServerError)
@@ -288,7 +288,7 @@ type noMdeCheckResponse struct {
 func (s *Server) noMdeCheck(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: 开始MDE检查")
 	// kubectl get svc -n open5gs -l app=monarch -o json | jq .items[].metadata.name
-	svcs, err := s.kubeclient.GetServices(s.config.MonitorNamespace, "app=monarch")
+	svcs, err := s.kubeClient.GetServices(s.config.MonitorNamespace, "app=monarch")
 	// 设置响应头
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
@@ -358,7 +358,7 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 		// os.WriteFile("tmp.yaml", []byte(yaml), 0644)
 
 		// 部署kpic
-		if err := s.kubeclient.ApplyKpic(yaml); err != nil {
+		if err := s.kubeClient.ApplyKpic(yaml); err != nil {
 			slog.Error("NO: 部署全局KPI计算组件失败", "namespace", s.config.MonitorNamespace, "error", err)
 			http.Error(w, fmt.Sprintf("部署kpic失败: %v", err), http.StatusInternalServerError)
 			return
@@ -396,7 +396,7 @@ func (s *Server) noKpiComputationInstall(w http.ResponseWriter, r *http.Request)
 	}
 
 	// 部署kpic
-	if err := s.kubeclient.ApplyKpic(yaml); err != nil {
+	if err := s.kubeClient.ApplyKpic(yaml); err != nil {
 		slog.Error("NO: 部署KPI计算组件失败", "sliceID", req.SliceID, "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, fmt.Sprintf("部署mde失败: %v", err), http.StatusInternalServerError)
 		return
@@ -427,7 +427,7 @@ func (s *Server) noKpiComputationUninstall(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = s.kubeclient.DeleteKpic(yaml)
+	err = s.kubeClient.DeleteKpic(yaml)
 	if err != nil {
 		slog.Error("NO: 删除KPI失败", "namespace", s.config.MonitorNamespace, "error", err)
 		http.Error(w, "删除KPI失败: "+err.Error(), http.StatusInternalServerError)
@@ -458,7 +458,7 @@ type noKpiComputationCheckResponse = noMdeCheckResponse
 func (s *Server) noKpiComputationCheck(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("NO: 开始KPI计算组件检查")
 	// kubectl get pods -n monarch -l app=monarch,component=kpi-calculator -o json | jq .items[].metadata.name
-	pods, err := s.kubeclient.GetPods(s.config.MonitorNamespace, "app=monarch", "component=kpi-calculator")
+	pods, err := s.kubeClient.GetPods(s.config.MonitorNamespace, "app=monarch", "component=kpi-calculator")
 
 	// 设置响应头
 	w.Header().Set("Content-Type", "application/json")

@@ -53,9 +53,16 @@ func main() {
 	render := render.NewRender(config)
 
 	// 初始化Kubernetes客户端
-	kubeclient, err := kubeclient.NewKubeClient(config)
+	kubeClient, err := kubeclient.NewKubeClient(config)
 	if err != nil {
 		slog.Error("创建Kubernetes客户端失败", "error", err)
+		os.Exit(1)
+	}
+
+	// 初始化helm客户端
+	helmClient, err := kubeclient.NewHelmClient(config, kubeClient.GetKubeConfig())
+	if err != nil {
+		slog.Error("创建Helm客户端失败", "error", err)
 		os.Exit(1)
 	}
 
@@ -67,13 +74,14 @@ func main() {
 	}
 
 	// 启动控制器
-	controller := runController(config, store, kubeclient)
+	controller := runController(config, store, kubeClient)
 
 	// 初始化Server
 	server := server.NewServer(server.NewSeverArg{
 		Config:     config,
 		Store:      store,
-		KubeClient: kubeclient,
+		KubeClient: kubeClient,
+		HelmClient: helmClient,
 		Monitor:    monitor,
 		Render:     render,
 		IPAM:       ipam,
@@ -86,7 +94,7 @@ func main() {
 }
 
 // 注册并启动controller
-func runController(config util.Config, store db.Store, kclient *kubeclient.KubeClient) controller.Controller {
+func runController(config *util.Config, store db.Store, kclient *kubeclient.KubeClient) controller.Controller {
 	basicStrategy := newBasicStrategy(config)
 	aiStrategy := newAIStrategy(config)
 	controller := controller.NewBasicController(config, store, kclient, basicStrategy, aiStrategy)
@@ -96,7 +104,7 @@ func runController(config util.Config, store db.Store, kclient *kubeclient.KubeC
 }
 
 // 测试用基本策略
-func newBasicStrategy(config util.Config) controller.Strategy {
+func newBasicStrategy(config *util.Config) controller.Strategy {
 	// 初始化metrics源
 	metrics, err := controller.NewMetrics(config.MonarchThanosURI)
 	if err != nil {
@@ -108,7 +116,7 @@ func newBasicStrategy(config util.Config) controller.Strategy {
 }
 
 // ai大模型支持的策略
-func newAIStrategy(config util.Config) controller.Strategy {
+func newAIStrategy(config *util.Config) controller.Strategy {
 	// 初始化ai
 	ai, err := ai.NewGeneralAI(config)
 	if err != nil {

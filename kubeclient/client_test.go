@@ -328,7 +328,7 @@ metadata:
 
 func TestWithRealKubeClient(t *testing.T) {
 	// 创建一个真实的 KubeClient 实例
-	kc, err := NewKubeClient(util.Config{
+	kc, err := NewKubeClient(&util.Config{
 		KubeConfig: util.KubeConfig{
 			Namespace:        "open5gs",
 			MonitorNamespace: "monarch",
@@ -350,7 +350,7 @@ func TestWithRealKubeClient(t *testing.T) {
 
 func TestWithRealKubeClientApply(t *testing.T) {
 	// 创建一个真实的 KubeClient 实例
-	kc, err := NewKubeClient(util.Config{
+	kc, err := NewKubeClient(&util.Config{
 		KubeConfig: util.KubeConfig{
 			Namespace:        "open5gs",
 			MonitorNamespace: "monarch",

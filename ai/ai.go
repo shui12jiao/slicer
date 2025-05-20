@@ -32,7 +32,7 @@ type GeneralAI struct {
 	*StrategyAgent
 }
 
-func NewGeneralAI(config util.Config) (AI, error) {
+func NewGeneralAI(config *util.Config) (AI, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 

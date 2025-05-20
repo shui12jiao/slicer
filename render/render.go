@@ -15,10 +15,10 @@ import (
 
 type Render struct {
 	// slice转化为kubernetes配置文件
-	config util.Config
+	config *util.Config
 }
 
-func NewRender(config util.Config) *Render {
+func NewRender(config *util.Config) *Render {
 	return &Render{
 		config: config,
 	}

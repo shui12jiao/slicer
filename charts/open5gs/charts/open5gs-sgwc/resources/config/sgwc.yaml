@@ -1,0 +1,19 @@
+{{ $open5gsName := .Release.Name }}
+
+logger:
+  level: {{ .Values.config.logLevel }}
+parameter: {}
+global:
+sgwc:
+  gtpc:
+    server:
+    - dev: "eth0"
+  pfcp:
+    server:
+    - dev: "eth0"
+    client:
+      sgwu:
+      {{- range .Values.config.pfcp.client.sgwuList }}
+      - address: {{ default (printf "%s-sgwu-pfcp" $open5gsName) .address }}
+        apn: {{ .apn }}
+      {{- end }}

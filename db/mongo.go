@@ -13,14 +13,14 @@ import (
 )
 
 type MongoDB struct {
-	config   util.Config
+	config   *util.Config
 	client   *mongo.Client // 连接客户端[1](@ref)
 	database string        // 数据库名称
 	timeout  time.Duration // 操作超时时间
 }
 
 // New 创建MongoDB实例（单例模式推荐）
-func NewMongoDB(config util.Config, opts ...*options.ClientOptions) (*MongoDB, error) {
+func NewMongoDB(config *util.Config, opts ...*options.ClientOptions) (*MongoDB, error) {
 	timeout := config.MongoTimeout
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

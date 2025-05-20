@@ -97,14 +97,14 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 部署k8s资源
-	err = s.kubeclient.ApplySlice(contents)
+	err = s.kubeClient.ApplySlice(contents)
 	if err != nil {
 		slog.Error("应用kube资源失败", "error", err)
 		http.Error(w, fmt.Sprintf("应用kube资源失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 	rollbackFuncs = append(rollbackFuncs, func() {
-		if deleteErr := s.kubeclient.DeleteMulti(contents, s.config.Namespace); deleteErr != nil {
+		if deleteErr := s.kubeClient.DeleteMulti(contents, s.config.Namespace); deleteErr != nil {
 			slog.Error("回滚集群中删除配置失败", "error", deleteErr)
 		}
 	})
@@ -166,7 +166,7 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 删除k8s资源
-	err = s.kubeclient.DeleteSlice(contents)
+	err = s.kubeClient.DeleteSlice(contents)
 	if err != nil {
 		slog.Error("删除kube资源失败", "sliceID", sliceID, "error", err)
 		http.Error(w, fmt.Sprintf("删除kube资源失败: %v", err), http.StatusInternalServerError)

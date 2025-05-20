@@ -33,14 +33,21 @@ import (
 
 // KubeClient 定义Kubernetes客户端结构
 type KubeClient struct {
-	config        util.Config          // 配置
+	config        *util.Config         // 配置
+	kconfig       *rest.Config         // Kubernetes配置
 	clientset     kubernetes.Interface // 核心API客户端
 	dynamicClient dynamic.Interface    // 动态资源客户端
 	restMapper    meta.RESTMapper      // 资源类型映射器
 }
 
+// GetKubeConfig 获取Kubernetes配置
+// 该方法用于获取Kubernetes的rest.Config配置. 用于HelmClient组件初始化
+func (kc *KubeClient) GetKubeConfig() *rest.Config {
+	return kc.kconfig
+}
+
 // NewKubeClient 创建Kubernetes客户端
-func NewKubeClient(config util.Config) (kc *KubeClient, err error) {
+func NewKubeClient(config *util.Config) (kc *KubeClient, err error) {
 	var kconfig *rest.Config
 
 	// 从 kubeconfig 文件或 in-cluster 配置中创建 Kubernetes 配置
@@ -79,6 +86,7 @@ func NewKubeClient(config util.Config) (kc *KubeClient, err error) {
 
 	kc = &KubeClient{
 		config:        config,
+		kconfig:       kconfig,
 		clientset:     clientset,
 		dynamicClient: dynamicClient,
 		restMapper:    restMapper,

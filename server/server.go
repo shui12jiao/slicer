@@ -20,23 +20,25 @@ import (
 
 // Server 负责处理HTTP请求
 type Server struct {
+	config     *util.Config
 	router     *chi.Mux
-	config     util.Config
 	monitor    *monitor.Monitor
 	store      db.Store
 	ipam       *db.IPAM
 	render     *render.Render
-	kubeclient *kubeclient.KubeClient
+	kubeClient *kubeclient.KubeClient
+	helmClient *kubeclient.HelmClient
 	controller controller.Controller
 }
 
 type NewSeverArg struct {
-	util.Config
+	*util.Config
 	*monitor.Monitor
 	db.Store
 	*db.IPAM
 	*render.Render
 	*kubeclient.KubeClient
+	*kubeclient.HelmClient
 	controller.Controller
 }
 
@@ -49,7 +51,8 @@ func NewServer(arg NewSeverArg) *Server {
 		store:      arg.Store,
 		ipam:       arg.IPAM,
 		render:     arg.Render,
-		kubeclient: arg.KubeClient,
+		kubeClient: arg.KubeClient,
+		helmClient: arg.HelmClient,
 		controller: arg.Controller,
 	}
 	s.routes()

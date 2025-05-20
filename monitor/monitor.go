@@ -9,10 +9,10 @@ import (
 
 // 与Monarch监控系统沟通客户端
 type Monitor struct {
-	config util.Config
+	config *util.Config
 }
 
-func NewMonitor(config util.Config) *Monitor {
+func NewMonitor(config *util.Config) *Monitor {
 
 	return &Monitor{config: config}
 }

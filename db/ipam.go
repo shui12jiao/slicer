@@ -15,11 +15,11 @@ import (
 )
 
 type IPAM struct {
-	config util.Config
+	config *util.Config
 	ipam   ipam.Ipamer
 }
 
-func NewIPAM(config util.Config) (*IPAM, error) {
+func NewIPAM(config *util.Config) (*IPAM, error) {
 	// 初始化父前缀
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

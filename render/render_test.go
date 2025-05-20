@@ -33,7 +33,7 @@ var testSlice = model.SliceAndAddress{
 
 // 验证生成的YAML结构
 func TestRenderSlice(t *testing.T) {
-	config := util.Config{
+	config := &util.Config{
 		TemplatePath: "./template",
 		// 假设模板文件已放在测试目录
 	}
@@ -147,7 +147,7 @@ iptables -t nat -A POSTROUTING -s 10.41.0.0/16 ! -o ogstun1 -j MASQUERADE;`)
 	}
 }
 
-var testConfig = util.Config{
+var testConfig = &util.Config{
 	TemplatePath: "./template",
 	MonitorConfig: util.MonitorConfig{
 		MonarchThanosURI:            "http://172.18.0.3:31004",

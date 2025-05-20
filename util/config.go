@@ -22,9 +22,10 @@ type MonitorConfig struct {
 }
 
 type KubeConfig struct {
+	KubeconfigPath   string // 集群内使用时为空
 	Namespace        string
 	MonitorNamespace string
-	KubeconfigPath   string
+	HelmDriver       string // secret, configmap, memory, sql. 这里采用了configmap
 }
 
 type ServerConfig struct {
@@ -61,7 +62,7 @@ type Config struct {
 	// for mongodb
 	MongoConfig
 
-	// for kubernetes client
+	// for kubernetes client and helm client
 	KubeConfig
 
 	// for http server
@@ -77,8 +78,8 @@ type Config struct {
 	AIConfig
 }
 
-func LoadConfig() Config {
-	return Config{
+func LoadConfig() *Config {
+	return &Config{
 		// for monitor
 		MonitorConfig: MonitorConfig{
 			MonarchThanosURI:            MustGetEnv("MONARCH_THANOS_URL"),
@@ -96,9 +97,10 @@ func LoadConfig() Config {
 
 		// for kubernetes client
 		KubeConfig: KubeConfig{
+			KubeconfigPath:   os.Getenv("KUBECONFIG_PATH"),    // kubeconfig文件路径,可为空,如果不设置则使用集群内配置
 			Namespace:        MustGetEnv("NAMESPACE"),         //用于open5gs的namespace
 			MonitorNamespace: MustGetEnv("MONITOR_NAMESPACE"), //监控系统所在的namespace
-			KubeconfigPath:   os.Getenv("KUBECONFIG_PATH"),    // kubeconfig文件路径,可为空,如果不设置则使用集群内配置
+			HelmDriver:       "configmap",
 		},
 
 		// for http server

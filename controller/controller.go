@@ -43,7 +43,7 @@ type BasicController struct {
 	cancel context.CancelFunc
 
 	// config
-	config util.Config
+	config *util.Config
 	// 存储
 	store db.Store
 	// 控制器的配置
@@ -64,7 +64,7 @@ type BasicController struct {
 
 // NewBasicController 创建一个新的控制器
 // 注册传入的所有strategy, 并将第一个strategy设置为默认策略, 若不传入则strategy为nil
-func NewBasicController(config util.Config, store db.Store, kclient *kubeclient.KubeClient, strategy ...Strategy) Controller {
+func NewBasicController(config *util.Config, store db.Store, kclient *kubeclient.KubeClient, strategy ...Strategy) Controller {
 	// 创建一个新的上下文和取消函数
 	ctx, cancel := context.WithCancel(context.Background())
 

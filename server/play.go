@@ -63,7 +63,7 @@ func (s *Server) createPlay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 部署play
-	err = s.kubeclient.Play(play, s.config.Namespace)
+	err = s.kubeClient.Play(play, s.config.Namespace)
 	if err != nil {
 		// 删除存储
 		errD := s.store.DeletePlay(play.ID.Hex())
@@ -198,7 +198,7 @@ func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 更新部署
-	err = s.kubeclient.Play(curPlay, s.config.Namespace)
+	err = s.kubeClient.Play(curPlay, s.config.Namespace)
 	if err != nil {
 		slog.Error("更新play部署失败", "playID", playID, "error", err)
 		http.Error(w, "更新play部署失败", http.StatusInternalServerError)

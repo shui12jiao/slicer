@@ -16,7 +16,7 @@ import (
 )
 
 // 测试配置模板
-var testConfig = util.Config{
+var testConfig = &util.Config{
 	IPAMConfig: util.IPAMConfig{
 		IPAMTimeout:         255,
 		N3Network:           "10.10.3.0/24",
@@ -27,7 +27,7 @@ var testConfig = util.Config{
 }
 
 // 测试初始化
-func newTestIPAM(t *testing.T, config util.Config) *IPAM {
+func newTestIPAM(t *testing.T, config *util.Config) *IPAM {
 	// 初始化父前缀
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
