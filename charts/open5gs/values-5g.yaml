@@ -28,18 +28,6 @@ upf:
 webui:
   enabled: true
 
-# 4G
-hss:
-  enabled: false
-mme:
-  enabled: false
-pcrf:
-  enabled: false
-sgwc:
-  enabled: false
-sgwu:
-  enabled: false
-
 # 5G
 amf:
   enabled: true
