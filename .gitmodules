@@ -1,0 +1,3 @@
+[submodule "charts"]
+	path = charts
+	url = git@codeup.aliyun.com:68074cb2ca2dd04ff7aa3806/charts.git
