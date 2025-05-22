@@ -26,6 +26,7 @@ type KubeConfig struct {
 	Namespace        string
 	MonitorNamespace string
 	HelmDriver       string // secret, configmap, memory, sql. 这里采用了configmap
+	HelmTimeout      time.Duration
 }
 
 type ServerConfig struct {
@@ -101,6 +102,7 @@ func LoadConfig() *Config {
 			Namespace:        MustGetEnv("NAMESPACE"),         //用于open5gs的namespace
 			MonitorNamespace: MustGetEnv("MONITOR_NAMESPACE"), //监控系统所在的namespace
 			HelmDriver:       "configmap",
+			HelmTimeout:      String2Duration(MustGetEnv("HELM_TIMEOUT")),
 		},
 
 		// for http server
