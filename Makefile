@@ -13,6 +13,16 @@ k3d:
 cloc:
 	cloc --exclude-dir=external,docs,charts --exclude-ext=csv,py .
 
+CHARTS := open5gs-amf open5gs-ausf open5gs-bsf open5gs-nrf open5gs-nssf \
+          open5gs-pcf open5gs-scp open5gs-smf open5gs-udm open5gs-udr \
+          open5gs-upf open5gs-webui
+
+jsonschema2go:
+	@for chart in $(CHARTS); do \
+		base=$$(echo $$chart | sed 's/open5gs-//'); \
+		echo "Generating $$base.go from ./charts/$$chart/values.schema.json..."; \
+		go-jsonschema -e -p render -t ./charts/$$chart/values.schema.json -o ./render/$$base.go; \
+	done
 
 # docker
 # IMAGE_PREFIX := shui12jiao/slicer
