@@ -14,7 +14,7 @@ cloc:
 	cloc --exclude-dir=external,docs,charts --exclude-ext=csv,py .
 
 
-# docker相关
+# docker
 # IMAGE_PREFIX := shui12jiao/slicer
 IMAGE_PREFIX := crpi-sut5dyyu9y5gqtfq.cn-shanghai.personal.cr.aliyuncs.com/sminggg/slicer
 VERSION := $(VERSION)
@@ -31,7 +31,7 @@ push:
 run:
 	docker run -d --name slicer --network=host --env-file .env shui12jiao/slicer:latest
 	
-# kubernetes相关
+# kubernetes
 
 prepare:
 	cd external/Open5gs && kubectl create namespace open5gs || kubectl apply -f multus-daemonset-thick.yml &&
@@ -39,3 +39,7 @@ prepare:
 	
 deploy:
 	kubectl apply -k kubernetes
+
+# helm
+package:
+	cd charts/open5gs && helm dependency build && helm lint && helm package . --destination ../ 
