@@ -4,12 +4,11 @@ import (
 	"log/slog"
 	"os"
 	"slicer/ai"
+	"slicer/api"
 	"slicer/controller"
 	"slicer/db"
-	"slicer/kubeclient"
+	"slicer/kube"
 	"slicer/monitor"
-	"slicer/render"
-	"slicer/server"
 	"slicer/util"
 	"time"
 
@@ -49,27 +48,17 @@ func main() {
 	// 初始化monitor监控系统交互组件
 	monitor := monitor.NewMonitor(config)
 
-	// 初始化渲染器
-	render := render.NewRender(config)
-
 	// 初始化Kubernetes客户端
-	kubeClient, err := kubeclient.NewKubeClient(config)
+	kubeClient, err := kube.NewKubeClient(config)
 	if err != nil {
 		slog.Error("创建Kubernetes客户端失败", "error", err)
 		os.Exit(1)
 	}
 
 	// 初始化helm客户端
-	helmClient, err := kubeclient.NewHelmClient(config, kubeClient.GetKubeConfig())
+	helmClient, err := kube.NewHelmClient(config, kubeClient.GetKubeConfig())
 	if err != nil {
 		slog.Error("创建Helm客户端失败", "error", err)
-		os.Exit(1)
-	}
-
-	// 初始化IPAM
-	ipam, err := db.NewIPAM(config)
-	if err != nil {
-		slog.Error("创建IP地址管理失败", "error", err)
 		os.Exit(1)
 	}
 
@@ -77,14 +66,12 @@ func main() {
 	controller := runController(config, store, kubeClient)
 
 	// 初始化Server
-	server := server.NewServer(server.NewSeverArg{
+	server := api.NewServer(api.NewSeverArg{
 		Config:     config,
 		Store:      store,
 		KubeClient: kubeClient,
 		HelmClient: helmClient,
 		Monitor:    monitor,
-		Render:     render,
-		IPAM:       ipam,
 		Controller: controller,
 	})
 
@@ -94,7 +81,7 @@ func main() {
 }
 
 // 注册并启动controller
-func runController(config *util.Config, store db.Store, kclient *kubeclient.KubeClient) controller.Controller {
+func runController(config *util.Config, store db.Store, kclient *kube.KubeClient) controller.Controller {
 	basicStrategy := newBasicStrategy(config)
 	aiStrategy := newAIStrategy(config)
 	controller := controller.NewBasicController(config, store, kclient, basicStrategy, aiStrategy)

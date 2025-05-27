@@ -21,7 +21,7 @@ jsonschema2go:
 	@for chart in $(CHARTS); do \
 		base=$$(echo $$chart | sed 's/open5gs-//'); \
 		echo "Generating $$base.go from ./charts/$$chart/values.schema.json..."; \
-		go-jsonschema -e -p render -t ./charts/$$chart/values.schema.json -o ./render/$$base.go; \
+		go-jsonschema -e -p value -t ./charts/$$chart/values.schema.json -o ./kube/value/$$base.go; \
 	done
 
 # docker
