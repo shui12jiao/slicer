@@ -23,7 +23,7 @@ import (
 // @Failure      500 {string} string "存储失败/部署失败/响应编码失败"
 // @Router       /play [post]
 func (s *Server) createPlay(w http.ResponseWriter, r *http.Request) {
-	var play model.Play
+	var play model.KubeConfig
 	if err := json.NewDecoder(r.Body).Decode(&play); err != nil {
 		http.Error(w, "请求解码失败", http.StatusBadRequest)
 		return
@@ -154,7 +154,7 @@ func (s *Server) updatePlay(w http.ResponseWriter, r *http.Request) {
 
 	// body中获取play更新参数
 	// 动态更新, 若值为空则不更新
-	var play model.Play
+	var play model.KubeConfig
 	if err := json.NewDecoder(r.Body).Decode(&play); err != nil {
 		http.Error(w, "请求解码失败", http.StatusBadRequest)
 		return

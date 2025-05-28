@@ -9,10 +9,9 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-// Play 代表一个切片的性能控制参数（如 QoS、带宽、调度等）
-type Play struct {
-	ID      primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	SliceID string             `json:"slice_id"`
+// KubeConfig 代表一个切片的Kubernetes接口性能控制相关参数（如 QoS、带宽、调度等）
+type KubeConfig struct {
+	ID primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 
 	// 资源请求与限制
 	Resources ResourceSpec `json:"resources"`
@@ -35,11 +34,7 @@ type Play struct {
 }
 
 // 用于更新play的参数
-func (p *Play) Update(newPlay Play) error {
-	if newPlay.SliceID != "" && newPlay.SliceID != p.SliceID {
-		return fmt.Errorf("play的切片ID不匹配")
-	}
-
+func (p *KubeConfig) Update(newPlay KubeConfig) error {
 	// 1. 资源请求与限制
 	if newPlay.Resources != (ResourceSpec{}) {
 		p.Resources = newPlay.Resources
@@ -66,7 +61,7 @@ func isNetworkPolicyEmpty(policy networkingv1.NetworkPolicy) bool {
 }
 
 // 返回play的字符串表示
-func (p *Play) String() string {
+func (p *KubeConfig) String() string {
 	json, err := json.Marshal(p)
 	if err != nil {
 		return fmt.Sprintf("Error marshaling Play: %v", err)
@@ -75,10 +70,7 @@ func (p *Play) String() string {
 	return string(json)
 }
 
-func (p *Play) Validate() error {
-	if p.SliceID == "" {
-		return fmt.Errorf("缺少切片ID")
-	}
+func (p *KubeConfig) Validate() error {
 	if err := p.Resources.Validate(); err != nil {
 		return fmt.Errorf("资源参数错误: %v", err)
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 // Querier 接口实现
-func (m *MongoDB) CreateSlice(slice model.SliceAndAddress) (model.SliceAndAddress, error) {
+func (m *MongoDB) CreateSlice(slice model.SliceProfile) (model.SliceProfile, error) {
 	res, err := m.insert(m.config.SliceStoreName, slice)
 
 	// 获取插入的ID
@@ -24,10 +24,10 @@ func (m *MongoDB) DeleteSlice(id string) error {
 	return m.delete(m.config.SliceStoreName, id)
 }
 
-func (m *MongoDB) GetSlice(id string) (model.SliceAndAddress, error) {
+func (m *MongoDB) GetSlice(id string) (model.SliceProfile, error) {
 	res := m.find(m.config.SliceStoreName, id)
 
-	var slice model.SliceAndAddress
+	var slice model.SliceProfile
 	if err := res.Decode(&slice); err != nil {
 		return slice, fmt.Errorf("查询Slice失败：%w", err)
 	}
@@ -35,7 +35,7 @@ func (m *MongoDB) GetSlice(id string) (model.SliceAndAddress, error) {
 	return slice, nil
 }
 
-func (m *MongoDB) GetSliceBySliceID(sliceID string) (model.SliceAndAddress, error) {
+func (m *MongoDB) GetSliceBySliceID(sliceID string) (model.SliceProfile, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
@@ -43,12 +43,12 @@ func (m *MongoDB) GetSliceBySliceID(sliceID string) (model.SliceAndAddress, erro
 	var sd string
 	_, err := fmt.Sscanf(sliceID, "%d-%s", &sst, &sd)
 	if err != nil {
-		return model.SliceAndAddress{}, fmt.Errorf("SliceID格式错误：%w", err)
+		return model.SliceProfile{}, fmt.Errorf("SliceID格式错误：%w", err)
 	}
 
 	// 查询 Slice
 	res := m.client.Database(m.database).Collection(m.config.SliceStoreName).FindOne(ctx, primitive.M{"slice.sst": sst, "slice.sd": sd})
-	var slice model.SliceAndAddress
+	var slice model.SliceProfile
 	if err := res.Decode(&slice); err != nil {
 		return slice, fmt.Errorf("查询Slice失败：%w", err)
 	}
@@ -56,7 +56,7 @@ func (m *MongoDB) GetSliceBySliceID(sliceID string) (model.SliceAndAddress, erro
 	return slice, nil
 }
 
-func (m *MongoDB) ListSlice() ([]model.SliceAndAddress, error) {
+func (m *MongoDB) ListSlice() ([]model.SliceProfile, error) {
 	// 获取所有 Slice
 	cursor, err := m.findAll(m.config.SliceStoreName)
 	if err != nil {
@@ -64,9 +64,9 @@ func (m *MongoDB) ListSlice() ([]model.SliceAndAddress, error) {
 	}
 
 	defer cursor.Close(context.Background())
-	var slices []model.SliceAndAddress
+	var slices []model.SliceProfile
 	for cursor.Next(context.Background()) {
-		var slice model.SliceAndAddress
+		var slice model.SliceProfile
 		if err = cursor.Decode(&slice); err != nil {
 			return nil, fmt.Errorf("查询Slice失败：%w", err)
 		}
@@ -88,7 +88,7 @@ func (m *MongoDB) ListSliceID() ([]string, error) {
 
 	var ids []string
 	for cursor.Next(context.Background()) {
-		var slice model.SliceAndAddress
+		var slice model.SliceProfile
 		if err = cursor.Decode(&slice); err != nil {
 			return nil, fmt.Errorf("查询Slice ID失败：%w", err)
 		}

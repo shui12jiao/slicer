@@ -9,6 +9,7 @@ import (
 	"slicer/db"
 	"slicer/kube"
 	"slicer/monitor"
+	"slicer/service"
 	"slicer/util"
 	"time"
 
@@ -67,9 +68,12 @@ func main() {
 
 	// 初始化Server
 	server := api.NewServer(api.NewSeverArg{
-		Config:     config,
-		Store:      store,
-		KubeClient: kubeClient,
+		Service: service.NewService(
+			config,
+			store,
+			kubeClient,
+			helmClient,
+		),
 		HelmClient: helmClient,
 		Monitor:    monitor,
 		Controller: controller,

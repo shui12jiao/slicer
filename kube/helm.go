@@ -50,8 +50,8 @@ func NewHelmClient(config *util.Config, kconfig *rest.Config) (*HelmClient, erro
 			slog.Debug(fmt.Sprintf(format, v...))
 		},
 	); err != nil {
-		slog.Error("初始化 Helm action configuration 失败", "error", err)
-		return nil, fmt.Errorf("初始化 Helm action configuration 失败: %w", err)
+		slog.Error("Helm 配置初始化失败", "error", err)
+		return nil, fmt.Errorf("Helm 配置初始化失败: %w", err)
 	}
 
 	// actionSet，封装常用的四大操作
@@ -71,7 +71,6 @@ func NewHelmClient(config *util.Config, kconfig *rest.Config) (*HelmClient, erro
 	// 设置升级参数
 	actionSet.upgrade.Wait = true
 	actionSet.upgrade.Timeout = config.HelmTimeout
-	actionSet.upgrade.Install = true // 允许不存在时自动安装
 	actionSet.upgrade.Namespace = config.Namespace
 	// 设置卸载参数
 	actionSet.uninstall.Wait = true
@@ -87,6 +86,44 @@ func NewHelmClient(config *util.Config, kconfig *rest.Config) (*HelmClient, erro
 	}, nil
 }
 
+// InstallOrUpgrade 安装或升级 Chart
+func (hc *HelmClient) InstallOrUpgrade(releaseName, chartPath string, values map[string]interface{}) (*release.Release, error) {
+	hc.action.upgrade.Install = true // 安装或升级 !并不会在不存在时自动安装!
+
+	// 检查是否已存在
+	exists, err := hc.ChartExists(releaseName)
+	if err != nil {
+		slog.Error("检测 Chart 是否存在时发生错误", "发布名称", releaseName, "error", err)
+		return nil, fmt.Errorf("检测 Chart 是否存在时发生错误: %w", err)
+	}
+	if exists {
+		// 如果存在，则执行升级
+		slog.Info("检测到 Chart 已存在，开始执行升级操作", "发布名称", releaseName)
+		return hc.Upgrade(releaseName, chartPath, values)
+	} else {
+		// 如果不存在，则执行安装
+		slog.Info("未检测到 Chart，开始执行安装操作", "发布名称", releaseName)
+		return hc.Install(releaseName, chartPath, values)
+	}
+}
+
+func (hc *HelmClient) ChartExists(releaseName string) (bool, error) {
+	// 执行查询
+	results, err := hc.action.list.Run()
+	if err != nil {
+		slog.Error("获取 Release 列表失败", "error", err)
+		return false, fmt.Errorf("获取 Release 列表失败: %w", err)
+	}
+
+	// 检查是否存在指定的 release
+	for _, r := range results {
+		if r != nil && r.Name == releaseName {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // Install 安装 Chart
 func (hc *HelmClient) Install(releaseName, chartPath string, values map[string]interface{}) (*release.Release, error) {
 	hc.action.install.ReleaseName = releaseName
@@ -94,33 +131,34 @@ func (hc *HelmClient) Install(releaseName, chartPath string, values map[string]i
 	// 加载 Chart
 	chartReq, err := loader.Load(chartPath)
 	if err != nil {
-		slog.Error("加载chart失败", "path", chartPath, "error", err)
-		return nil, fmt.Errorf("加载chart失败: %w", err)
+		slog.Error("加载 Chart 失败", "Chart 路径", chartPath, "error", err)
+		return nil, fmt.Errorf("加载 Chart 失败: %w", err)
 	}
 
 	// 执行安装
 	rel, err := hc.action.install.Run(chartReq, values)
 	if err != nil {
-		slog.Error("部署chart失败", "release", releaseName, "error", err)
-		return nil, fmt.Errorf("部署chart失败: %w", err)
+		slog.Error("部署 Chart 失败", "发布名称", releaseName, "error", err)
+		return nil, fmt.Errorf("部署 Chart 失败: %w", err)
 	}
 	return rel, nil
 }
 
-// Upgrade 升级 Chart
 func (hc *HelmClient) Upgrade(releaseName, chartPath string, values map[string]interface{}) (*release.Release, error) {
+	hc.action.upgrade.Install = false // 仅升级
+
 	// 加载 Chart
 	chartReq, err := loader.Load(chartPath)
 	if err != nil {
-		slog.Error("加载chart失败", "path", chartPath, "error", err)
-		return nil, fmt.Errorf("加载chart失败: %w", err)
+		slog.Error("加载 Chart 失败", "Chart 路径", chartPath, "error", err)
+		return nil, fmt.Errorf("加载 Chart 失败: %w", err)
 	}
 
 	// 执行升级
 	rel, err := hc.action.upgrade.Run(releaseName, chartReq, values)
 	if err != nil {
-		slog.Error("升级chart失败", "release", releaseName, "error", err)
-		return nil, fmt.Errorf("升级chart失败: %w", err)
+		slog.Error("升级 Chart 失败", "发布名称", releaseName, "error", err)
+		return nil, fmt.Errorf("升级 Chart 失败: %w", err)
 	}
 	return rel, nil
 }
@@ -129,8 +167,8 @@ func (hc *HelmClient) Upgrade(releaseName, chartPath string, values map[string]i
 func (hc *HelmClient) Uninstall(releaseName string) error {
 	// 执行卸载
 	if _, err := hc.action.uninstall.Run(releaseName); err != nil {
-		slog.Error("卸载chart失败", "release", releaseName, "error", err)
-		return fmt.Errorf("卸载chart失败: %w", err)
+		slog.Error("卸载 Chart 失败", "发布名称", releaseName, "error", err)
+		return fmt.Errorf("卸载 Chart 失败: %w", err)
 	}
 	return nil
 }
@@ -140,8 +178,8 @@ func (hc *HelmClient) List() ([]*release.Release, error) {
 	// 执行查询
 	results, err := hc.action.list.Run()
 	if err != nil {
-		slog.Error("获取release列表失败", "error", err)
-		return nil, fmt.Errorf("获取release列表失败: %w", err)
+		slog.Error("获取 Release 列表失败", "error", err)
+		return nil, fmt.Errorf("获取 Release 列表失败: %w", err)
 	}
 
 	// 过滤无效结果

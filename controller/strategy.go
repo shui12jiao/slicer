@@ -14,7 +14,7 @@ type Strategy interface {
 	// 返回策略名称
 	Name() string
 	// 根据SLA,Metrics以及当前策略，生成新 Play 策略
-	Reconcile(current model.Play, sla model.SLA) (model.Play, error)
+	Reconcile(current model.KubeConfig, sla model.SLA) (model.KubeConfig, error)
 }
 
 // 简易策略
@@ -35,7 +35,7 @@ func (b *BasicStrategy) Name() string {
 	return "basic"
 }
 
-func (b *BasicStrategy) Reconcile(current model.Play, sla model.SLA) (model.Play, error) {
+func (b *BasicStrategy) Reconcile(current model.KubeConfig, sla model.SLA) (model.KubeConfig, error) {
 	play := &current
 
 	// 获取指标数据（保持原有错误处理）
@@ -55,7 +55,7 @@ func (b *BasicStrategy) Reconcile(current model.Play, sla model.SLA) (model.Play
 	return *play, nil
 }
 
-func (b *BasicStrategy) adjustBandwidth(play *model.Play, metrics UsedMetrics, sla model.SLA) error {
+func (b *BasicStrategy) adjustBandwidth(play *model.KubeConfig, metrics UsedMetrics, sla model.SLA) error {
 	// 获取当前配置带宽
 	currentUp := parseBandwidthMbps(play.Bandwidth.Ingress)
 	currentDown := parseBandwidthMbps(play.Bandwidth.Egress)
@@ -106,7 +106,7 @@ func calculatePercentile(data []float64, p float64) float64 {
 	return data[int(math.Ceil(index))]
 }
 
-func (b *BasicStrategy) adjustAvailability(play *model.Play, metrics UsedMetrics, sla model.SLA) error {
+func (b *BasicStrategy) adjustAvailability(play *model.KubeConfig, metrics UsedMetrics, sla model.SLA) error {
 	// 计算窗口可用性（兼容网页7的SLA计算标准）
 	calculateWindowAvailability := func(availabilities []float64) float64 {
 		if len(availabilities) == 0 {

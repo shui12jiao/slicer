@@ -56,27 +56,18 @@ type AIConfig struct {
 	MaxTokens int
 }
 
+type ServiceConfig struct {
+	HelmChartPath   string // open5gs的Helm Chart路径
+	HelmReleaseName string // open5gs的Helm Release名称
+}
+
 type Config struct {
-	// for monitor
 	MonitorConfig
-
-	// for mongodb
 	MongoConfig
-
-	// for kubernetes client and helm client
 	KubeConfig
-
-	// for http server
 	ServerConfig
-
-	// for render
-	TemplatePath string
-
-	// for ipam
-	IPAMConfig
-
-	// for ai
 	AIConfig
+	ServiceConfig
 }
 
 func LoadConfig() *Config {
@@ -96,7 +87,7 @@ func LoadConfig() *Config {
 			MongoTimeout: String2Duration(MustGetEnv("MONGO_TIMEOUT")),
 		},
 
-		// for kubernetes client
+		// for kube
 		KubeConfig: KubeConfig{
 			KubeconfigPath:   os.Getenv("KUBECONFIG_PATH"),    // kubeconfig文件路径,可为空,如果不设置则使用集群内配置
 			Namespace:        MustGetEnv("NAMESPACE"),         //用于open5gs的namespace
@@ -109,22 +100,7 @@ func LoadConfig() *Config {
 		ServerConfig: ServerConfig{
 			HTTPServerAddress: MustGetEnv("HTTP_SERVER_ADDRESS"),
 			SliceStoreName:    "slice",
-			KubeStoreName:     "kube",
 			MonitorStoreName:  "monitor",
-			PlayStoreName:     "play",
-			SLAStoreName:      "sla",
-		},
-
-		// for render
-		TemplatePath: MustGetEnv("TEMPLATE_PATH"),
-
-		// for ipam
-		IPAMConfig: IPAMConfig{
-			N3Network:           MustGetEnv("N3_NETWORK"),
-			N4Network:           MustGetEnv("N4_NETWORK"),
-			SessionNetwork:      MustGetEnv("SESSION_NETWORK"),
-			SessionSubnetLength: String2Uint8(MustGetEnv("SESSION_SUBNET_LENGTH")),
-			IPAMTimeout:         String2Duration(MustGetEnv("IPAM_TIMEOUT")),
 		},
 
 		// for ai
@@ -136,6 +112,12 @@ func LoadConfig() *Config {
 			BaseURL:   GetEnv("BASE_URL"),
 			Timeout:   String2Duration(GetEnv("AI_TIMEOUT")),
 			MaxTokens: String2Int(GetEnv("AI_MAX_TOKENS")),
+		},
+
+		// for service
+		ServiceConfig: ServiceConfig{
+			HelmChartPath:   MustGetEnv("HELM_CHART_PATH"),
+			HelmReleaseName: MustGetEnv("HELM_RELEASE_NAME"),
 		},
 	}
 }

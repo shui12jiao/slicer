@@ -9,8 +9,7 @@ import (
 
 // SLA 包含带宽,延迟,可用性
 type SLA struct {
-	ID      primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	SliceID string             `json:"slice_id"`
+	ID primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 
 	// 上行带宽
 	UpBandwidth float64 `json:"up_bandwidth"` // 单位Mbps 例如 "100Mbps" 为 100
@@ -23,10 +22,6 @@ type SLA struct {
 }
 
 func (s *SLA) Update(newSLA SLA) error {
-	if newSLA.SliceID != "" && newSLA.SliceID != s.SliceID {
-		return fmt.Errorf("SLA的切片ID不匹配")
-	}
-
 	// 1. 上行带宽
 	if newSLA.UpBandwidth != 0 {
 		s.UpBandwidth = newSLA.UpBandwidth

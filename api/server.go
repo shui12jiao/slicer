@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 	"slicer/controller"
-	"slicer/db"
 	"slicer/kube"
 	"slicer/monitor"
+	"slicer/service"
 	"slicer/util"
 
 	"github.com/go-chi/chi"
@@ -19,20 +19,16 @@ import (
 
 // Server 负责处理HTTP请求
 type Server struct {
-	config     *util.Config
+	config     *util.Config // 配置
 	router     *chi.Mux
 	monitor    *monitor.Monitor
-	store      db.Store
-	kubeClient *kube.KubeClient
-	helmClient *kube.HelmClient
 	controller controller.Controller
+	service    *service.Service
 }
 
 type NewSeverArg struct {
-	*util.Config
+	*service.Service
 	*monitor.Monitor
-	db.Store
-	*kube.KubeClient
 	*kube.HelmClient
 	controller.Controller
 }
@@ -40,12 +36,10 @@ type NewSeverArg struct {
 func NewServer(arg NewSeverArg) *Server {
 	s := &Server{
 		// router:     http.NewServeMux(),
+		config:     arg.Service.Config,
 		router:     chi.NewRouter(),
-		config:     arg.Config,
 		monitor:    arg.Monitor,
-		store:      arg.Store,
-		kubeClient: arg.KubeClient,
-		helmClient: arg.HelmClient,
+		service:    arg.Service,
 		controller: arg.Controller,
 	}
 	s.routes()
