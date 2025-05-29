@@ -1,64 +1,61 @@
 package util
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
-	"strconv"
 	"time"
+
+	"github.com/kelseyhightower/envconfig"
 )
 
 type MongoConfig struct {
-	MongoURI     string
-	MongoDBName  string
-	MongoTimeout time.Duration
+	MongoURI         string        `envconfig:"MONGO_URI" required:"true"`
+	MongoDBName      string        `envconfig:"MONGO_DB_NAME" required:"true"`
+	MongoTimeout     time.Duration `envconfig:"MONGO_TIMEOUT" default:"15s"`
+	SliceStoreName   string        `envconfig:"SLICE_STORE_NAME" default:"slice"`
+	MonitorStoreName string        `envconfig:"MONITOR_STORE_NAME" default:"monitor"`
 }
 
 type MonitorConfig struct {
-	MonarchThanosURI            string
-	MonarchRequestTranslatorURI string
-	MonarchMonitoringInterval   uint8
-	MonitorTimeout              time.Duration
+	MonarchThanosURI            string        `envconfig:"MONARCH_THANOS_URL" required:"true"`
+	MonarchRequestTranslatorURI string        `envconfig:"MONARCH_REQUEST_TRANSLATOR_URI" required:"true"`
+	MonarchMonitoringInterval   uint8         `envconfig:"MONARCH_MONITORING_INTERVAL" required:"true"`
+	MonitorTimeout              time.Duration `envconfig:"MONITOR_TIMEOUT" default:"30s"`
 }
 
 type KubeConfig struct {
-	KubeconfigPath   string // 集群内使用时为空
-	Namespace        string
-	MonitorNamespace string
-	HelmDriver       string // secret, configmap, memory, sql. 这里采用了configmap
-	HelmTimeout      time.Duration
+	KubeconfigPath   string        `envconfig:"KUBECONFIG_PATH"` // 集群内使用时为空
+	Namespace        string        `envconfig:"NAMESPACE" required:"true"`
+	MonitorNamespace string        `envconfig:"MONITOR_NAMESPACE" required:"true"`
+	HelmDriver       string        `envconfig:"HELM_DRIVER" default:"configmap"`
+	HelmTimeout      time.Duration `envconfig:"HELM_TIMEOUT" default:"5m"`
 }
 
 type ServerConfig struct {
-	HTTPServerAddress string
-	SliceStoreName    string
-	KubeStoreName     string
-	MonitorStoreName  string
-	PlayStoreName     string
-	SLAStoreName      string
+	HTTPServerAddress string `envconfig:"HTTP_SERVER_ADDRESS" required:"true"`
 }
 
 type IPAMConfig struct {
-	N3Network           string
-	N4Network           string
-	SessionNetwork      string
-	SessionSubnetLength uint8
-	IPAMTimeout         time.Duration
+	N3Network           string        `envconfig:"N3_NETWORK" required:"true"`
+	N4Network           string        `envconfig:"N4_NETWORK" required:"true"`
+	SessionNetwork      string        `envconfig:"SESSION_NETWORK" required:"true"`
+	SessionSubnetLength uint8         `envconfig:"SESSION_SUBNET_LENGTH" default:"24"`
+	IPAMTimeout         time.Duration `envconfig:"IPAM_TIMEOUT" default:"1m"`
 }
 
 type AIConfig struct {
-	ModelType string
-	Model     string
-	APIKey    string
-	// 可选
-	BaseURL   string
-	Timeout   time.Duration
-	MaxTokens int
+	ModelType string        `envconfig:"MODEL_TYPE" required:"true"`
+	Model     string        `envconfig:"MODEL" required:"true"`
+	APIKey    string        `envconfig:"API_KEY" required:"true"`
+	BaseURL   string        `envconfig:"BASE_URL"`
+	AITimeout time.Duration `envconfig:"AI_TIMEOUT" default:"30s"`
+	MaxTokens int           `envconfig:"AI_MAX_TOKENS"`
 }
 
 type ServiceConfig struct {
-	HelmChartPath   string // open5gs的Helm Chart路径
-	HelmReleaseName string // open5gs的Helm Release名称
+	CommonChartPath   string `envconfig:"COMMON_CHART_PATH" required:"true"`
+	SliceChartPath    string `envconfig:"SLICE_CHART_PATH" required:"true"`
+	HelmReleasePrefix string `envconfig:"HELM_RELEASE_PREFIX" default:"open5gs"`
 }
 
 type Config struct {
@@ -70,108 +67,14 @@ type Config struct {
 	ServiceConfig
 }
 
-func LoadConfig() *Config {
-	return &Config{
-		// for monitor
-		MonitorConfig: MonitorConfig{
-			MonarchThanosURI:            MustGetEnv("MONARCH_THANOS_URL"),
-			MonarchRequestTranslatorURI: MustGetEnv("MONARCH_REQUEST_TRANSLATOR_URI"),
-			MonarchMonitoringInterval:   String2Uint8(MustGetEnv("MONARCH_MONITORING_INTERVAL")),
-			MonitorTimeout:              String2Duration(MustGetEnv("MONITOR_TIMEOUT")),
-		},
+func LoadConfig(path string) *Config {
+	var cfg Config
 
-		// for mongodb
-		MongoConfig: MongoConfig{
-			MongoURI:     MustGetEnv("MONGO_URI"),
-			MongoDBName:  MustGetEnv("MONGO_DB_NAME"),
-			MongoTimeout: String2Duration(MustGetEnv("MONGO_TIMEOUT")),
-		},
-
-		// for kube
-		KubeConfig: KubeConfig{
-			KubeconfigPath:   os.Getenv("KUBECONFIG_PATH"),    // kubeconfig文件路径,可为空,如果不设置则使用集群内配置
-			Namespace:        MustGetEnv("NAMESPACE"),         //用于open5gs的namespace
-			MonitorNamespace: MustGetEnv("MONITOR_NAMESPACE"), //监控系统所在的namespace
-			HelmDriver:       "configmap",
-			HelmTimeout:      String2Duration(MustGetEnv("HELM_TIMEOUT")),
-		},
-
-		// for http server
-		ServerConfig: ServerConfig{
-			HTTPServerAddress: MustGetEnv("HTTP_SERVER_ADDRESS"),
-			SliceStoreName:    "slice",
-			MonitorStoreName:  "monitor",
-		},
-
-		// for ai
-		AIConfig: AIConfig{
-			ModelType: MustGetEnv("MODEL_TYPE"),
-			Model:     MustGetEnv("MODEL"),
-			APIKey:    MustGetEnv("API_KEY"),
-			// 可选
-			BaseURL:   GetEnv("BASE_URL"),
-			Timeout:   String2Duration(GetEnv("AI_TIMEOUT")),
-			MaxTokens: String2Int(GetEnv("AI_MAX_TOKENS")),
-		},
-
-		// for service
-		ServiceConfig: ServiceConfig{
-			HelmChartPath:   MustGetEnv("HELM_CHART_PATH"),
-			HelmReleaseName: MustGetEnv("HELM_RELEASE_NAME"),
-		},
-	}
-}
-
-func GetEnv(key string) string {
-	s := os.Getenv(key)
-	if s == "" {
-		slog.Info(fmt.Sprintf("变量 %s 为空", key))
-	}
-	return s
-}
-
-func MustGetEnv(key string) string {
-	s := os.Getenv(key)
-	if s == "" {
-		slog.Error(fmt.Sprintf("变量 %s 为空", key))
+	err := envconfig.Process(path, &cfg)
+	if err != nil {
+		slog.Error("加载配置失败", "error", err)
 		os.Exit(1)
 	}
-	return s
-}
 
-func String2Uint8(s string) uint8 {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		slog.Warn(fmt.Sprintf("变量 %s 转换失败", s))
-		os.Exit(1)
-	}
-	if i < 0 || i > 255 {
-		slog.Warn(fmt.Sprintf("变量 %s 超出范围", s))
-		// os.Exit(1)
-	}
-	return uint8(i)
-}
-
-func String2Int(s string) int {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		slog.Warn(fmt.Sprintf("变量 %s 转换失败", s))
-		// os.Exit(1)
-	}
-	return i
-}
-
-func String2Duration(s string) time.Duration {
-	// 检查是否为纯数字
-	if seconds, err := strconv.Atoi(s); err == nil {
-		// 将纯数字视为秒
-		return time.Duration(seconds) * time.Second
-	} else {
-		d, err := time.ParseDuration(s)
-		if err != nil {
-			slog.Warn(fmt.Sprintf("变量 %s 转换失败", s))
-			// os.Exit(1)
-		}
-		return d
-	}
+	return &cfg
 }

@@ -81,7 +81,7 @@ func NewModel(ctx context.Context, config util.AIConfig) (cm model.ToolCallingCh
 			Model:  config.Model,
 			// 可选
 			BaseURL:   config.BaseURL,
-			Timeout:   config.Timeout,
+			Timeout:   config.AITimeout,
 			MaxTokens: config.MaxTokens,
 		})
 	case Qwen:
@@ -91,7 +91,7 @@ func NewModel(ctx context.Context, config util.AIConfig) (cm model.ToolCallingCh
 			BaseURL: config.BaseURL,
 			// 可选
 			MaxTokens: int2ptr(config.MaxTokens),
-			Timeout:   config.Timeout,
+			Timeout:   config.AITimeout,
 		})
 	case Ark:
 		cm, err = ark.NewChatModel(ctx, &ark.ChatModelConfig{
@@ -100,7 +100,7 @@ func NewModel(ctx context.Context, config util.AIConfig) (cm model.ToolCallingCh
 			// 可选
 			BaseURL:   config.BaseURL,
 			MaxTokens: int2ptr(config.MaxTokens),
-			Timeout:   duration2ptr(config.Timeout),
+			Timeout:   duration2ptr(config.AITimeout),
 		})
 	case QianFan:
 		// QianFan模型用的环境变量
@@ -115,7 +115,7 @@ func NewModel(ctx context.Context, config util.AIConfig) (cm model.ToolCallingCh
 				}
 				f := float32(d.Seconds())
 				return &f
-			}(config.Timeout),
+			}(config.AITimeout),
 		})
 	default:
 		return nil, fmt.Errorf("不支持的模型类型: %s", config.ModelType)

@@ -13,7 +13,6 @@ import (
 	"slicer/util"
 	"time"
 
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/lmittmann/tint"
 )
 
@@ -36,7 +35,7 @@ func main() {
 	})))
 
 	// 加载配置
-	config := util.LoadConfig()
+	config := util.LoadConfig(".env")
 
 	// 连接数据库
 	slog.Debug("连接数据库", "address", config.MongoURI, "database", config.MongoDBName)
