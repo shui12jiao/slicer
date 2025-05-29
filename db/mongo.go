@@ -50,12 +50,13 @@ func NewMongoDB(config *util.Config, opts ...*options.ClientOptions) (*MongoDB, 
 }
 
 // 更新
-func (m *MongoDB) update(collection string, objID primitive.ObjectID, doc any) (*mongo.UpdateResult, error) {
+// 设置upsert为true时，如果文档不存在则插入新文档
+func (m *MongoDB) update(collection string, objID primitive.ObjectID, doc any, upsert bool) (*mongo.UpdateResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
 	res, err := m.client.Database(m.database).Collection(collection).UpdateOne(ctx,
-		primitive.M{"_id": objID}, bson.M{"$set": doc})
+		primitive.M{"_id": objID}, bson.M{"$set": doc}, options.Update().SetUpsert(upsert))
 	return res, err
 }
 

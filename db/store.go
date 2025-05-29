@@ -11,6 +11,7 @@ type Store interface {
 type Querier interface {
 	// slice profile
 	CreateSlice(slice model.SliceProfile) (model.SliceProfile, error)
+	UpdateSlice(slice model.SliceProfile) (model.SliceProfile, error)
 	DeleteSlice(id string) error
 	GetSlice(id string) (model.SliceProfile, error)
 	GetSliceBySliceID(sliceID string) (model.SliceProfile, error)

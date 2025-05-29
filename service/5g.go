@@ -11,7 +11,6 @@ import (
 type Open5gs struct {
 	ID              primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Namespace       string             // Open5GS的命名空间
-	Version         int                // 基于Open5GS的Helm Chart部署版本
 	HelmChart       string             // Open5GS的Helm Chart路径
 	HelmValues      value.Open5gs      // Open5GS的Helm Values
 	HelmReleaseName string             // Open5GS的Helm Release名称

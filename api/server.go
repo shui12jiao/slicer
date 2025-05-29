@@ -74,6 +74,7 @@ func (s *Server) routes() {
 	s.router.Route("/slice", func(r chi.Router) {
 		r.Post("/", s.createSlice)             // 创建新切片
 		r.Delete("/{slice_id}", s.deleteSlice) // 删除指定切片
+		r.Put("/{slice_id}", s.updateSlice)    // 更新指定切片
 		r.Get("/{slice_id}", s.getSlice)       // 获取指定切片详情
 		r.Get("/", s.listSlice)                // 列出所有切片
 	})
@@ -81,8 +82,8 @@ func (s *Server) routes() {
 	// 监控管理(目前仅支持切片监控)
 	s.router.Route("/monitor", func(r chi.Router) {
 		r.Post("/", s.createMonitor)                                // 创建切片监控
-		r.Post("/external", s.createMonitorExternal)                // 基于Monarch外部服务创建监控
 		r.Delete("/{monitor_id}", s.deleteMonitor)                  // 删除切片监控
+		r.Post("/external", s.createMonitorExternal)                // 基于Monarch外部服务创建监控
 		r.Delete("/external/{monitor_id}", s.deleteMonitorExternal) // 基于Monarch外部服务删除监控
 		r.Get("/{monitor_id}", s.getMonitor)                        // 获取监控详情
 		r.Get("/", s.listMonitor)                                   // 列出所有监控
@@ -91,17 +92,17 @@ func (s *Server) routes() {
 
 	// 性能控制
 	s.router.Route("/play", func(r chi.Router) {
-		r.Post("/", s.createPlay)          // 创建性能控制任务（Play）
-		r.Post("/{play_id}", s.updatePlay) // 更新指定 Play
-		r.Get("/{play_id}", s.getPlay)     // 获取指定 Play 详情
+		r.Post("/", s.createPlay)         // 创建性能控制任务（Play）
+		r.Put("/{play_id}", s.updatePlay) // 更新指定 Play
+		r.Get("/{play_id}", s.getPlay)    // 获取指定 Play 详情
 	})
 
 	// SLA管理
 	s.router.Route("/sla", func(r chi.Router) {
 		r.Post("/", s.createSla)           // 创建 SLA（此操作同时会将 slice 添加到 controller 中）
-		r.Post("/{sla_id}", s.updateSla)   // 更新指定 SLA
+		r.Put("/{sla_id}", s.updateSla)    // 更新指定 SLA
 		r.Delete("/{sla_id}", s.deleteSla) // 删除指定 SLA
-		r.Get("/{sla_id}", s.getSla)       // 获取指定 SLA 详情
+		r.Get("/{sla_id}", s.getSla)       // 获取指定 SLA 详情s
 		r.Get("/", s.listSla)              // 列出所有 SLA（也用于 controller 获取）
 	})
 

@@ -9,11 +9,20 @@ import (
 )
 
 // Querier 接口实现
-func (m *MongoDB) CreateSlice(slice model.SliceProfile) (model.SliceProfile, error) {
-	res, err := m.insert(m.config.SliceStoreName, slice)
+func (m *MongoDB) UpdateSlice(slice model.SliceProfile) (model.SliceProfile, error) {
+	_, err := m.update(m.config.SliceStoreName, slice.ID, slice, true)
+	if err != nil {
+		return slice, fmt.Errorf("更新Slice失败：%w", err)
+	}
 
-	// 获取插入的ID
-	slice.ID = res.InsertedID.(primitive.ObjectID)
+	return slice, nil
+}
+
+func (m *MongoDB) CreateSlice(slice model.SliceProfile) (model.SliceProfile, error) {
+	_, err := m.insert(m.config.SliceStoreName, slice)
+
+	// 如果ID为空，mongo会自动赋值，无需手动设置
+	// slice.ID = res.InsertedID.(primitive.ObjectID)
 	if err != nil {
 		return slice, fmt.Errorf("插入Slice失败：%w", err)
 	}

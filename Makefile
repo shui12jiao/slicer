@@ -13,6 +13,9 @@ k3d:
 cloc:
 	cloc --exclude-dir=external,docs,charts --exclude-ext=csv,py .
 
+charts:
+	git submodule update --recursive --remote
+
 CHARTS := open5gs-amf open5gs-ausf open5gs-bsf open5gs-nrf open5gs-nssf \
           open5gs-pcf open5gs-scp open5gs-smf open5gs-udm open5gs-udr \
           open5gs-upf open5gs-webui
@@ -52,4 +55,5 @@ deploy:
 
 # helm
 package:
-	cd charts/open5gs && helm dependency build && helm lint && helm package . --destination ../ 
+	cd charts/common && helm dependency build && helm lint && helm package . --destination ../ && \
+	cd ../slice && helm dependency build && helm lint && helm package . --destination ../
