@@ -6,11 +6,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-type Open5gs struct {
-	Common
-	Slice
-}
-
 type Common struct {
 	AMF   *AMF          `json:"amf,omitempty" yaml:"amf,omitempty" mapstructure:"amf,omitempty"`
 	AUSF  *AUSF         `json:"ausf,omitempty" yaml:"ausf,omitempty" mapstructure:"ausf,omitempty"`
