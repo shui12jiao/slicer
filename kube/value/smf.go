@@ -5,6 +5,7 @@ package value
 import "encoding/json"
 import "fmt"
 import yaml "gopkg.in/yaml.v3"
+import "regexp"
 
 type SMF struct {
 	// Affinity corresponds to the JSON schema field "affinity".
@@ -178,6 +179,9 @@ type SMFConfig struct {
 	// Sbi corresponds to the JSON schema field "sbi".
 	Sbi *SMFConfigSbi `json:"sbi,omitempty" yaml:"sbi,omitempty" mapstructure:"sbi,omitempty"`
 
+	// SliceList corresponds to the JSON schema field "sliceList".
+	SliceList []SMFConfigSliceListElem `json:"sliceList,omitempty" yaml:"sliceList,omitempty" mapstructure:"sliceList,omitempty"`
+
 	// SubnetList corresponds to the JSON schema field "subnetList".
 	SubnetList []SMFConfigSubnetListElem `json:"subnetList,omitempty" yaml:"subnetList,omitempty" mapstructure:"subnetList,omitempty"`
 
@@ -233,6 +237,24 @@ type SMFConfigSbiClientScp struct {
 	Uri *string `json:"uri,omitempty" yaml:"uri,omitempty" mapstructure:"uri,omitempty"`
 }
 
+// UnmarshalYAML implements yaml.Unmarshaler.
+func (j *SMFConfigSbi) UnmarshalYAML(value *yaml.Node) error {
+	var raw map[string]interface{}
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+	type Plain SMFConfigSbi
+	var plain Plain
+	if err := value.Decode(&plain); err != nil {
+		return err
+	}
+	if plain.Server != nil {
+		return fmt.Errorf("field %s: must be null", "server")
+	}
+	*j = SMFConfigSbi(plain)
+	return nil
+}
+
 // UnmarshalJSON implements json.Unmarshaler.
 func (j *SMFConfigSbi) UnmarshalJSON(value []byte) error {
 	var raw map[string]interface{}
@@ -251,21 +273,192 @@ func (j *SMFConfigSbi) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+type SMFConfigSliceListElem struct {
+	// SNssai corresponds to the JSON schema field "s_nssai".
+	SNssai []SMFConfigSliceListElemSNssaiElem `json:"s_nssai,omitempty" yaml:"s_nssai,omitempty" mapstructure:"s_nssai,omitempty"`
+
+	// Tai corresponds to the JSON schema field "tai".
+	Tai []SMFConfigSliceListElemTaiElem `json:"tai,omitempty" yaml:"tai,omitempty" mapstructure:"tai,omitempty"`
+}
+
+type SMFConfigSliceListElemSNssaiElem struct {
+	// Dnn corresponds to the JSON schema field "dnn".
+	Dnn []string `json:"dnn" yaml:"dnn" mapstructure:"dnn"`
+
+	// Sd corresponds to the JSON schema field "sd".
+	Sd *string `json:"sd,omitempty" yaml:"sd,omitempty" mapstructure:"sd,omitempty"`
+
+	// Sst corresponds to the JSON schema field "sst".
+	Sst int `json:"sst" yaml:"sst" mapstructure:"sst"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SMFConfigSliceListElemSNssaiElem) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["dnn"]; raw != nil && !ok {
+		return fmt.Errorf("field dnn in SMFConfigSliceListElemSNssaiElem: required")
+	}
+	if _, ok := raw["sst"]; raw != nil && !ok {
+		return fmt.Errorf("field sst in SMFConfigSliceListElemSNssaiElem: required")
+	}
+	type Plain SMFConfigSliceListElemSNssaiElem
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if plain.Sd != nil {
+		if matched, _ := regexp.MatchString(`^[0-9A-Fa-f]{6}$`, string(*plain.Sd)); !matched {
+			return fmt.Errorf("field %s pattern match: must match %s", "Sd", `^[0-9A-Fa-f]{6}$`)
+		}
+	}
+	if 4 < plain.Sst {
+		return fmt.Errorf("field %s: must be <= %v", "sst", 4)
+	}
+	if 1 > plain.Sst {
+		return fmt.Errorf("field %s: must be >= %v", "sst", 1)
+	}
+	*j = SMFConfigSliceListElemSNssaiElem(plain)
+	return nil
+}
+
 // UnmarshalYAML implements yaml.Unmarshaler.
-func (j *SMFConfigSbi) UnmarshalYAML(value *yaml.Node) error {
+func (j *SMFConfigSliceListElemSNssaiElem) UnmarshalYAML(value *yaml.Node) error {
 	var raw map[string]interface{}
 	if err := value.Decode(&raw); err != nil {
 		return err
 	}
-	type Plain SMFConfigSbi
+	if _, ok := raw["dnn"]; raw != nil && !ok {
+		return fmt.Errorf("field dnn in SMFConfigSliceListElemSNssaiElem: required")
+	}
+	if _, ok := raw["sst"]; raw != nil && !ok {
+		return fmt.Errorf("field sst in SMFConfigSliceListElemSNssaiElem: required")
+	}
+	type Plain SMFConfigSliceListElemSNssaiElem
 	var plain Plain
 	if err := value.Decode(&plain); err != nil {
 		return err
 	}
-	if plain.Server != nil {
-		return fmt.Errorf("field %s: must be null", "server")
+	if plain.Sd != nil {
+		if matched, _ := regexp.MatchString(`^[0-9A-Fa-f]{6}$`, string(*plain.Sd)); !matched {
+			return fmt.Errorf("field %s pattern match: must match %s", "Sd", `^[0-9A-Fa-f]{6}$`)
+		}
 	}
-	*j = SMFConfigSbi(plain)
+	if 4 < plain.Sst {
+		return fmt.Errorf("field %s: must be <= %v", "sst", 4)
+	}
+	if 1 > plain.Sst {
+		return fmt.Errorf("field %s: must be >= %v", "sst", 1)
+	}
+	*j = SMFConfigSliceListElemSNssaiElem(plain)
+	return nil
+}
+
+type SMFConfigSliceListElemTaiElem struct {
+	// PlmnId corresponds to the JSON schema field "plmn_id".
+	PlmnId SMFConfigSliceListElemTaiElemPlmnId `json:"plmn_id" yaml:"plmn_id" mapstructure:"plmn_id"`
+
+	// Tac corresponds to the JSON schema field "tac".
+	Tac []int `json:"tac,omitempty" yaml:"tac,omitempty" mapstructure:"tac,omitempty"`
+}
+
+type SMFConfigSliceListElemTaiElemPlmnId struct {
+	// Mcc corresponds to the JSON schema field "mcc".
+	Mcc string `json:"mcc" yaml:"mcc" mapstructure:"mcc"`
+
+	// Mnc corresponds to the JSON schema field "mnc".
+	Mnc string `json:"mnc" yaml:"mnc" mapstructure:"mnc"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SMFConfigSliceListElemTaiElemPlmnId) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["mcc"]; raw != nil && !ok {
+		return fmt.Errorf("field mcc in SMFConfigSliceListElemTaiElemPlmnId: required")
+	}
+	if _, ok := raw["mnc"]; raw != nil && !ok {
+		return fmt.Errorf("field mnc in SMFConfigSliceListElemTaiElemPlmnId: required")
+	}
+	type Plain SMFConfigSliceListElemTaiElemPlmnId
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	if matched, _ := regexp.MatchString(`^[0-9]{3}$`, string(plain.Mcc)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "Mcc", `^[0-9]{3}$`)
+	}
+	if matched, _ := regexp.MatchString(`^[0-9]{2,3}$`, string(plain.Mnc)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "Mnc", `^[0-9]{2,3}$`)
+	}
+	*j = SMFConfigSliceListElemTaiElemPlmnId(plain)
+	return nil
+}
+
+// UnmarshalYAML implements yaml.Unmarshaler.
+func (j *SMFConfigSliceListElemTaiElemPlmnId) UnmarshalYAML(value *yaml.Node) error {
+	var raw map[string]interface{}
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+	if _, ok := raw["mcc"]; raw != nil && !ok {
+		return fmt.Errorf("field mcc in SMFConfigSliceListElemTaiElemPlmnId: required")
+	}
+	if _, ok := raw["mnc"]; raw != nil && !ok {
+		return fmt.Errorf("field mnc in SMFConfigSliceListElemTaiElemPlmnId: required")
+	}
+	type Plain SMFConfigSliceListElemTaiElemPlmnId
+	var plain Plain
+	if err := value.Decode(&plain); err != nil {
+		return err
+	}
+	if matched, _ := regexp.MatchString(`^[0-9]{3}$`, string(plain.Mcc)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "Mcc", `^[0-9]{3}$`)
+	}
+	if matched, _ := regexp.MatchString(`^[0-9]{2,3}$`, string(plain.Mnc)); !matched {
+		return fmt.Errorf("field %s pattern match: must match %s", "Mnc", `^[0-9]{2,3}$`)
+	}
+	*j = SMFConfigSliceListElemTaiElemPlmnId(plain)
+	return nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *SMFConfigSliceListElemTaiElem) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["plmn_id"]; raw != nil && !ok {
+		return fmt.Errorf("field plmn_id in SMFConfigSliceListElemTaiElem: required")
+	}
+	type Plain SMFConfigSliceListElemTaiElem
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = SMFConfigSliceListElemTaiElem(plain)
+	return nil
+}
+
+// UnmarshalYAML implements yaml.Unmarshaler.
+func (j *SMFConfigSliceListElemTaiElem) UnmarshalYAML(value *yaml.Node) error {
+	var raw map[string]interface{}
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+	if _, ok := raw["plmn_id"]; raw != nil && !ok {
+		return fmt.Errorf("field plmn_id in SMFConfigSliceListElemTaiElem: required")
+	}
+	type Plain SMFConfigSliceListElemTaiElem
+	var plain Plain
+	if err := value.Decode(&plain); err != nil {
+		return err
+	}
+	*j = SMFConfigSliceListElemTaiElem(plain)
 	return nil
 }
 

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+	"log/slog"
 	"slicer/db"
 	"slicer/kube"
 	"slicer/model"
@@ -32,32 +34,219 @@ func NewService(config *util.Config, store db.Store, kubeClient *kube.KubeClient
 	}
 }
 
-func (s *Service) GetOpen5gs() *Open5gs {
-	// 返回Open5GS实例
-	return s.Open5gs
-}
-
 func (s *Service) CreateSlice(slice model.SliceProfile) (model.SliceProfile, error) {
-	// TODO
+	// 检查是否已存在同名的Slice
+	slice, err := s.GetSlice(slice.SliceID())
+	if err != model.ErrSliceNotFound { //已存在同名的Slice
+		return slice, fmt.Errorf("切片已存在: %w", err)
+	}
+
+	// 定义一个回滚栈，用于记录需要回滚的操作
+	var rollbackFuncs []func()
+
+	// 在函数退出时，根据是否出错决定是否执行回滚
+	defer func() {
+		if err != nil {
+			slog.Debug("执行回滚操作")
+			for i := len(rollbackFuncs) - 1; i >= 0; i-- {
+				rollbackFuncs[i]()
+			}
+		}
+	}()
+
+	// 存储 slice对象
+	slice, err = s.Store.CreateSlice(slice)
+	if err != nil {
+		slog.Error("存储slice失败", "error", err)
+		return slice, fmt.Errorf("存储slice失败: %w", err)
+	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if deleteErr := s.Store.DeleteSlice(slice.ID.Hex()); deleteErr != nil {
+			slog.Error("回滚: 删除slice失败", "error", deleteErr)
+		}
+	})
+
+	// 切片转化为helm values
+	sliceVals, commonVal, err := s.Open5gs.GenerateValues(s.Store, false) // 获取所有切片的Values
+	if err != nil {
+		slog.Error("生成Open5GS的Values失败", "error", err)
+		return slice, fmt.Errorf("生成Open5GS的Values失败: %w", err)
+	}
+
+	// 部署slice的Helm Chart
+	_, err = s.HelmClient.Install(
+		s.Open5gs.HelmReleasePrefix+slice.SliceID(),
+		s.Open5gs.HelmSliceChart,
+		sliceVals[slice.SliceID()].ToMap(),
+	)
+	if err != nil {
+		slog.Error("部署slice的Helm Chart失败", "error", err)
+		return slice, fmt.Errorf("部署slice的Helm Chart失败: %w", err)
+	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if uninstallErr := s.HelmClient.Uninstall(s.Open5gs.HelmReleasePrefix + slice.SliceID()); uninstallErr != nil {
+			slog.Error("回滚: 卸载slice的Helm Chart失败", "error", uninstallErr)
+		}
+	})
+	// 部署common的Helm Chart
+	_, err = s.HelmClient.Install(
+		s.Open5gs.HelmReleasePrefix+"common",
+		s.Open5gs.HelmCommonChart,
+		commonVal.ToMap(),
+	)
+	if err != nil {
+		slog.Error("部署common的Helm Chart失败", "error", err)
+		return slice, fmt.Errorf("部署common的Helm Chart失败: %w", err)
+	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if uninstallErr := s.HelmClient.Uninstall(s.Open5gs.HelmReleasePrefix + "common"); uninstallErr != nil {
+			slog.Error("回滚: 卸载common的Helm Chart失败", "error", uninstallErr)
+		}
+	})
+
+	// 返回创建的切片信息
+	slog.Info("创建Slice成功", "sliceID", slice.SliceID())
 	return slice, nil
 }
 
 func (s *Service) UpdateSlice(slice model.SliceProfile) (model.SliceProfile, error) {
-	// TODO
+	// 检查slice是否存在, 并获取旧的slice对象
+	sliceOld, err := s.GetSlice(slice.SliceID())
+	if err != nil {
+		return slice, err
+	}
+
+	// 定义一个回滚栈，用于记录需要回滚的操作
+	var rollbackFuncs []func()
+
+	// 在函数退出时，根据是否出错决定是否执行回滚
+	defer func() {
+		if err != nil {
+			slog.Debug("执行回滚操作")
+			for i := len(rollbackFuncs) - 1; i >= 0; i-- {
+				rollbackFuncs[i]()
+			}
+		}
+	}()
+
+	// 更新 slice对象
+	slice, err = s.Store.UpdateSlice(slice)
+	if err != nil {
+		slog.Error("更新slice失败", "error", err)
+		return slice, fmt.Errorf("更新slice失败: %w", err)
+	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if _, updateErr := s.Store.UpdateSlice(sliceOld); updateErr != nil {
+			slog.Error("回滚: 更新回旧slice失败", "error", updateErr)
+		}
+	})
+
+	// 切片转化为helm values
+	sliceVals, commonVal, err := s.Open5gs.GenerateValues(s.Store, false) // 获取所有切片的Values
+	if err != nil {
+		slog.Error("生成Open5GS的Values失败", "error", err)
+		return slice, fmt.Errorf("生成Open5GS的Values失败: %w", err)
+	}
+
+	// 更新slice的Helm Chart
+	sliceReleaseName := s.Open5gs.HelmReleasePrefix + slice.SliceID()
+	sliceReleaseOld, err := s.HelmClient.Get(sliceReleaseName)
+	_, err = s.HelmClient.Upgrade(
+		sliceReleaseName,
+		s.Open5gs.HelmSliceChart,
+		sliceVals[slice.SliceID()].ToMap(),
+	)
+	if err != nil {
+		slog.Error("部署slice的Helm Chart失败", "error", err)
+		return slice, fmt.Errorf("部署slice的Helm Chart失败: %w", err)
+	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if rollbackErr := s.HelmClient.Rollback(sliceReleaseName, sliceReleaseOld.Version); rollbackErr != nil {
+			slog.Error("回滚: 回滚slice的Helm Chart失败", "error", rollbackErr, "releaseName", sliceReleaseName, "version", sliceReleaseOld.Version)
+		}
+	})
+	// 更新common的Helm Chart
+	commonReleaseName := s.Open5gs.HelmReleasePrefix + "common"
+	commonReleaseOld, err := s.HelmClient.Get(commonReleaseName)
+	_, err = s.HelmClient.Upgrade(
+		commonReleaseName,
+		s.Open5gs.HelmCommonChart,
+		commonVal.ToMap(),
+	)
+	if err != nil {
+		slog.Error("部署common的Helm Chart失败", "error", err)
+		return slice, fmt.Errorf("部署common的Helm Chart失败: %w", err)
+	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if rollbackErr := s.HelmClient.Rollback(commonReleaseName, commonReleaseOld.Version); rollbackErr != nil {
+			slog.Error("回滚: 回滚common的Helm Chart失败", "error", rollbackErr, "releaseName", commonReleaseName, "version", commonReleaseOld.Version)
+		}
+	})
+
+	// 返回更新的切片信息
+	slog.Info("更新Slice成功", "sliceID", slice.SliceID())
 	return slice, nil
 }
 
 func (s *Service) DeleteSlice(sliceID string) error {
-	// TODO
+	// 获取slice对象
+	slice, err := s.GetSlice(sliceID)
+	if err != nil {
+		return err
+	}
+
+	// 从存储中删除slice对象
+	if err := s.Store.DeleteSlice(slice.ID.Hex()); err != nil {
+		slog.Error("从存储中删除slice失败", "sliceID", sliceID, "error", err)
+		return fmt.Errorf("从存储中删除slice失败: %w", err)
+	}
+
+	// 生成Values
+	_, commonVal, err := s.Open5gs.GenerateValues(s.Store, true) // 仅获取公共值
+	if err != nil {
+		slog.Error("生成Open5GS的Values失败", "error", err)
+		return fmt.Errorf("生成Open5GS的Values失败: %w", err)
+	}
+
+	// 卸载slice的Helm Chart
+	if err := s.HelmClient.Uninstall(s.Open5gs.HelmReleasePrefix + slice.SliceID()); err != nil {
+		slog.Error("卸载slice的Helm Chart失败", "sliceID", sliceID, "error", err)
+		return fmt.Errorf("卸载slice的Helm Chart失败: %w", err)
+	}
+	// 更新common的Helm Chart
+	if _, err := s.HelmClient.InstallOrUpgrade(
+		s.Open5gs.HelmReleasePrefix+"common",
+		s.Open5gs.HelmCommonChart,
+		commonVal.ToMap(),
+	); err != nil {
+		slog.Error("更新common的Helm Chart失败", "error", err)
+		return fmt.Errorf("更新common的Helm Chart失败: %w", err)
+	}
+
 	return nil
 }
 
-func (s *Service) GetSlice(sliceID string) (*model.SliceProfile, error) {
-	// TODO
-	return nil, nil
+func (s *Service) GetSlice(sliceID string) (model.SliceProfile, error) {
+	// 从对象存储中获取slice对象
+	slice, err := s.Store.GetSliceBySliceID(sliceID)
+	if err != nil {
+		if isNotFoundError(err) { // MongoDB为空文档
+			slog.Warn("slice不存在", "sliceID", sliceID)
+			return model.SliceProfile{}, model.ErrSliceNotFound
+		}
+
+		slog.Error("获取slice失败", "sliceID", sliceID, "error", err)
+		return model.SliceProfile{}, fmt.Errorf("获取slice失败: %w", err)
+	}
+	return slice, nil
 }
 
 func (s *Service) ListSlices() ([]model.SliceProfile, error) {
-	// TODO
-	return nil, nil
+	slices, err := s.Store.ListSlice()
+	if err != nil { // 为空时list不会返回错误
+		slog.Error("获取slice列表失败", "error", err)
+		return nil, fmt.Errorf("获取slice列表失败: %w", err)
+	}
+
+	return slices, nil
 }

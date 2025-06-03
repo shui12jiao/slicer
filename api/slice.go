@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,8 +17,8 @@ import (
 // @Tags         Slice
 // @Accept       json
 // @Produce      json
-// @Param        slice body model.Slice true "切片对象"
-// @Success      200   {object}  model.SliceAndAddress "创建成功，返回切片及其地址"
+// @Param        slice body model.SliceProfile true "切片对象，包含切片ID、KubeConfig和SLA等信息"
+// @Success      200   {object}  model.SliceProfile "创建成功，返回切片及其地址"
 // @Failure      400   {string}  string "请求格式错误或参数非法"
 // @Failure      409   {string}  string "切片已存在"
 // @Failure      500   {string}  string "服务器内部错误，如分配IP或部署资源失败"
@@ -25,7 +26,7 @@ import (
 func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建slice请求", "method", r.Method, "url", r.URL.String())
 
-	var slice model.Slice
+	var slice model.SliceProfile
 
 	if err := json.NewDecoder(r.Body).Decode(&slice); err != nil {
 		slog.Warn("请求解码失败", "error", err)
@@ -34,91 +35,87 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 检查值是否有效
-	err := slice.Validate()
+	err := slice.Slice.Validate()
 	if err != nil {
 		slog.Warn("非法值", "error", err)
 		http.Error(w, fmt.Sprintf("非法值: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	// 检查是否有重复的slice
-	_, err = s.store.GetSliceBySliceID(slice.SliceID())
-	if err == nil {
-		slog.Warn("slice已存在", "sliceID", slice.SliceID())
-		http.Error(w, fmt.Sprintf("slice已存在: %v", slice.SliceID()), http.StatusConflict)
-		return
-	}
-
-	// 定义一个回滚栈，用于记录需要回滚的操作
-	var rollbackFuncs []func()
-
-	// 在函数退出时，根据是否出错决定是否执行回滚
-	defer func() {
-		if err != nil {
-			slog.Debug("执行回滚操作")
-			for i := len(rollbackFuncs) - 1; i >= 0; i-- {
-				rollbackFuncs[i]()
-			}
+	if slice, err = s.service.CreateSlice(slice); err != nil {
+		slog.Error("创建slice失败", "error", err)
+		if err == model.ErrSliceAlreadyExists {
+			http.Error(w, fmt.Sprintf("切片已存在: %v", slice.SliceID()), http.StatusConflict)
+			return
 		}
-	}()
-
-	// 分配IP
-	wrappedSlice, err := s.allocateIP(slice)
-	if err != nil {
-		slog.Error("分配IP失败", "error", err)
-		http.Error(w, fmt.Sprintf("分配IP失败: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("创建slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
-	rollbackFuncs = append(rollbackFuncs, func() {
-		if releaseErr := s.releaseIP(wrappedSlice); releaseErr != nil {
-			slog.Error("回滚释放IP失败", "error", releaseErr)
-		}
-	})
-
-	// 存储 slice对象
-	wrappedSlice, err = s.store.CreateSlice(wrappedSlice)
-	if err != nil {
-		slog.Error("存储slice失败", "error", err)
-		http.Error(w, fmt.Sprintf("存储slice失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-	rollbackFuncs = append(rollbackFuncs, func() {
-		if deleteErr := s.store.DeleteSlice(wrappedSlice.ID.Hex()); deleteErr != nil {
-			slog.Error("回滚存储中删除slice失败", "error", deleteErr)
-		}
-	})
-
-	// 切片转化为k8s资源
-	contents, err := s.render.RenderSlice(wrappedSlice)
-	if err != nil {
-		slog.Error("渲染slice失败", "error", err)
-		http.Error(w, fmt.Sprintf("渲染slice失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// 部署k8s资源
-	err = s.kubeClient.ApplySlice(contents)
-	if err != nil {
-		slog.Error("应用kube资源失败", "error", err)
-		http.Error(w, fmt.Sprintf("应用kube资源失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-	rollbackFuncs = append(rollbackFuncs, func() {
-		if deleteErr := s.kubeClient.DeleteMulti(contents, s.config.Namespace); deleteErr != nil {
-			slog.Error("回滚集群中删除配置失败", "error", deleteErr)
-		}
-	})
 
 	//设置响应头
 	w.Header().Set("Content-Type", "application/json")
 	//编码响应
-	if err := json.NewEncoder(w).Encode(wrappedSlice); err != nil {
+	if err := json.NewEncoder(w).Encode(slice); err != nil {
 		slog.Error("响应编码失败", "error", err)
 		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	slog.Debug("创建slice成功", "sliceID", wrappedSlice.ID.Hex())
+	slog.Debug("创建slice请求成功", "sliceID", slice.SliceID())
+}
+
+// updateSlice godoc
+// @Summary      更新切片
+// @Description  接受一个切片对象，更新指定的切片，并返回更新后的切片对象
+// @Tags         Slice
+// @Accept       json
+// @Produce      json
+// @Param        slice body model.SliceProfile true "切片对象，包含切片ID、KubeConfig和SLA等信息"
+// @Success      200 {object} model.SliceProfile "更新成功，返回更新后的切片对象"
+// @Failure      400 {string} string "请求格式错误或参数非法"
+// @Failure      404 {string} string "切片不存在"
+// @Failure      500 {string} string "服务器内部错误（更新k8s资源失败、分配IP失败、存储更新失败）"
+// @Router       /slice [put]
+func (s *Server) updateSlice(w http.ResponseWriter, r *http.Request) {
+	slog.Debug("更新slice请求", "method", r.Method, "url", r.URL.String())
+
+	var slice model.SliceProfile
+
+	if err := json.NewDecoder(r.Body).Decode(&slice); err != nil {
+		slog.Warn("请求解码失败", "error", err)
+		http.Error(w, fmt.Sprintf("请求解码失败: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// 检查值是否有效
+	err := slice.Slice.Validate()
+	if err != nil {
+		slog.Warn("非法值", "error", err)
+		http.Error(w, fmt.Sprintf("非法值: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	slice, err = s.service.UpdateSlice(slice)
+	if err != nil {
+		slog.Error("更新slice失败", "error", err)
+		if errors.Is(err, model.ErrSliceNotFound) {
+			http.Error(w, fmt.Sprintf("切片不存在: %v", slice.SliceID()), http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf("更新slice失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	//设置响应头
+	w.Header().Set("Content-Type", "application/json")
+	//编码响应
+	if err := json.NewEncoder(w).Encode(slice); err != nil {
+		slog.Error("响应编码失败", "error", err)
+		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	slog.Debug("更新slice请求成功", "sliceID", slice.SliceID())
 }
 
 // deleteSlice godoc
@@ -143,53 +140,19 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 从对象存储中获取slice对象
-	slice, err := s.store.GetSliceBySliceID(sliceID)
+	err := s.service.DeleteSlice(sliceID)
 	if err != nil {
-		if isNotFoundError(err) { // MongoDB为空文档
+		if errors.Is(err, model.ErrSliceNotFound) {
 			slog.Warn("slice不存在", "sliceID", sliceID)
 			http.Error(w, fmt.Sprintf("slice不存在: %v", sliceID), http.StatusNotFound)
 			return
 		}
-
-		slog.Error("获取slice失败", "sliceID", sliceID, "error", err)
-		http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
+		slog.Error("删除slice请求失败", "sliceID", sliceID, "error", err)
+		http.Error(w, fmt.Sprintf("删除slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// 切片转化为k8s资源
-	contents, err := s.render.RenderSlice(slice)
-	if err != nil {
-		slog.Error("渲染slice失败", "sliceID", sliceID, "error", err)
-		http.Error(w, fmt.Sprintf("渲染slice失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// 删除k8s资源
-	err = s.kubeClient.DeleteSlice(contents)
-	if err != nil {
-		slog.Error("删除kube资源失败", "sliceID", sliceID, "error", err)
-		http.Error(w, fmt.Sprintf("删除kube资源失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// 释放IP
-	err = s.releaseIP(slice)
-	if err != nil {
-		slog.Error("释放IP失败", "sliceID", sliceID, "error", err)
-		http.Error(w, fmt.Sprintf("释放IP失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// 删除对象存储中的slice对象
-	err = s.store.DeleteSlice(slice.ID.Hex())
-	if err != nil {
-		slog.Error("从存储中删除slice失败", "sliceID", sliceID, "error", err)
-		http.Error(w, fmt.Sprintf("从存储中删除slice失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	slog.Debug("删除slice成功", "sliceID", sliceID)
+	slog.Debug("删除slice请求成功", "sliceID", sliceID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -200,7 +163,7 @@ func (s *Server) deleteSlice(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        sliceID path string true "切片ID"
-// @Success      200 {object} model.SliceAndAddress "获取成功"
+// @Success      200 {object} model.SliceProfile "获取成功"
 // @Failure      400 {string} string "缺少sliceID参数"
 // @Failure      404 {string} string "切片不存在"
 // @Failure      500 {string} string "服务器内部错误（获取失败、响应编码失败）"
@@ -215,17 +178,15 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 从对象存储中获取slice对象
-	slice, err := s.store.GetSliceBySliceID(sliceID)
+	slice, err := s.service.GetSlice(sliceID)
 	if err != nil {
-		if isNotFoundError(err) { // MongoDB为空文档
-			slog.Warn("slice不存在", "sliceID", sliceID)
-			http.Error(w, fmt.Sprintf("slice不存在: %v", sliceID), http.StatusNotFound)
-			return
+		slog.Error("获取slice请求失败", "sliceID", sliceID, "error", err)
+		// 如果是MongoDB的空文档错误，返回404
+		if errors.Is(err, model.ErrSliceNotFound) {
+			http.Error(w, fmt.Sprintf("切片不存在: %v", sliceID), http.StatusNotFound)
+		} else {
+			http.Error(w, fmt.Sprintf("获取slice失败: %w", err), http.StatusInternalServerError)
 		}
-
-		slog.Error("获取slice失败", "sliceID", sliceID, "error", err)
-		http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -247,21 +208,15 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 // @Tags         Slice
 // @Accept       json
 // @Produce      json
-// @Success      200 {array} model.SliceAndAddress "获取成功，返回切片列表"
+// @Success      200 {array} model.SliceProfile "获取成功，返回切片列表"
 // @Failure      500 {string} string "服务器内部错误（获取列表失败、响应编码失败）"
 // @Router       /slice [get]
 func (s *Server) listSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取slice列表请求", "method", r.Method, "url", r.URL.String())
 
-	slices, err := s.store.ListSlice()
-	if err != nil { // 为空时list不会返回错误
-		// if isNotFoundError(err) { // MongoDB为空文档
-		// 	slog.Debug("slice列表为空")
-		// 	w.WriteHeader(http.StatusOK)
-		// 	return
-		// }
-
-		slog.Error("获取slice列表失败", "error", err)
+	slices, err := s.service.ListSlices()
+	if err != nil {
+		slog.Error("获取slice列表请求失败", "error", err)
 		http.Error(w, fmt.Sprintf("获取slice列表失败: %v", err), http.StatusInternalServerError)
 		return
 	}

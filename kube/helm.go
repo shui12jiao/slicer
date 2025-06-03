@@ -1,14 +1,15 @@
 package kube
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"slicer/util"
-	"time"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 )
@@ -25,7 +26,9 @@ type actionSet struct {
 	install   *action.Install
 	upgrade   *action.Upgrade
 	uninstall *action.Uninstall
+	get       *action.Get
 	list      *action.List
+	rollback  *action.Rollback
 }
 
 func NewHelmClient(config *util.Config, kconfig *rest.Config) (*HelmClient, error) {
@@ -59,7 +62,9 @@ func NewHelmClient(config *util.Config, kconfig *rest.Config) (*HelmClient, erro
 		install:   action.NewInstall(actionConfig),
 		upgrade:   action.NewUpgrade(actionConfig),
 		uninstall: action.NewUninstall(actionConfig),
+		get:       action.NewGet(actionConfig),
 		list:      action.NewList(actionConfig),
+		rollback:  action.NewRollback(actionConfig),
 	}
 
 	// 配置 Helm 操作的默认值
@@ -74,10 +79,14 @@ func NewHelmClient(config *util.Config, kconfig *rest.Config) (*HelmClient, erro
 	actionSet.upgrade.Namespace = config.Namespace
 	// 设置卸载参数
 	actionSet.uninstall.Wait = true
-	actionSet.uninstall.Timeout = time.Minute * 5
+	actionSet.uninstall.Timeout = config.HelmTimeout
 	// 设置列表参数
 	actionSet.list.All = true            // 默认列出所有 release
 	actionSet.list.AllNamespaces = false // 仅当前命名空间
+	// 设置回滚参数
+	actionSet.rollback.Wait = true
+	actionSet.rollback.Timeout = config.HelmTimeout
+	actionSet.rollback.DisableHooks = true // 禁用钩子，避免回滚时触发不必要的操作
 
 	return &HelmClient{
 		config:  config,
@@ -108,20 +117,23 @@ func (hc *HelmClient) InstallOrUpgrade(releaseName, chartPath string, values map
 }
 
 func (hc *HelmClient) ChartExists(releaseName string) (bool, error) {
-	// 执行查询
-	results, err := hc.action.list.Run()
-	if err != nil {
-		slog.Error("获取 Release 列表失败", "error", err)
-		return false, fmt.Errorf("获取 Release 列表失败: %w", err)
+	if releaseName == "" {
+		return false, fmt.Errorf("release 名称不能为空")
 	}
 
-	// 检查是否存在指定的 release
-	for _, r := range results {
-		if r != nil && r.Name == releaseName {
-			return true, nil
+	_, err := hc.action.get.Run(releaseName)
+	if err != nil {
+		if errors.Is(err, driver.ErrReleaseNotFound) {
+			// release 不存在
+			return false, nil
 		}
+		// 其他错误
+		slog.Error("查询 release 时发生内部错误", "发布名称", releaseName, "error", err)
+		return false, fmt.Errorf("内部错误: %w", err)
 	}
-	return false, nil
+
+	// 查询成功，说明存在
+	return true, nil
 }
 
 // Install 安装 Chart
@@ -144,6 +156,8 @@ func (hc *HelmClient) Install(releaseName, chartPath string, values map[string]i
 	return rel, nil
 }
 
+// Upgrade 升级 Chart
+// 注意：此方法仅在 Chart 已存在时使用
 func (hc *HelmClient) Upgrade(releaseName, chartPath string, values map[string]interface{}) (*release.Release, error) {
 	hc.action.upgrade.Install = false // 仅升级
 
@@ -173,21 +187,51 @@ func (hc *HelmClient) Uninstall(releaseName string) error {
 	return nil
 }
 
+// Get 获取 Release 信息
+func (hc *HelmClient) Get(releaseName string) (*release.Release, error) {
+	if releaseName == "" {
+		return nil, fmt.Errorf("release 名称不能为空")
+	}
+
+	// 执行查询
+	rel, err := hc.action.get.Run(releaseName)
+	if err != nil {
+		slog.Error("获取 Release 信息失败", "发布名称", releaseName, "error", err)
+		return nil, fmt.Errorf("获取 Release 信息失败: %w", err)
+	}
+	slog.Info("获取 Release 信息成功", "发布名称", releaseName, "版本", rel.Version)
+	return rel, nil
+}
+
 // List 列出 Release
 func (hc *HelmClient) List() ([]*release.Release, error) {
 	// 执行查询
-	results, err := hc.action.list.Run()
+	release, err := hc.action.list.Run()
 	if err != nil {
 		slog.Error("获取 Release 列表失败", "error", err)
 		return nil, fmt.Errorf("获取 Release 列表失败: %w", err)
 	}
 
-	// 过滤无效结果
-	var validReleases []*release.Release
-	for _, r := range results {
-		if r != nil && r.Info != nil {
-			validReleases = append(validReleases, r)
-		}
+	return release, nil
+}
+
+// Rollback 回滚 Release
+func (hc *HelmClient) Rollback(releaseName string, revision int) error {
+	hc.action.rollback.Version = revision
+
+	if revision < 0 { // 回滚版本号小于0,无效
+		slog.Error("回滚版本号无效", "发布名称", releaseName)
+		return fmt.Errorf("回滚版本号无效: %d", revision)
+	} else if revision == 0 { //回滚到上一个版本
+		slog.Info("回滚到上一个版本", "发布名称", releaseName)
+	} else {
+		slog.Info("回滚到指定版本", "发布名称", releaseName, "修订版本", revision)
 	}
-	return validReleases, nil
+
+	// 执行回滚
+	if err := hc.action.rollback.Run(releaseName); err != nil {
+		slog.Error("回滚 Release 失败", "发布名称", releaseName, "修订版本", revision, "error", err)
+		return fmt.Errorf("回滚 Release 失败: %w", err)
+	}
+	return nil
 }
