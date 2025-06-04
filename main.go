@@ -45,9 +45,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 初始化monitor监控系统交互组件
-	monitor := monitor.NewMonitor(config)
-
 	// 初始化Kubernetes客户端
 	kubeClient, err := kube.NewKubeClient(config)
 	if err != nil {
@@ -59,6 +56,13 @@ func main() {
 	helmClient, err := kube.NewHelmClient(config, kubeClient.GetKubeConfig())
 	if err != nil {
 		slog.Error("创建Helm客户端失败", "error", err)
+		os.Exit(1)
+	}
+
+	// 初始化monitor监控系统交互组件
+	monitor := monitor.NewMonitor(config)
+	if err := monitor.Init(kubeClient); err != nil {
+		slog.Error("初始化监控系统失败", "error", err)
 		os.Exit(1)
 	}
 

@@ -87,13 +87,16 @@ func (s *Server) routes() {
 
 	// 监控管理(目前仅支持切片监控)
 	s.router.Route("/monitor", func(r chi.Router) {
-		r.Post("/", s.createMonitor)                                // 创建切片监控
-		r.Delete("/{monitor_id}", s.deleteMonitor)                  // 删除切片监控
-		r.Post("/external", s.createMonitorExternal)                // 基于Monarch外部服务创建监控
-		r.Delete("/external/{monitor_id}", s.deleteMonitorExternal) // 基于Monarch外部服务删除监控
-		r.Get("/{monitor_id}", s.getMonitor)                        // 获取监控详情
-		r.Get("/", s.listMonitor)                                   // 列出所有监控
-		r.Get("/supported_kpis", s.getSupportedKpis)                // 获取支持的 KPI 列表
+		r.Post("/", s.createMonitor)                 // 创建切片监控
+		r.Delete("/{monitor_id}", s.deleteMonitor)   // 删除切片监控
+		r.Get("/{monitor_id}", s.getMonitor)         // 获取监控详情
+		r.Get("/", s.listMonitor)                    // 列出所有监控
+		r.Get("/supported_kpis", s.getSupportedKpis) // 获取支持的 KPI 列表
+
+		r.Route("/external", func(rr chi.Router) {
+			rr.Post("/", s.createMonitorExternal)               // 基于Monarch外部服务创建监控
+			rr.Delete("/{monitor_id}", s.deleteMonitorExternal) // 基于Monarch外部服务删除监控
+		})
 	})
 
 	// Controller管理
