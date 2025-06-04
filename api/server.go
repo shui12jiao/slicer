@@ -72,11 +72,17 @@ func (s *Server) routes() {
 
 	// 切片管理
 	s.router.Route("/slice", func(r chi.Router) {
-		r.Post("/", s.createSlice)             // 创建新切片
-		r.Delete("/{slice_id}", s.deleteSlice) // 删除指定切片
-		r.Put("/{slice_id}", s.updateSlice)    // 更新指定切片
-		r.Get("/{slice_id}", s.getSlice)       // 获取指定切片详情
-		r.Get("/", s.listSlice)                // 列出所有切片
+		r.Post("/", s.createSlice)             // 创建切片
+		r.Delete("/{slice_id}", s.deleteSlice) // 删除切片
+		r.Put("/{slice_id}", s.updateSlice)    // 更新整个切片
+		r.Get("/{slice_id}", s.getSlice)       // 获取切片详情
+		r.Get("/", s.listSlice)                // 获取全部切片列表
+
+		// 更新 SLA
+		r.Put("/{slice_id}/sla", s.updateSLA)
+
+		// 更新 Deploy
+		r.Put("/{slice_id}/deploy", s.updateDeploy)
 	})
 
 	// 监控管理(目前仅支持切片监控)
@@ -88,22 +94,6 @@ func (s *Server) routes() {
 		r.Get("/{monitor_id}", s.getMonitor)                        // 获取监控详情
 		r.Get("/", s.listMonitor)                                   // 列出所有监控
 		r.Get("/supported_kpis", s.getSupportedKpis)                // 获取支持的 KPI 列表
-	})
-
-	// 性能控制
-	s.router.Route("/play", func(r chi.Router) {
-		r.Post("/", s.createPlay)         // 创建性能控制任务（Play）
-		r.Put("/{play_id}", s.updatePlay) // 更新指定 Play
-		r.Get("/{play_id}", s.getPlay)    // 获取指定 Play 详情
-	})
-
-	// SLA管理
-	s.router.Route("/sla", func(r chi.Router) {
-		r.Post("/", s.createSla)           // 创建 SLA（此操作同时会将 slice 添加到 controller 中）
-		r.Put("/{sla_id}", s.updateSla)    // 更新指定 SLA
-		r.Delete("/{sla_id}", s.deleteSla) // 删除指定 SLA
-		r.Get("/{sla_id}", s.getSla)       // 获取指定 SLA 详情s
-		r.Get("/", s.listSla)              // 列出所有 SLA（也用于 controller 获取）
 	})
 
 	// Controller管理

@@ -9,8 +9,8 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-// KubeConfig 代表一个切片的Kubernetes接口性能控制相关参数（如 QoS、带宽、调度等）
-type KubeConfig struct {
+// Deploy 代表一个切片的Kubernetes接口性能控制相关参数（如 QoS、带宽、调度等）
+type Deploy struct {
 	ID primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 
 	// 资源请求与限制
@@ -33,23 +33,23 @@ type KubeConfig struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-// 用于更新play的参数
-func (p *KubeConfig) Update(newPlay KubeConfig) error {
+// 用于更新Deployment的参数
+func (p *Deploy) Update(newDeploy Deploy) error {
 	// 1. 资源请求与限制
-	if newPlay.Resources != (ResourceSpec{}) {
-		p.Resources = newPlay.Resources
+	if newDeploy.Resources != (ResourceSpec{}) {
+		p.Resources = newDeploy.Resources
 	}
 	// 2. 带宽限制
-	if newPlay.Bandwidth != (BandwidthSpec{}) {
-		p.Bandwidth = newPlay.Bandwidth
+	if newDeploy.Bandwidth != (BandwidthSpec{}) {
+		p.Bandwidth = newDeploy.Bandwidth
 	}
 	// 3. 调度规则
-	if newPlay.Scheduling.SchedulerName != "" || newPlay.Scheduling.NodeName != "" || len(newPlay.Scheduling.NodeSelector) > 0 {
-		p.Scheduling = newPlay.Scheduling
+	if newDeploy.Scheduling.SchedulerName != "" || newDeploy.Scheduling.NodeName != "" || len(newDeploy.Scheduling.NodeSelector) > 0 {
+		p.Scheduling = newDeploy.Scheduling
 	}
 	// 4. 网络策略
-	if !isNetworkPolicyEmpty(newPlay.NetworkPolicy) {
-		p.NetworkPolicy = newPlay.NetworkPolicy
+	if !isNetworkPolicyEmpty(newDeploy.NetworkPolicy) {
+		p.NetworkPolicy = newDeploy.NetworkPolicy
 	}
 
 	return nil
@@ -60,8 +60,8 @@ func isNetworkPolicyEmpty(policy networkingv1.NetworkPolicy) bool {
 	return policy.ObjectMeta.Name == "" && policy.ObjectMeta.Namespace == "" && len(policy.Spec.PolicyTypes) == 0
 }
 
-// 返回play的字符串表示
-func (p *KubeConfig) String() string {
+// 返回Deployment的字符串表示
+func (p *Deploy) String() string {
 	json, err := json.Marshal(p)
 	if err != nil {
 		return fmt.Sprintf("Error marshaling Play: %v", err)
@@ -70,7 +70,7 @@ func (p *KubeConfig) String() string {
 	return string(json)
 }
 
-func (p *KubeConfig) Validate() error {
+func (p *Deploy) Validate() error {
 	if err := p.Resources.Validate(); err != nil {
 		return fmt.Errorf("资源参数错误: %v", err)
 	}

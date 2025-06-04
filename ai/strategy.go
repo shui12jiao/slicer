@@ -103,7 +103,7 @@ func (s *StrategyAgent) Name() string {
 	return "ai"
 }
 
-func (s *StrategyAgent) Reconcile(current sm.KubeConfig, sla sm.SLA) (sm.KubeConfig, error) {
+func (s *StrategyAgent) Reconcile(current sm.Deploy, sla sm.SLA) (sm.Deploy, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -147,7 +147,7 @@ func (s *StrategyAgent) Reconcile(current sm.KubeConfig, sla sm.SLA) (sm.KubeCon
 	}
 
 	// 解析响应
-	var play sm.KubeConfig
+	var play sm.Deploy
 	if err := json.Unmarshal([]byte(response.Content), &play); err != nil {
 		return current, fmt.Errorf("解析响应失败: %w", err)
 	}

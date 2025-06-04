@@ -37,7 +37,7 @@ import (
 // 	Annotations map[string]string `json:"annotations"`
 // }
 
-func (kc *KubeClient) Play(play model.KubeConfig, namespace string) error {
+func (kc *KubeClient) Play(play model.Deploy, namespace string) error {
 	deploymentName := fmt.Sprintf("open5gs-upf%s", play.SliceID)
 	ctx := context.Background()
 
