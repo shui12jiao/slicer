@@ -66,62 +66,62 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	// 获取sliceID
 	sliceID := monitor.KPI.SubCounter.SubCounterIDs[0]
 	if sliceID == "" {
-		slog.Debug("无sliceID参数, 默认进行全部监控")
-	} else {
-		slog.Debug("获取sliceID参数", "sliceID", sliceID)
-		// 检查sliceID是否存在
-		if _, err := s.store.GetSliceBySliceID(sliceID); err != nil {
-			if isNotFoundError(err) { // MongoDB为空文档
-				slog.Warn("要求监控的sliceID不存在", "sliceID", sliceID)
-				http.Error(w, fmt.Sprintf("要求监控的sliceID不存在: %v", sliceID), http.StatusBadRequest)
-				return
-			}
+		slog.Warn("缺少sliceID参数")
+		http.Error(w, "缺少sliceID参数", http.StatusBadRequest)
+		return
+	}
 
-			slog.Error("获取sliceID失败", "sliceID", sliceID, "error", err)
-			http.Error(w, "获取sliceID失败: "+err.Error(), http.StatusInternalServerError)
+	// 创建切片监控
+	monitor, err := s.service.CreateSliceMonitor(sliceID, monitor)
+	if err != nil {
+		slog.Error("创建监控失败", "error", err)
+		if err == model.ErrSliceNotFound {
+			http.Error(w, "关联Slice不存在: "+err.Error(), http.StatusNotFound)
 			return
 		}
-	}
-
-	// 渲染mde yaml
-	yamlMde, err := s.render.RenderMde(sliceID)
-	if err != nil {
-		slog.Error("渲染MDE yaml失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "创建监控失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// 渲染kpic yaml
-	yamlKpi, err := s.render.RenderKpiCalc(sliceID)
-	if err != nil {
-		slog.Error("渲染KPI yaml失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// // 渲染mde yaml
+	// yamlMde, err := s.render.RenderMde(sliceID)
+	// if err != nil {
+	// 	slog.Error("渲染MDE yaml失败", "sliceID", sliceID, "error", err)
+	// 	http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 
-	// 部署MDE
-	// 注意这里使用了s.config.Namespace, 使用metrics+annotations的方式使prometheus进行抓取
-	// 如果使用了crd: service monitor, 需要使用s.config.MonitorNamespace(service中没有定义metrics, 直接使用service monitor似乎不工作因为port: metrics没有定义)
-	if err := s.kubeClient.ApplyMDE(yamlMde); err != nil {
-		slog.Error("部署MDE失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "部署MDE失败: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// // 渲染kpic yaml
+	// yamlKpi, err := s.render.RenderKpiCalc(sliceID)
+	// if err != nil {
+	// 	slog.Error("渲染KPI yaml失败", "sliceID", sliceID, "error", err)
+	// 	http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 
-	// 部署KPI
-	if err := s.kubeClient.ApplyKpic(yamlKpi); err != nil {
-		slog.Error("部署KPI失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "部署KPI失败: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// // 部署MDE
+	// // 注意这里使用了s.config.Namespace, 使用metrics+annotations的方式使prometheus进行抓取
+	// // 如果使用了crd: service monitor, 需要使用s.config.MonitorNamespace(service中没有定义metrics, 直接使用service monitor似乎不工作因为port: metrics没有定义)
+	// if err := s.kubeClient.ApplyMDE(yamlMde); err != nil {
+	// 	slog.Error("部署MDE失败", "sliceID", sliceID, "error", err)
+	// 	http.Error(w, "部署MDE失败: "+err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 
-	// 存储监控请求
-	monitor, err = s.store.CreateMonitor(monitor)
-	if err != nil {
-		slog.Error("存储监控请求失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "存储监控请求失败: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// // 部署KPI
+	// if err := s.kubeClient.ApplyKpic(yamlKpi); err != nil {
+	// 	slog.Error("部署KPI失败", "sliceID", sliceID, "error", err)
+	// 	http.Error(w, "部署KPI失败: "+err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+
+	// // 存储监控请求
+	// monitor, err = s.store.CreateMonitor(monitor)
+	// if err != nil {
+	// 	slog.Error("存储监控请求失败", "sliceID", sliceID, "error", err)
+	// 	http.Error(w, "存储监控请求失败: "+err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 
 	slog.Debug("创建监控请求成功", "sliceID", sliceID, "monitorID", monitor.ID.Hex())
 	encodeResponse(w, monitor)

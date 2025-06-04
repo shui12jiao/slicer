@@ -52,16 +52,8 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//设置响应头
-	w.Header().Set("Content-Type", "application/json")
-	//编码响应
-	if err := json.NewEncoder(w).Encode(slice); err != nil {
-		slog.Error("响应编码失败", "error", err)
-		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
 	slog.Debug("创建slice请求成功", "sliceID", slice.SliceID())
+	encodeResponse(w, slice)
 }
 
 // updateSlice godoc
@@ -106,16 +98,9 @@ func (s *Server) updateSlice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//设置响应头
-	w.Header().Set("Content-Type", "application/json")
-	//编码响应
-	if err := json.NewEncoder(w).Encode(slice); err != nil {
-		slog.Error("响应编码失败", "error", err)
-		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
 	slog.Debug("更新slice请求成功", "sliceID", slice.SliceID())
+	encodeResponse(w, slice)
+
 }
 
 // deleteSlice godoc
@@ -190,16 +175,8 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//设置响应头
-	w.Header().Set("Content-Type", "application/json")
-	//编码响应
-	if err := json.NewEncoder(w).Encode(slice); err != nil {
-		slog.Error("响应编码失败", "sliceID", sliceID, "error", err)
-		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
 	slog.Debug("获取slice成功", "sliceID", sliceID)
+	encodeResponse(w, slice)
 }
 
 // listSlice godoc
@@ -221,14 +198,6 @@ func (s *Server) listSlice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//设置响应头
-	w.Header().Set("Content-Type", "application/json")
-	//编码响应
-	if err := json.NewEncoder(w).Encode(slices); err != nil {
-		slog.Error("响应编码失败", "error", err)
-		http.Error(w, fmt.Sprintf("响应编码失败: %v", err), http.StatusInternalServerError)
-		return
-	}
-
 	slog.Debug("获取slice列表成功", "count", len(slices))
+	encodeResponse(w, slices)
 }

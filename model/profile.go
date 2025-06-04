@@ -7,4 +7,6 @@ type SliceProfile struct {
 	Slice  `json:"slice" yaml:"slice"`
 	Deploy `json:"kube_config" yaml:"kube_config"`
 	SLA    `json:"sla" yaml:"sla"`
+
+	IsMonitored bool `json:"is_monitored" yaml:"is_monitored"`
 }

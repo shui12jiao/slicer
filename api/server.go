@@ -93,9 +93,9 @@ func (s *Server) routes() {
 		r.Get("/", s.listMonitor)                    // 列出所有监控
 		r.Get("/supported_kpis", s.getSupportedKpis) // 获取支持的 KPI 列表
 
-		r.Route("/external", func(rr chi.Router) {
-			rr.Post("/", s.createMonitorExternal)               // 基于Monarch外部服务创建监控
-			rr.Delete("/{monitor_id}", s.deleteMonitorExternal) // 基于Monarch外部服务删除监控
+		r.Route("/external", func(r chi.Router) {
+			r.Post("/", s.createMonitorExternal)               // 基于Monarch外部服务创建监控
+			r.Delete("/{monitor_id}", s.deleteMonitorExternal) // 基于Monarch外部服务删除监控
 		})
 	})
 
@@ -133,6 +133,7 @@ func (s *Server) Start() error {
 }
 
 func encodeResponse(w http.ResponseWriter, response any) {
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "编码失败: "+err.Error(), http.StatusInternalServerError)
 		return
