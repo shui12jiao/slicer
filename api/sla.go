@@ -25,7 +25,7 @@ import (
 // @Failure      500 {string} string "更新失败/响应编码失败"
 // @Router       /{slice_id}/sla [put]
 func (s *Server) updateSLA(w http.ResponseWriter, r *http.Request) {
-	slog.Debug("更新SLA请求", "method", r.Method, "url", r.URL.String())
+	slog.Debug("更新SLA请求", "method", r.Method, "url", r.URL.String(), "sliceID", chi.URLParam(r, "slice_id"))
 	sliceID := chi.URLParam(r, "slice_id")
 	if sliceID == "" {
 		slog.Error("缺少Slice ID参数")

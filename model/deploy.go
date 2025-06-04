@@ -4,15 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
 // Deploy 代表一个切片的Kubernetes接口性能控制相关参数（如 QoS、带宽、调度等）
 type Deploy struct {
-	ID primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-
 	// 资源请求与限制
 	Resources ResourceSpec `json:"resources"`
 
@@ -33,23 +29,39 @@ type Deploy struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
+// Clone 返回一个Deploy的深拷贝
+func (d *Deploy) Clone() Deploy {
+	// 使用json序列化和反序列化来实现深拷贝
+	data, err := json.Marshal(d)
+	if err != nil {
+		return Deploy{} // 返回空的Deploy对象
+	}
+
+	var newDeploy Deploy
+	if err := json.Unmarshal(data, &newDeploy); err != nil {
+		return Deploy{} // 返回空的Deploy对象
+	}
+
+	return newDeploy
+}
+
 // 用于更新Deployment的参数
-func (p *Deploy) Update(newDeploy Deploy) error {
+func (d *Deploy) Update(newDeploy Deploy) error {
 	// 1. 资源请求与限制
 	if newDeploy.Resources != (ResourceSpec{}) {
-		p.Resources = newDeploy.Resources
+		d.Resources = newDeploy.Resources
 	}
 	// 2. 带宽限制
 	if newDeploy.Bandwidth != (BandwidthSpec{}) {
-		p.Bandwidth = newDeploy.Bandwidth
+		d.Bandwidth = newDeploy.Bandwidth
 	}
 	// 3. 调度规则
 	if newDeploy.Scheduling.SchedulerName != "" || newDeploy.Scheduling.NodeName != "" || len(newDeploy.Scheduling.NodeSelector) > 0 {
-		p.Scheduling = newDeploy.Scheduling
+		d.Scheduling = newDeploy.Scheduling
 	}
 	// 4. 网络策略
 	if !isNetworkPolicyEmpty(newDeploy.NetworkPolicy) {
-		p.NetworkPolicy = newDeploy.NetworkPolicy
+		d.NetworkPolicy = newDeploy.NetworkPolicy
 	}
 
 	return nil
@@ -61,8 +73,8 @@ func isNetworkPolicyEmpty(policy networkingv1.NetworkPolicy) bool {
 }
 
 // 返回Deployment的字符串表示
-func (p *Deploy) String() string {
-	json, err := json.Marshal(p)
+func (d *Deploy) String() string {
+	json, err := json.Marshal(d)
 	if err != nil {
 		return fmt.Sprintf("Error marshaling Play: %v", err)
 	}
@@ -70,17 +82,17 @@ func (p *Deploy) String() string {
 	return string(json)
 }
 
-func (p *Deploy) Validate() error {
-	if err := p.Resources.Validate(); err != nil {
+func (d *Deploy) Validate() error {
+	if err := d.Resources.Validate(); err != nil {
 		return fmt.Errorf("资源参数错误: %v", err)
 	}
-	if err := p.Bandwidth.Validate(); err != nil {
+	if err := d.Bandwidth.Validate(); err != nil {
 		return fmt.Errorf("带宽参数错误: %v", err)
 	}
-	if err := p.Priority.Validate(); err != nil {
+	if err := d.Priority.Validate(); err != nil {
 		return fmt.Errorf("优先级参数错误: %v", err)
 	}
-	if err := p.Scheduling.Validate(); err != nil {
+	if err := d.Scheduling.Validate(); err != nil {
 		return fmt.Errorf("调度参数错误: %v", err)
 	}
 	return nil

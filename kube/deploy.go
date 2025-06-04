@@ -13,32 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Play 代表一个切片的性能控制参数（如 QoS、带宽、调度等）
-// type Play struct {
-// 	ID      primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-// 	SliceID string             `json:"slice_id"`
-
-// 	// QoSClass 表示服务质量等级：Guaranteed、Burstable 或 BestEffort
-// 	QoSClass string `json:"qos_class"`
-
-// 	// 资源请求与限制
-// 	Resources ResourceSpec `json:"resources"`
-
-// 	// 网络带宽限制（适用于部分 CNI）
-// 	Bandwidth BandwidthSpec `json:"bandwidth"`
-
-// 	// Pod 调度规则
-// 	Scheduling SchedulingSpec `json:"scheduling"`
-
-// 	// 网络策略（前端可传入完整策略结构）
-// 	NetworkPolicy networkingv1.NetworkPolicy `json:"network_policy"`
-
-// 	// 特定插件使用的注解（如限速、带宽隔离）
-// 	Annotations map[string]string `json:"annotations"`
-// }
-
-func (kc *KubeClient) Play(play model.Deploy, namespace string) error {
-	deploymentName := fmt.Sprintf("open5gs-upf%s", play.SliceID)
+func (kc *KubeClient) Deploy(deploy model.Deploy, sliceID, deploymentName, namespace string) error {
 	ctx := context.Background()
 
 	// 1. 获取现有Deployment
@@ -51,12 +26,12 @@ func (kc *KubeClient) Play(play model.Deploy, namespace string) error {
 	container := &deployment.Spec.Template.Spec.Containers[0]
 	container.Resources = corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(play.Resources.CPURequest),
-			corev1.ResourceMemory: resource.MustParse(play.Resources.MemoryRequest),
+			corev1.ResourceCPU:    resource.MustParse(deploy.Resources.CPURequest),
+			corev1.ResourceMemory: resource.MustParse(deploy.Resources.MemoryRequest),
 		},
 		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(play.Resources.CPULimit),
-			corev1.ResourceMemory: resource.MustParse(play.Resources.MemoryLimit),
+			corev1.ResourceCPU:    resource.MustParse(deploy.Resources.CPULimit),
+			corev1.ResourceMemory: resource.MustParse(deploy.Resources.MemoryLimit),
 		},
 	}
 
@@ -64,33 +39,33 @@ func (kc *KubeClient) Play(play model.Deploy, namespace string) error {
 	if deployment.Spec.Template.Annotations == nil {
 		deployment.Spec.Template.Annotations = make(map[string]string)
 	}
-	deployment.Spec.Template.Annotations["kubernetes.io/ingress-bandwidth"] = play.Bandwidth.Ingress
-	deployment.Spec.Template.Annotations["kubernetes.io/egress-bandwidth"] = play.Bandwidth.Egress
+	deployment.Spec.Template.Annotations["kubernetes.io/ingress-bandwidth"] = deploy.Bandwidth.Ingress
+	deployment.Spec.Template.Annotations["kubernetes.io/egress-bandwidth"] = deploy.Bandwidth.Egress
 
 	// 4. 更新调度规则
 	// 4.1 调度器名称
-	deployment.Spec.Template.Spec.SchedulerName = play.Scheduling.SchedulerName
+	deployment.Spec.Template.Spec.SchedulerName = deploy.Scheduling.SchedulerName
 	// 4.2 直接节点绑定（高优先级）
-	if play.Scheduling.NodeName != "" {
-		deployment.Spec.Template.Spec.NodeName = play.Scheduling.NodeName
+	if deploy.Scheduling.NodeName != "" {
+		deployment.Spec.Template.Spec.NodeName = deploy.Scheduling.NodeName
 	}
 	// 4.3 合并节点选择器（避免覆盖原有标签）
-	for k, v := range play.Scheduling.NodeSelector {
+	for k, v := range deploy.Scheduling.NodeSelector {
 		deployment.Spec.Template.Spec.NodeSelector[k] = v
 	}
 
 	// 5. 合并注解（保留系统注解）
-	for k, v := range play.Annotations {
+	for k, v := range deploy.Annotations {
 		deployment.Spec.Template.Annotations[k] = v
 	}
 
 	// 6. 优先级Priority处理
-	if play.Priority != 0 { // 0表示不设置优先级
-		if err := play.Priority.Validate(); err != nil {
+	if deploy.Priority != 0 { // 0表示不设置优先级
+		if err := deploy.Priority.Validate(); err != nil {
 			return fmt.Errorf("优先级参数错误: %v", err)
 		}
 
-		priorityClassName := play.Priority.ClassName(play.SliceID)
+		priorityClassName := deploy.Priority.ClassName(sliceID)
 		oldPriorityClassName := deployment.Spec.Template.Spec.PriorityClassName
 		// 若相同,直接跳过
 		if oldPriorityClassName != priorityClassName {
@@ -105,9 +80,9 @@ func (kc *KubeClient) Play(play model.Deploy, namespace string) error {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: priorityClassName,
 				},
-				Value:         int32(play.Priority),
+				Value:         int32(deploy.Priority),
 				GlobalDefault: false,
-				Description:   fmt.Sprintf("Priority class for slice %s", play.SliceID),
+				Description:   fmt.Sprintf("Priority class for slice %s", sliceID),
 				PreemptionPolicy: func() *corev1.PreemptionPolicy {
 					policy := corev1.PreemptLowerPriority
 					return &policy
@@ -128,7 +103,7 @@ func (kc *KubeClient) Play(play model.Deploy, namespace string) error {
 	}
 
 	// 7. 创建/更新网络策略
-	if err := kc.applyNetworkPolicy(&play.NetworkPolicy, namespace); err != nil {
+	if err := kc.applyNetworkPolicy(&deploy.NetworkPolicy, namespace); err != nil {
 		return fmt.Errorf("网络策略更新失败: %v", err)
 	}
 

@@ -3,14 +3,10 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // SLA 包含带宽,延迟,可用性
 type SLA struct {
-	ID primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-
 	// 上行带宽
 	UpBandwidth float64 `json:"up_bandwidth"` // 单位Mbps 例如 "100Mbps" 为 100
 	// 下行带宽
