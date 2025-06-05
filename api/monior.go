@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -83,46 +84,6 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// // 渲染mde yaml
-	// yamlMde, err := s.render.RenderMde(sliceID)
-	// if err != nil {
-	// 	slog.Error("渲染MDE yaml失败", "sliceID", sliceID, "error", err)
-	// 	http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// // 渲染kpic yaml
-	// yamlKpi, err := s.render.RenderKpiCalc(sliceID)
-	// if err != nil {
-	// 	slog.Error("渲染KPI yaml失败", "sliceID", sliceID, "error", err)
-	// 	http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// // 部署MDE
-	// // 注意这里使用了s.config.Namespace, 使用metrics+annotations的方式使prometheus进行抓取
-	// // 如果使用了crd: service monitor, 需要使用s.config.MonitorNamespace(service中没有定义metrics, 直接使用service monitor似乎不工作因为port: metrics没有定义)
-	// if err := s.kubeClient.ApplyMDE(yamlMde); err != nil {
-	// 	slog.Error("部署MDE失败", "sliceID", sliceID, "error", err)
-	// 	http.Error(w, "部署MDE失败: "+err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// // 部署KPI
-	// if err := s.kubeClient.ApplyKpic(yamlKpi); err != nil {
-	// 	slog.Error("部署KPI失败", "sliceID", sliceID, "error", err)
-	// 	http.Error(w, "部署KPI失败: "+err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// // 存储监控请求
-	// monitor, err = s.store.CreateMonitor(monitor)
-	// if err != nil {
-	// 	slog.Error("存储监控请求失败", "sliceID", sliceID, "error", err)
-	// 	http.Error(w, "存储监控请求失败: "+err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
 	slog.Debug("创建监控请求成功", "sliceID", sliceID, "monitorID", monitor.ID.Hex())
 	encodeResponse(w, monitor)
 }
@@ -130,6 +91,7 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 // createMonitorExternal godoc
 // @Summary      创建监控资源（外部服务）
 // @Description  通过Monarch外部服务提交监控请求
+// @Description  实际Monarch没有做任何处理, 这里将直接开启全部切片的监控, 仅用于测试
 // @Tags         Monitor
 // @Accept       json
 // @Produce      json
@@ -139,7 +101,7 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 // @Failure      500 {string} string "提交外部请求失败/存储失败"
 // @Router       /monitor/external [post]
 func (s *Server) createMonitorExternal(w http.ResponseWriter, r *http.Request) {
-	slog.Debug("创建监控请求", "method", r.Method, "url", r.URL.String())
+	slog.Debug("创建监控请求", "method", r.Method, "url", r.URL.String(), "external", "monarch")
 
 	// 解析请求
 	var monitor model.Monitor
@@ -172,16 +134,8 @@ func (s *Server) createMonitorExternal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 存储监控请求
-	monitor, err = s.store.CreateMonitor(monitor)
-	if err != nil {
-		slog.Error("存储监控请求失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "存储监控请求失败: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	slog.Debug("创建监控请求成功", "sliceID", sliceID, "monitorID", monitor.ID.Hex())
-	encodeResponse(w, monitor)
+	slog.Debug("创建监控请求成功", "sliceID", sliceID, "monitorRequestID", monitor.RequestID, "external", "monarch")
+	w.WriteHeader(http.StatusOK)
 }
 
 // deleteMonitor godoc
@@ -208,14 +162,13 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 从monitor存储中获取sliceID
-	monitor, err := s.store.GetMonitor(monitorID)
+	monitor, err := s.service.GetMonitor(monitorID)
 	if err != nil {
-		if isNotFoundError(err) { // MongoDB为空文档
+		if errors.Is(err, model.ErrMonitorNotFound) { // MongoDB为空文档
 			slog.Warn("监控不存在", "monitorID", monitorID)
 			http.Error(w, fmt.Sprintf("monitor不存在: %v", monitorID), http.StatusNotFound)
 			return
 		}
-
 		slog.Error("获取监控请求失败", "monitorID", monitorID, "error", err)
 		http.Error(w, "不存在该监控请求: "+err.Error(), http.StatusNotFound)
 		return
@@ -223,40 +176,16 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 
 	// 获取sliceID
 	sliceID := monitor.KPI.SubCounter.SubCounterIDs[0]
-
-	// 删除MDE
-	yaml, err := s.render.RenderMde(sliceID)
-	if err != nil {
-		slog.Error("渲染MDE yaml失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = s.kubeClient.DeleteMDE(yaml) // 注意这里使用了s.config.Namespace, 和上面创建时必须一致
-	if err != nil {
-		slog.Error("删除MDE失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "删除MDE失败: "+err.Error(), http.StatusInternalServerError)
+	if sliceID == "" {
+		slog.Warn("缺少sliceID参数")
+		http.Error(w, "缺少sliceID参数", http.StatusBadRequest)
 		return
 	}
 
-	// 删除KPI
-	yaml, err = s.render.RenderKpiCalc(sliceID)
-	if err != nil {
-		slog.Error("渲染KPI yaml失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "渲染yaml失败: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = s.kubeClient.DeleteKpic(yaml)
-	if err != nil {
-		slog.Error("删除KPI失败", "sliceID", sliceID, "error", err)
-		http.Error(w, "删除KPI失败: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// 存储中删除
-	err = s.store.DeleteMonitor(monitorID)
-	if err != nil {
-		slog.Error("删除存储监控请求失败", "monitorID", monitorID, "error", err)
-		http.Error(w, "删除存储监控请求失败: "+err.Error(), http.StatusInternalServerError)
+	// 删除监控
+	if err := s.service.DeleteSliceMonitor(sliceID, monitorID); err != nil {
+		slog.Error("删除监控失败", "sliceID", sliceID, "monitorID", monitorID, "error", err)
+		http.Error(w, "删除监控失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -278,7 +207,7 @@ func (s *Server) deleteMonitor(w http.ResponseWriter, r *http.Request) {
 // @Failure      500 {string} string "外部服务删除失败/存储删除失败"
 // @Router       /monitor/external/{monitor_id} [delete]
 func (s *Server) deleteMonitorExternal(w http.ResponseWriter, r *http.Request) {
-	slog.Debug("删除监控请求", "method", r.Method, "url", r.URL.String())
+	slog.Debug("删除监控请求", "method", r.Method, "url", r.URL.String(), "external", "monarch")
 
 	// 获取monitorID
 	monitorID := chi.URLParam(r, "monitor_id")
@@ -289,14 +218,13 @@ func (s *Server) deleteMonitorExternal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 从monitor存储中获取sliceID
-	monitor, err := s.store.GetMonitor(monitorID)
+	monitor, err := s.service.GetMonitor(monitorID)
 	if err != nil {
-		if isNotFoundError(err) { // MongoDB为空文档
+		if errors.Is(err, model.ErrMonitorNotFound) { // MongoDB为空文档
 			slog.Warn("监控不存在", "monitorID", monitorID)
 			http.Error(w, fmt.Sprintf("monitor不存在: %v", monitorID), http.StatusNotFound)
 			return
 		}
-
 		slog.Error("获取监控请求失败", "monitorID", monitorID, "error", err)
 		http.Error(w, "不存在该监控请求: "+err.Error(), http.StatusNotFound)
 		return
@@ -304,6 +232,11 @@ func (s *Server) deleteMonitorExternal(w http.ResponseWriter, r *http.Request) {
 
 	// 获取sliceID
 	sliceID := monitor.KPI.SubCounter.SubCounterIDs[0]
+	if sliceID == "" {
+		slog.Warn("缺少sliceID参数")
+		http.Error(w, "缺少sliceID参数", http.StatusBadRequest)
+		return
+	}
 
 	// 获取requestId
 	requestId := monitor.RequestID
@@ -321,8 +254,8 @@ func (s *Server) deleteMonitorExternal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 存储中删除
-	err = s.store.DeleteMonitor(monitorID)
+	// // 存储中删除
+	err = s.service.Store.DeleteMonitor(monitorID)
 	if err != nil {
 		slog.Error("删除存储监控请求失败", "monitorID", monitorID, "error", err)
 		http.Error(w, "删除存储监控请求失败: "+err.Error(), http.StatusInternalServerError)
@@ -344,7 +277,7 @@ func (s *Server) deleteMonitorExternal(w http.ResponseWriter, r *http.Request) {
 // @Failure      400 {string} string "缺少监控ID参数"
 // @Failure      404 {string} string "监控记录不存在"
 // @Failure      500 {string} string "获取数据失败"
-// @Router       /monitor/slice/{monitor_id} [get]
+// @Router       /monitor/{monitor_id} [get]
 func (s *Server) getMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取监控请求", "method", r.Method, "url", r.URL.String())
 
@@ -357,19 +290,19 @@ func (s *Server) getMonitor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 获取Monitor
-	monitor, err := s.store.GetMonitor(monitorID)
+	monitor, err := s.service.GetMonitor(monitorID)
 	if err != nil {
-		if isNotFoundError(err) { // MongoDB为空文档
+		if errors.Is(err, model.ErrMonitorNotFound) { // MongoDB为空文档
 			slog.Warn("监控不存在", "monitorID", monitorID)
 			http.Error(w, fmt.Sprintf("monitor不存在: %v", monitorID), http.StatusNotFound)
 			return
 		}
-
 		slog.Error("获取监控请求失败", "monitorID", monitorID, "error", err)
 		http.Error(w, "获取监控请求失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// 返回监控信息
 	slog.Debug("获取监控请求成功", "monitorID", monitorID)
 	encodeResponse(w, monitor)
 }
@@ -386,14 +319,8 @@ func (s *Server) getMonitor(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("获取监控请求列表", "method", r.Method, "url", r.URL.String())
 
-	monitors, err := s.store.ListMonitor()
+	monitors, err := s.service.ListMonitor()
 	if err != nil { // 为空时list不会返回错误
-		// if isNotFoundError(err) { // MongoDB为空文档
-		// 	slog.Debug("monitor列表为空")
-		// 	w.WriteHeader(http.StatusOK)
-		// 	return
-		// }
-
 		slog.Error("获取监控请求列表失败", "error", err)
 		http.Error(w, "获取监控请求失败: "+err.Error(), http.StatusInternalServerError)
 		return
