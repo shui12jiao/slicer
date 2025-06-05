@@ -38,6 +38,17 @@ func (s *Service) CreateSlice(slice model.SliceProfile) (model.SliceProfile, err
 		}
 	})
 
+	// 分配IP地址
+	if slice, err = s.allocateIP(slice); err != nil {
+		slog.Error("分配IP失败", "error", err)
+		return slice, fmt.Errorf("分配IP失败: %w", err)
+	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if releaseErr := s.releaseIP(slice); releaseErr != nil {
+			slog.Error("回滚释放IP失败", "error", releaseErr)
+		}
+	})
+
 	// 切片转化为helm values
 	sliceVals, commonVal, err := s.Open5gs.GenerateValues(s.Store, false) // 获取所有切片的Values
 	if err != nil {
@@ -177,6 +188,12 @@ func (s *Service) DeleteSlice(sliceID string) error {
 	if err := s.Store.DeleteSlice(slice.ID.Hex()); err != nil {
 		slog.Error("从存储中删除slice失败", "sliceID", sliceID, "error", err)
 		return fmt.Errorf("从存储中删除slice失败: %w", err)
+	}
+
+	// 释放slice已分配的IP地址
+	if err = s.releaseIP(slice); err != nil {
+		slog.Error("释放IP失败", "sliceID", sliceID, "error", err)
+		return fmt.Errorf("释放IP失败: %w", err)
 	}
 
 	// 生成Values
