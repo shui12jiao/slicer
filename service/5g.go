@@ -48,9 +48,17 @@ func (o *Open5gs) GenerateValues(store db.Store, commonOnly bool) (sliceVals map
 }
 
 func MapSliceToValues(slice model.SliceProfile) value.Slice {
-	// TODO
 	// sliceProfile包含切片逻辑信息，转化为用于slice chart（upf+smf）的value
-	return value.Slice{}
+	return value.Slice{
+		SMF: &value.SMF{
+			Config: &value.SMFConfig{
+				SubnetList: []value.SMFConfigSubnetListElem{
+					// TODO
+				},
+			},
+		},
+		UPF: &value.UPF{},
+	}
 }
 
 func MapCommonValues(slices []model.SliceProfile) value.Common {

@@ -59,6 +59,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 初始化IPAM
+	ipam, err := db.NewIPAM(config)
+	if err != nil {
+		slog.Error("初始化IPAM失败", "error", err)
+		os.Exit(1)
+	}
+
 	// 初始化monitor监控系统交互组件
 	monitor := monitor.NewMonitor(config)
 	if err := monitor.Init(kubeClient); err != nil {
@@ -70,12 +77,15 @@ func main() {
 	controller := runController(config, store, kubeClient)
 
 	// 初始化Server
-	server := api.NewServer(api.NewSeverArg{
+	server := api.NewServer(api.NewSeverParam{
 		Service: service.NewService(
-			config,
-			store,
-			kubeClient,
-			helmClient,
+			service.NewServiceParam{
+				Config:     config,
+				Store:      store,
+				IPAM:       ipam,
+				KubeClient: kubeClient,
+				HelmClient: helmClient,
+			},
 		),
 		HelmClient: helmClient,
 		Monitor:    monitor,

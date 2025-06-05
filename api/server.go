@@ -26,21 +26,21 @@ type Server struct {
 	service    *service.Service
 }
 
-type NewSeverArg struct {
+type NewSeverParam struct {
 	*service.Service
 	*monitor.Monitor
 	*kube.HelmClient
 	controller.Controller
 }
 
-func NewServer(arg NewSeverArg) *Server {
+func NewServer(param NewSeverParam) *Server {
 	s := &Server{
 		// router:     http.NewServeMux(),
-		config:     arg.Service.Config,
+		config:     param.Service.Config,
 		router:     chi.NewRouter(),
-		monitor:    arg.Monitor,
-		service:    arg.Service,
-		controller: arg.Controller,
+		monitor:    param.Monitor,
+		service:    param.Service,
+		controller: param.Controller,
 	}
 	s.routes()
 	return s

@@ -12,24 +12,33 @@ import (
 type Service struct {
 	Config     *util.Config
 	Store      db.Store
+	IPAM       *db.IPAM
 	KubeClient *kube.KubeClient
 	HelmClient *kube.HelmClient
 	Open5gs    *Open5gs
 }
 
-func NewService(config *util.Config, store db.Store, kubeClient *kube.KubeClient, helmClient *kube.HelmClient) *Service {
+type NewServiceParam struct {
+	Config     *util.Config
+	Store      db.Store
+	IPAM       *db.IPAM
+	KubeClient *kube.KubeClient
+	HelmClient *kube.HelmClient
+}
+
+func NewService(param NewServiceParam) *Service {
 	open5gs := NewOpen5gs(
-		config.Namespace,
-		config.HelmReleasePrefix,
-		config.CommonChartPath,
-		config.SliceChartPath,
+		param.Config.Namespace,
+		param.Config.HelmReleasePrefix,
+		param.Config.CommonChartPath,
+		param.Config.SliceChartPath,
 	)
 
 	return &Service{
-		Config:     config,
-		Store:      store,
-		KubeClient: kubeClient,
-		HelmClient: helmClient,
+		Config:     param.Config,
+		Store:      param.Store,
+		KubeClient: param.KubeClient,
+		HelmClient: param.HelmClient,
 		Open5gs:    open5gs,
 	}
 }

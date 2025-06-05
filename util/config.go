@@ -36,10 +36,10 @@ type ServerConfig struct {
 }
 
 type IPAMConfig struct {
-	N3Network           string        `envconfig:"N3_NETWORK" required:"true"`
-	N4Network           string        `envconfig:"N4_NETWORK" required:"true"`
-	SessionNetwork      string        `envconfig:"SESSION_NETWORK" required:"true"`
-	SessionSubnetLength uint8         `envconfig:"SESSION_SUBNET_LENGTH" default:"24"`
+	N3Network           string        `envconfig:"N3_NETWORK" required:"true" default:"10.10.3.0/24"`
+	N4Network           string        `envconfig:"N4_NETWORK" required:"true" default:"10.10.4.0/24"`
+	SessionNetwork      string        `envconfig:"SESSION_NETWORK" required:"true" default:"10.32.0.0/12"`
+	SessionSubnetLength uint8         `envconfig:"SESSION_SUBNET_LENGTH" default:"16"`
 	IPAMTimeout         time.Duration `envconfig:"IPAM_TIMEOUT" default:"1m"`
 }
 
@@ -63,6 +63,7 @@ type Config struct {
 	MongoConfig
 	KubeConfig
 	ServerConfig
+	IPAMConfig
 	AIConfig
 	ServiceConfig
 }
