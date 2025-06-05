@@ -195,6 +195,12 @@ func (s *Service) DeleteSlice(sliceID string) error {
 		return err
 	}
 
+	// 检查监控是否为启用状态
+	if slice.IsMonitored {
+		slog.Warn("删除Slice失败，Slice处于监控状态", "sliceID", sliceID)
+		return fmt.Errorf("删除Slice失败，Slice处于监控状态")
+	}
+
 	// 从存储中删除slice对象
 	if err := s.Store.DeleteSlice(slice.ID.Hex()); err != nil {
 		slog.Error("从存储中删除slice失败", "sliceID", sliceID, "error", err)

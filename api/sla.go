@@ -50,7 +50,7 @@ func (s *Server) updateSLA(w http.ResponseWriter, r *http.Request) {
 	sla, err := s.service.UpdateSLA(sliceID, sla)
 	if err != nil {
 		slog.Error("更新SLA失败", "error", err, "sliceID", sliceID)
-		if errors.Is(err, model.ErrMongoNotFound) {
+		if errors.Is(err, model.ErrSliceNotFound) {
 			http.Error(w, fmt.Sprintf("Slice不存在: %v", sliceID), http.StatusNotFound)
 			return
 		}

@@ -8,5 +8,5 @@ type SliceProfile struct {
 	Deploy `json:"kube_config" yaml:"kube_config"`
 	SLA    `json:"sla" yaml:"sla"`
 
-	IsMonitored bool `json:"is_monitored" yaml:"is_monitored"`
+	IsMonitored bool `json:"is_monitored,omitempty" yaml:"is_monitored,omitempty"`
 }
