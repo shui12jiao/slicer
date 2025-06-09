@@ -11,7 +11,7 @@ import (
 
 // 给slice分配IP
 func (s *Service) allocateIP(slice model.SliceProfile) (model.SliceProfile, error) {
-	// SessionSubnets []string
+	// SessionSubnets []Subnet
 	// UPFN3Addr      string
 	// UPFN4Addr      string
 	// SMFN3Addr      string
@@ -22,13 +22,13 @@ func (s *Service) allocateIP(slice model.SliceProfile) (model.SliceProfile, erro
 		return slice, nil
 	}
 
-	sessionSubnets := []string{}
+	sessionSubnets := []model.Subnet{}
 	for range slice.Sessions {
 		sessionSubnet, err := s.IPAM.AllocateSessionSubnet()
 		if err != nil {
 			return slice, err
 		}
-		sessionSubnets = append(sessionSubnets, sessionSubnet)
+		sessionSubnets = append(sessionSubnets, model.Subnet(sessionSubnet))
 	}
 	upfN3Addr, err := s.IPAM.AllocateN3Addr()
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *Service) releaseIP(slice model.SliceProfile) error {
 	}
 
 	for _, sessionSubnet := range slice.SessionSubnets {
-		err = s.IPAM.ReleaseSessionSubnet(sessionSubnet)
+		err = s.IPAM.ReleaseSessionSubnet(string(sessionSubnet))
 		if err != nil {
 			errs = append(errs, fmt.Errorf("释放会话子网%s失败: %w", sessionSubnet, err))
 		}

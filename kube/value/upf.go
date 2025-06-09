@@ -161,9 +161,6 @@ type UPFConfig struct {
 }
 
 type UPFConfigSubnetListElem struct {
-	// Addr corresponds to the JSON schema field "addr".
-	Addr *string `json:"addr,omitempty" yaml:"addr,omitempty" mapstructure:"addr,omitempty"`
-
 	// CreateDev corresponds to the JSON schema field "createDev".
 	CreateDev *bool `json:"createDev,omitempty" yaml:"createDev,omitempty" mapstructure:"createDev,omitempty"`
 
@@ -175,6 +172,12 @@ type UPFConfigSubnetListElem struct {
 
 	// EnableNAT corresponds to the JSON schema field "enableNAT".
 	EnableNAT *bool `json:"enableNAT,omitempty" yaml:"enableNAT,omitempty" mapstructure:"enableNAT,omitempty"`
+
+	// Gateway corresponds to the JSON schema field "gateway".
+	Gateway *string `json:"gateway,omitempty" yaml:"gateway,omitempty" mapstructure:"gateway,omitempty"`
+
+	// Mask corresponds to the JSON schema field "mask".
+	Mask *int `json:"mask,omitempty" yaml:"mask,omitempty" mapstructure:"mask,omitempty"`
 
 	// Subnet corresponds to the JSON schema field "subnet".
 	Subnet *string `json:"subnet,omitempty" yaml:"subnet,omitempty" mapstructure:"subnet,omitempty"`
