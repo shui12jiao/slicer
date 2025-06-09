@@ -466,6 +466,9 @@ type SMFConfigSubnetListElem struct {
 	// Dnn corresponds to the JSON schema field "dnn".
 	Dnn *string `json:"dnn,omitempty" yaml:"dnn,omitempty" mapstructure:"dnn,omitempty"`
 
+	// Gateway corresponds to the JSON schema field "gateway".
+	Gateway *string `json:"gateway,omitempty" yaml:"gateway,omitempty" mapstructure:"gateway,omitempty"`
+
 	// Subnet corresponds to the JSON schema field "subnet".
 	Subnet *string `json:"subnet,omitempty" yaml:"subnet,omitempty" mapstructure:"subnet,omitempty"`
 }
