@@ -126,52 +126,42 @@ func (c *BasicController) run() {
 }
 
 func (c *BasicController) control(sliceID string) error {
-	// 获取SLA
-	sla, err := c.store.GetSLA(sliceID)
+	// 获取切片信息
+	slice, err := c.store.GetSliceBySliceID(sliceID)
 	if err != nil {
-		slog.Error("获取SLA失败", "sliceID", sliceID, "err", err)
-		return err
-	}
-
-	// 获取Play
-	play, err := c.store.GetPlay(sliceID)
-	if err != nil {
-		slog.Error("获取Play失败", "sliceID", sliceID, "err", err)
+		slog.Error("获取切片信息失败", "sliceID", sliceID, "err", err)
 		return err
 	}
 
 	// 核心控制逻辑
-	// 调用策略执行Reconcile
-	// 生成新的Play
-	newPlay, err := c.strategy.Reconcile(play, sla)
+	// 调用策略执行Reconcile, 生成新的Deploy
+	newDeploy, err := c.strategy.Reconcile(sliceID, slice.Deploy, slice.SLA)
 	if err != nil {
-		slog.Error("生成新Play失败", "sliceID", sliceID, "err", err)
+		slog.Error("生成新Deploy失败", "sliceID", sliceID, "err", err)
 		return err
 	}
 
-	// 应用新的Play
-	err = c.kclient.Play(newPlay, c.config.Namespace)
+	// 应用新的Deploy
+	err = c.kclient.Deploy(newDeploy,
+		sliceID,
+		c.config.HelmReleasePrefix+sliceID+"-upf",
+		c.config.Namespace)
 	if err != nil {
-		slog.Error("应用Play失败", "sliceID", sliceID, "err", err)
+		slog.Error("应用Deploy失败", "sliceID", sliceID, "err", err)
 		return err
 	}
 
-	// 更新Play
-	_, err = c.store.UpdatePlay(newPlay)
+	// 更新Slice
+	slice.Deploy = newDeploy // 更新Slice的Deploy
+	// 更新SliceProfile存储
+	_, err = c.store.UpdateSlice(slice)
 	if err != nil {
-		slog.Error("更新Play失败", "sliceID", sliceID, "err", err)
-		return err
-	}
-
-	// 更新SLA
-	_, err = c.store.UpdateSLA(sla)
-	if err != nil {
-		slog.Error("更新SLA失败", "sliceID", sliceID, "err", err)
+		slog.Error("更新Slice失败", "sliceID", sliceID, "err", err)
 		return err
 	}
 
 	// 完成
-	slog.Info("控制完成", "sliceID", sliceID, "newPlay", newPlay)
+	slog.Info("控制完成", "sliceID", sliceID, "newDeploy", newDeploy)
 	return nil
 }
 

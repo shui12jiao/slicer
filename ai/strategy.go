@@ -103,15 +103,9 @@ func (s *StrategyAgent) Name() string {
 	return "ai"
 }
 
-func (s *StrategyAgent) Reconcile(current sm.Deploy, sla sm.SLA) (sm.Deploy, error) {
+func (s *StrategyAgent) Reconcile(sliceID string, current sm.Deploy, sla sm.SLA) (sm.Deploy, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-
-	// 获取切片ID
-	sliceID := current.SliceID
-	if sliceID == "" {
-		return current, fmt.Errorf("切片ID不能为空")
-	}
 
 	// 获取指标数据
 	metricsParams := MetricsToolParams{

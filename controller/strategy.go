@@ -14,7 +14,7 @@ type Strategy interface {
 	// 返回策略名称
 	Name() string
 	// 根据SLA,Metrics以及当前策略，生成新 Play 策略
-	Reconcile(current model.Deploy, sla model.SLA) (model.Deploy, error)
+	Reconcile(sliceID string, current model.Deploy, sla model.SLA) (model.Deploy, error)
 }
 
 // 简易策略
@@ -35,11 +35,11 @@ func (b *BasicStrategy) Name() string {
 	return "basic"
 }
 
-func (b *BasicStrategy) Reconcile(current model.Deploy, sla model.SLA) (model.Deploy, error) {
+func (b *BasicStrategy) Reconcile(sliceID string, current model.Deploy, sla model.SLA) (model.Deploy, error) {
 	play := &current
 
 	// 获取指标数据（保持原有错误处理）
-	metrics, err := b.Metrics.GetUsedMetrics(current.SliceID, 3*time.Hour, time.Minute)
+	metrics, err := b.Metrics.GetUsedMetrics(sliceID, 3*time.Hour, time.Minute)
 	if err != nil {
 		return current, fmt.Errorf("获取指标数据失败: %w", err)
 	}
