@@ -9,6 +9,7 @@ require (
 	github.com/cloudwego/eino-ext/components/model/qianfan v0.0.0-20250429121045-a2545a66f5cf
 	github.com/cloudwego/eino-ext/components/model/qwen v0.0.0-20250429121045-a2545a66f5cf
 	github.com/go-chi/chi v1.5.5
+	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lmittmann/tint v1.0.7
 	github.com/metal-stack/go-ipam v1.14.11
@@ -99,7 +100,6 @@ require (
 	github.com/invopop/yaml v0.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect

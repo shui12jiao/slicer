@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -69,9 +70,15 @@ type Config struct {
 }
 
 func LoadConfig(path string) *Config {
-	var cfg Config
+	// 加载环境变量配置
+	err := godotenv.Load(path)
+	if err != nil {
+		slog.Error("加载环境变量配置失败", "error", err)
+		os.Exit(1)
+	}
 
-	err := envconfig.Process(path, &cfg)
+	var cfg Config
+	err = envconfig.Process("", &cfg)
 	if err != nil {
 		slog.Error("加载配置失败", "error", err)
 		os.Exit(1)
