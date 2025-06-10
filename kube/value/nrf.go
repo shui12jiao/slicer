@@ -155,6 +155,22 @@ type NRF struct {
 type NRFConfig struct {
 	// LogLevel corresponds to the JSON schema field "logLevel".
 	LogLevel *string `json:"logLevel,omitempty" yaml:"logLevel,omitempty" mapstructure:"logLevel,omitempty"`
+
+	// ServingList corresponds to the JSON schema field "servingList".
+	ServingList []NRFConfigServingListElem `json:"servingList,omitempty" yaml:"servingList,omitempty" mapstructure:"servingList,omitempty"`
+}
+
+type NRFConfigServingListElem struct {
+	// PlmnId corresponds to the JSON schema field "plmn_id".
+	PlmnId *NRFConfigServingListElemPlmnId `json:"plmn_id,omitempty" yaml:"plmn_id,omitempty" mapstructure:"plmn_id,omitempty"`
+}
+
+type NRFConfigServingListElemPlmnId struct {
+	// Mcc corresponds to the JSON schema field "mcc".
+	Mcc *string `json:"mcc,omitempty" yaml:"mcc,omitempty" mapstructure:"mcc,omitempty"`
+
+	// Mnc corresponds to the JSON schema field "mnc".
+	Mnc *string `json:"mnc,omitempty" yaml:"mnc,omitempty" mapstructure:"mnc,omitempty"`
 }
 
 type NRFContainerPorts struct {
