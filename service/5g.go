@@ -221,6 +221,7 @@ func (o *Open5gs) MapCommonValues(slices []model.SliceProfile) value.Common {
 						},
 					}
 				}(slices),
+				NetworkName: Ptr("Open5GS"), // 网络名称
 			},
 		},
 		AUSF: &value.AUSF{
