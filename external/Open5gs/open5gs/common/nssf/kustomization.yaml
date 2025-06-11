@@ -1,4 +1,0 @@
-resources:
-- nssf-deployment.yaml
-- nssf-service.yaml
-- nssf-configmap.yaml

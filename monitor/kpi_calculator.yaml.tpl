@@ -46,7 +46,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kpi{{ .SliceID }}-calculator-service
+  name: kpi-calculator-service
   namespace: monarch
   labels:
     app: monarch

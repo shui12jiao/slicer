@@ -17,7 +17,7 @@ type Monitor struct {
 }
 
 func NewMonitor(config *util.Config) *Monitor {
-	return &Monitor{config: config, componentName: "kpi-calculator"}
+	return &Monitor{config: config, componentName: "kpi_calculator"}
 }
 
 type Response struct {
@@ -54,8 +54,10 @@ func (m *Monitor) checkComponentReady(kc *kube.KubeClient) error {
 		slog.Info("未找到监控组件部署, 正在安装", "component", m.componentName)
 
 		// 从模板文件渲染配置
-		tplFile := fmt.Sprintf("./%s.yaml.tpl", m.componentName)
-		rendered, err := util.RenderTemplateFromFile(tplFile, m.config)
+		tplFile := fmt.Sprintf("./monitor/%s.yaml.tpl", m.componentName)
+		rendered, err := util.RenderTemplateFromFile(tplFile, map[string]string{
+			"ThanosURL": m.config.MonarchThanosURI,
+		})
 		if err != nil {
 			slog.Error("渲染模板失败", "error", err, "file", tplFile)
 			return fmt.Errorf("渲染模板失败: %v", err)

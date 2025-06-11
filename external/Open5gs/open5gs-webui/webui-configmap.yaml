@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: webui-configmap
-  labels:
-    app: open5gs
-    nf: webui
-data:
-  webuicfg.yaml: |

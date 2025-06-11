@@ -1,3 +1,0 @@
-resources:
-- upf-deployment.yaml
-- upf-configmap.yaml
