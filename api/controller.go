@@ -12,7 +12,7 @@ type ControllerResponse struct {
 	// 运行状态
 	Running bool `json:"running"`
 	// 控制频率
-	Frequency time.Duration `json:"frequency" swaggertype:"integer" format:"nanoseconds" example:"1000000000"`
+	Frequency time.Duration `json:"frequency" swaggertype:"primitive,integer" format:"nanoseconds" example:"1000000000"`
 
 	// 切片列表
 	Slices []string `json:"slices"`
@@ -69,7 +69,7 @@ type UpdateControllerRequest struct {
 	// 运行状态
 	Running *bool `json:"running"`
 	// 控制频率
-	Frequency *time.Duration `json:"frequency"`
+	Frequency *time.Duration `json:"frequency" swaggertype:"primitive,integer" format:"nanoseconds" example:"1000000000"`
 	// 使用策略
 	UsedStrategy *string `json:"used_strategy"`
 }

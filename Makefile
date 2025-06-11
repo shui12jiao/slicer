@@ -16,6 +16,9 @@ k3d:
 cloc:
 	cloc --exclude-dir=external,docs,charts --exclude-ext=csv,py .
 
+swagger:
+	swag init
+
 charts:
 	git submodule update --recursive --remote
 

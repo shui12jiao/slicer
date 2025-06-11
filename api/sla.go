@@ -13,8 +13,8 @@ import (
 
 // updateSLA godoc
 // @Summary      更新SLA
-// @Description  根据Slice ID更新SLA资源
-// @Tags         SLA
+// @Description  根据Slice ID更新SLA资源, UpdateSlice的子功能
+// @Tags         Slice
 // @Accept       json
 // @Produce      json
 // @Param        slice_id path string true "Slice ID"
@@ -23,7 +23,7 @@ import (
 // @Failure      400 {string} string "缺少Slice ID/请求解码失败/参数非法"
 // @Failure      404 {string} string "Slice不存在"
 // @Failure      500 {string} string "更新失败/响应编码失败"
-// @Router       /{slice_id}/sla [put]
+// @Router       /slice/{slice_id}/sla [put]
 func (s *Server) updateSLA(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("更新SLA请求", "method", r.Method, "url", r.URL.String(), "sliceID", chi.URLParam(r, "slice_id"))
 	sliceID := chi.URLParam(r, "slice_id")

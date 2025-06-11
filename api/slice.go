@@ -170,7 +170,7 @@ func (s *Server) getSlice(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, model.ErrSliceNotFound) {
 			http.Error(w, fmt.Sprintf("切片不存在: %v", sliceID), http.StatusNotFound)
 		} else {
-			http.Error(w, fmt.Sprintf("获取slice失败: %w", err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("获取slice失败: %v", err), http.StatusInternalServerError)
 		}
 		return
 	}

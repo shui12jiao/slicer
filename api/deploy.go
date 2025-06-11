@@ -13,8 +13,8 @@ import (
 
 // updateDeploy godoc
 // @Summary      更新Deploy
-// @Description  根据sliceID更新Deploy资源，支持部分字段动态更新
-// @Tags         deploy
+// @Description  更新Deploy资源,UpdateSlice的子功能
+// @Tags         Slice
 // @Accept       json
 // @Produce      json
 // @Param        slice_id path string true "切片ID"
@@ -23,7 +23,7 @@ import (
 // @Failure      400 {string} string "请求参数错误或解码失败"
 // @Failure      404 {string} string "未找到对应的Deploy"
 // @Failure      500 {string} string "服务器内部错误"
-// @Router       /{slice_id}/deploy [put]
+// @Router       /slice/{slice_id}/deploy [put]
 func (s *Server) updateDeploy(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("更新deploy请求", "method", r.Method, "url", r.URL.String(), "sliceID", chi.URLParam(r, "slice_id"))
 
