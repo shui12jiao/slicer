@@ -9,7 +9,7 @@ import (
 )
 
 // Querier 接口实现
-func (m *MongoDB) CreateMonitor(monitor model.Monitor) (model.Monitor, error) {
+func (m *MongoDB) CreateMonitor(monitor *model.Monitor) (*model.Monitor, error) {
 	res, err := m.insert(m.config.MonitorStoreName, monitor)
 
 	// 获取插入的ID
@@ -24,12 +24,12 @@ func (m *MongoDB) DeleteMonitor(id string) error {
 	return m.delete(m.config.MonitorStoreName, id)
 }
 
-func (m *MongoDB) GetMonitor(id string) (model.Monitor, error) {
+func (m *MongoDB) GetMonitor(id string) (*model.Monitor, error) {
 	res := m.find(m.config.MonitorStoreName, id)
 
-	var monitor model.Monitor
-	if err := res.Decode(&monitor); err != nil {
-		return monitor, fmt.Errorf("查询Monitor失败：%w", err)
+	monitor := new(model.Monitor)
+	if err := res.Decode(monitor); err != nil {
+		return nil, fmt.Errorf("查询Monitor失败：%w", err)
 	}
 
 	return monitor, nil

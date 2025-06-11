@@ -30,7 +30,7 @@ func (s *Service) CreateSliceMonitor(sliceID string, monitor model.Monitor) (mod
 	}
 
 	// 存储监控信息
-	if monitor, err = s.Store.CreateMonitor(monitor); err != nil {
+	if monitor, err = s.Store.CreateMonitor(&monitor); err != nil {
 		slog.Error("创建监控失败，存储监控信息失败", "sliceID", sliceID, "error", err)
 		return model.Monitor{}, fmt.Errorf("创建监控失败，存储监控信息失败: %w", err)
 	}
