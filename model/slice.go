@@ -18,11 +18,11 @@ type Slice struct {
 }
 
 type Session struct {
-	Name    string    `json:"name" yaml:"name"`
-	Type    int       `json:"type" yaml:"type"`
-	PCCRule []PCCRule `json:"pcc_rule" yaml:"pcc_rule"`
-	AMBR    AMBR      `json:"ambr" yaml:"ambr"`
-	QoS     QoS       `json:"qos" yaml:"qos"`
+	Name string `json:"name" yaml:"name"`
+	Type int    `json:"type" yaml:"type"`
+	// PCCRule []PCCRule `json:"pcc_rule" yaml:"pcc_rule"`
+	// AMBR    AMBR      `json:"ambr" yaml:"ambr"`
+	// QoS     QoS       `json:"qos" yaml:"qos"`
 }
 
 type PCCRule struct {
@@ -124,22 +124,22 @@ func validateSession(s *Session, idx int) error {
 		errs = append(errs, fmt.Errorf("会话类型取值错误：%d 不是有效的会话类型", s.Type))
 	}
 
-	// 校验 AMBR 单位参数（0:bps, 1:Kbps, 2:Mbps, 3:Gbps, 4:Tbps)
-	if s.AMBR.Uplink.Unit < 0 || s.AMBR.Uplink.Unit > 4 {
-		errs = append(errs, fmt.Errorf("AMBR单位参数无效"))
-	}
+	// // 校验 AMBR 单位参数（0:bps, 1:Kbps, 2:Mbps, 3:Gbps, 4:Tbps)
+	// if s.AMBR.Uplink.Unit < 0 || s.AMBR.Uplink.Unit > 4 {
+	// 	errs = append(errs, fmt.Errorf("AMBR单位参数无效"))
+	// }
 
-	// 校验 QoS 参数
-	if s.QoS.Index < 1 || s.QoS.Index > 86 {
-		errs = append(errs, fmt.Errorf("QoS索引值超出范围"))
-	}
+	// // 校验 QoS 参数
+	// if s.QoS.Index < 1 || s.QoS.Index > 86 {
+	// 	errs = append(errs, fmt.Errorf("QoS索引值超出范围"))
+	// }
 
-	// 校验所有 PCC 规则
-	for i := range s.PCCRule {
-		if err := validatePCCRule(&s.PCCRule[i], idx, i); err != nil {
-			errs = append(errs, fmt.Errorf("PCC规则[%d]校验失败：%w", i, err))
-		}
-	}
+	// // 校验所有 PCC 规则
+	// for i := range s.PCCRule {
+	// 	if err := validatePCCRule(&s.PCCRule[i], idx, i); err != nil {
+	// 		errs = append(errs, fmt.Errorf("PCC规则[%d]校验失败：%w", i, err))
+	// 	}
+	// }
 
 	return errors.Join(errs...)
 }
