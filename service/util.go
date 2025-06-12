@@ -10,7 +10,7 @@ import (
 )
 
 // 给slice分配IP
-func (s *Service) allocateIP(slice model.SliceProfile) (model.SliceProfile, error) {
+func (s *Service) allocateIP(slice *model.SliceProfile) error {
 	// SessionSubnets []Subnet
 	// UPFN3Addr      string
 	// UPFN4Addr      string
@@ -19,32 +19,32 @@ func (s *Service) allocateIP(slice model.SliceProfile) (model.SliceProfile, erro
 
 	if !slice.AddressValue.IsEmpty() {
 		slog.Debug("Slice已分配IP，直接返回", "sliceID", slice.SliceID())
-		return slice, nil
+		return nil
 	}
 
 	sessionSubnets := []model.Subnet{}
 	for range slice.Sessions {
 		sessionSubnet, err := s.IPAM.AllocateSessionSubnet()
 		if err != nil {
-			return slice, err
+			return err
 		}
 		sessionSubnets = append(sessionSubnets, model.Subnet(sessionSubnet))
 	}
 	upfN3Addr, err := s.IPAM.AllocateN3Addr()
 	if err != nil {
-		return slice, fmt.Errorf("分配UPF N3地址失败: %w", err)
+		return fmt.Errorf("分配UPF N3地址失败: %w", err)
 	}
 	upfN4Addr, err := s.IPAM.AllocateN4Addr()
 	if err != nil {
-		return slice, fmt.Errorf("分配UPF N4地址失败: %w", err)
+		return fmt.Errorf("分配UPF N4地址失败: %w", err)
 	}
 	smfN3Addr, err := s.IPAM.AllocateN3Addr()
 	if err != nil {
-		return slice, fmt.Errorf("分配SMF N3地址失败: %w", err)
+		return fmt.Errorf("分配SMF N3地址失败: %w", err)
 	}
 	smfN4Addr, err := s.IPAM.AllocateN4Addr()
 	if err != nil {
-		return slice, fmt.Errorf("分配SMF N4地址失败: %w", err)
+		return fmt.Errorf("分配SMF N4地址失败: %w", err)
 	}
 
 	// 更新slice的AddressValue
@@ -58,11 +58,11 @@ func (s *Service) allocateIP(slice model.SliceProfile) (model.SliceProfile, erro
 	slog.Debug("分配IP成功", "sliceID", slice.SliceID(), "sessionSubnets", sessionSubnets,
 		"UPFN3Addr", upfN3Addr, "UPFN4Addr", upfN4Addr,
 		"SMFN3Addr", smfN3Addr, "SMFN4Addr", smfN4Addr)
-	return slice, nil
+	return nil
 }
 
 // 释放slice已分配的IP
-func (s *Service) releaseIP(slice model.SliceProfile) error {
+func (s *Service) releaseIP(slice *model.SliceProfile) error {
 	var errs []error
 	err := s.IPAM.ReleaseN3Addr(slice.SMFN3Addr)
 	if err != nil {
@@ -90,6 +90,10 @@ func (s *Service) releaseIP(slice model.SliceProfile) error {
 			errs = append(errs, fmt.Errorf("释放会话子网%s失败: %w", sessionSubnet, err))
 		}
 	}
+	slice.AddressValue = model.AddressValue{} // 清空AddressValue
+	slog.Debug("释放IP成功", "sliceID", slice.SliceID(), "sessionSubnets", slice.SessionSubnets,
+		"UPFN3Addr", slice.UPFN3Addr, "UPFN4Addr", slice.UPFN4Addr,
+		"SMFN3Addr", slice.SMFN3Addr, "SMFN4Addr", slice.SMFN4Addr)
 	return errors.Join(errs...)
 }
 

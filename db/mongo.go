@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"reflect"
 	"slicer/util"
 	"time"
 
@@ -65,7 +67,53 @@ func (m *MongoDB) insert(collection string, doc any) (*mongo.InsertOneResult, er
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 
-	return m.client.Database(m.database).Collection(collection).InsertOne(ctx, doc)
+	res, err := m.client.Database(m.database).Collection(collection).InsertOne(ctx, doc)
+	if err != nil {
+		return nil, fmt.Errorf("插入数据失败：%w", err)
+	}
+
+	// 尝试将 MongoDB 生成的 ID 分配给文档中的 ObjectID 字段
+	err = assignObjectID(doc, res.InsertedID)
+	if err != nil {
+		return nil, fmt.Errorf("分配 ObjectID 失败：%w", err)
+	}
+
+	return res, nil
+}
+
+func assignObjectID(doc any, insertedID any) error {
+	v := reflect.ValueOf(doc)
+	// 必须是可修改的指针类型
+	if v.Kind() != reflect.Ptr || v.Elem().Kind() != reflect.Struct {
+		return nil // 非结构体指针直接跳过
+	}
+
+	// 尝试转换 MongoDB 生成的 ID
+	oid, ok := insertedID.(primitive.ObjectID)
+	if !ok {
+		return errors.New("InsertedID 非 ObjectID 类型")
+	}
+
+	// 遍历结构体字段
+	s := v.Elem()
+	for i := 0; i < s.NumField(); i++ {
+		fieldValue := s.Field(i)
+
+		// 跳过不可修改字段
+		if !fieldValue.CanSet() {
+			continue
+		}
+
+		// 检查字段类型是否为 primitive.ObjectID
+		if fieldValue.Type() == reflect.TypeOf(primitive.ObjectID{}) {
+			// 仅当字段为零值时赋值（避免覆盖已有值）
+			if fieldValue.IsZero() {
+				fieldValue.Set(reflect.ValueOf(oid))
+				return nil // 找到第一个匹配字段即退出
+			}
+		}
+	}
+	return nil
 }
 
 func (m *MongoDB) delete(collection string, id string) error {

@@ -50,8 +50,8 @@ func (s *Server) createMonitor(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建监控请求", "method", r.Method, "url", r.URL.String())
 
 	// 解析请求
-	var monitor model.Monitor
-	if err := json.NewDecoder(r.Body).Decode(&monitor); err != nil {
+	monitor := new(model.Monitor)
+	if err := json.NewDecoder(r.Body).Decode(monitor); err != nil {
 		slog.Warn("请求解码失败", "error", err)
 		http.Error(w, "请求解码失败: "+err.Error(), http.StatusBadRequest)
 		return

@@ -4,20 +4,16 @@ import (
 	"context"
 	"fmt"
 	"slicer/model"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Querier 接口实现
-func (m *MongoDB) CreateMonitor(monitor *model.Monitor) (*model.Monitor, error) {
-	res, err := m.insert(m.config.MonitorStoreName, monitor)
+func (m *MongoDB) CreateMonitor(monitor *model.Monitor) error {
+	_, err := m.insert(m.config.MonitorStoreName, monitor)
 
-	// 获取插入的ID
-	monitor.ID = res.InsertedID.(primitive.ObjectID)
 	if err != nil {
-		return monitor, fmt.Errorf("插入Monitor失败：%w", err)
+		return fmt.Errorf("插入Monitor失败：%w", err)
 	}
-	return monitor, nil
+	return nil
 }
 
 func (m *MongoDB) DeleteMonitor(id string) error {
@@ -35,7 +31,7 @@ func (m *MongoDB) GetMonitor(id string) (*model.Monitor, error) {
 	return monitor, nil
 }
 
-func (m *MongoDB) ListMonitor() ([]model.Monitor, error) {
+func (m *MongoDB) ListMonitor() ([]*model.Monitor, error) {
 	// 获取所有 Monitor
 	cursor, err := m.findAll(m.config.MonitorStoreName)
 	if err != nil {
@@ -43,7 +39,7 @@ func (m *MongoDB) ListMonitor() ([]model.Monitor, error) {
 	}
 	defer cursor.Close(context.Background())
 
-	var monitors []model.Monitor
+	var monitors []*model.Monitor
 	if err := cursor.All(context.Background(), &monitors); err != nil {
 		return nil, fmt.Errorf("查询Monitor失败：%w", err)
 	}

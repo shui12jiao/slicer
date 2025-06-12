@@ -57,7 +57,7 @@ func (o *Open5gs) GenerateValues(store db.Store, commonOnly bool) (sliceVals map
 }
 
 // MapSliceToValues 将切片逻辑信息转换为用于slice chart的value
-func (o *Open5gs) MapSliceToValues(slice model.SliceProfile) value.Slice {
+func (o *Open5gs) MapSliceToValues(slice *model.SliceProfile) value.Slice {
 	labels := map[string]any{
 		"slice": slice.SliceID(), // 添加切片ID标签
 	}
@@ -158,7 +158,7 @@ func (o *Open5gs) MapSliceToValues(slice model.SliceProfile) value.Slice {
 }
 
 // MapCommonValues 将所有切片的公共信息转换为用于common chart的value
-func (o *Open5gs) MapCommonValues(slices []model.SliceProfile) value.Common {
+func (o *Open5gs) MapCommonValues(slices []*model.SliceProfile) value.Common {
 	// common包含nssf，amf等chart的value，要求所有切片信息
 	return value.Common{
 		AMF: &value.AMF{
@@ -203,7 +203,7 @@ func (o *Open5gs) MapCommonValues(slices []model.SliceProfile) value.Common {
 						Tac: []int{1, 2, 3}, // 默认TAC
 					},
 				},
-				PlmnList: func(slices []model.SliceProfile) []value.AMFConfigPlmnListElem {
+				PlmnList: func(slices []*model.SliceProfile) []value.AMFConfigPlmnListElem {
 					snssai := make([]value.AMFConfigPlmnListElemSNssaiElem, len(slices))
 					for i, slice := range slices {
 						snssai[i] = value.AMFConfigPlmnListElemSNssaiElem{
@@ -276,7 +276,7 @@ func (o *Open5gs) MapCommonValues(slices []model.SliceProfile) value.Common {
 						},
 					},
 				},
-				NsiList: func(slices []model.SliceProfile) []value.NSSFConfigNsiListElem {
+				NsiList: func(slices []*model.SliceProfile) []value.NSSFConfigNsiListElem {
 					nsiList := make([]value.NSSFConfigNsiListElem, len(slices))
 					for i, slice := range slices {
 						nsiList[i] = value.NSSFConfigNsiListElem{

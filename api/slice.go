@@ -26,9 +26,9 @@ import (
 func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("创建slice请求", "method", r.Method, "url", r.URL.String())
 
-	var slice model.SliceProfile
+	slice := new(model.SliceProfile)
 
-	if err := json.NewDecoder(r.Body).Decode(&slice); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(slice); err != nil {
 		slog.Warn("请求解码失败", "error", err)
 		http.Error(w, fmt.Sprintf("请求解码失败: %v", err), http.StatusBadRequest)
 		return
@@ -71,9 +71,9 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 func (s *Server) updateSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("更新slice请求", "method", r.Method, "url", r.URL.String())
 
-	var slice model.SliceProfile
+	slice := new(model.SliceProfile)
 
-	if err := json.NewDecoder(r.Body).Decode(&slice); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(slice); err != nil {
 		slog.Warn("请求解码失败", "error", err)
 		http.Error(w, fmt.Sprintf("请求解码失败: %v", err), http.StatusBadRequest)
 		return

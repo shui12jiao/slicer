@@ -36,7 +36,7 @@ func (s *Service) MdeInstall(sliceID string) error {
 
 		// 存储MDE信息
 		if len(activated) > 0 {
-			if _, err = s.Store.CreateMonitor(&model.Monitor{
+			if err = s.Store.CreateMonitor(&model.Monitor{
 				KPI: model.KPI{
 					KPIName:        "slice_throughput",
 					KPIDescription: "Slice Throughput",
@@ -78,7 +78,7 @@ func (s *Service) MdeInstall(sliceID string) error {
 		}
 
 		// 存储MDE信息
-		if _, err = s.Store.CreateMonitor(&model.Monitor{
+		if err = s.Store.CreateMonitor(&model.Monitor{
 			KPI: model.KPI{
 				KPIName:        "slice_throughput",
 				KPIDescription: "Slice Throughput",

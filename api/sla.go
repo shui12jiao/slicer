@@ -33,8 +33,8 @@ func (s *Server) updateSLA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var sla model.SLA
-	if err := json.NewDecoder(r.Body).Decode(&sla); err != nil {
+	sla := new(model.SLA)
+	if err := json.NewDecoder(r.Body).Decode(sla); err != nil {
 		http.Error(w, "请求解码失败", http.StatusBadRequest)
 		return
 	}

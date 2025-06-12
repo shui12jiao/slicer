@@ -6,11 +6,11 @@ import (
 	"slicer/model"
 )
 
-func (s *Service) CreateSlice(slice model.SliceProfile) (model.SliceProfile, error) {
+func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, error) {
 	// 检查是否已存在同名的Slice
-	slice, err := s.GetSlice(slice.SliceID())
+	getSlice, err := s.GetSlice(slice.SliceID())
 	if err != model.ErrSliceNotFound { //已存在同名的Slice
-		return slice, fmt.Errorf("切片已存在: %w", err)
+		return getSlice, fmt.Errorf("切片已存在: %w", err)
 	}
 
 	// 定义一个回滚栈，用于记录需要回滚的操作
@@ -27,7 +27,7 @@ func (s *Service) CreateSlice(slice model.SliceProfile) (model.SliceProfile, err
 	}()
 
 	// 存储 slice对象
-	slice, err = s.Store.CreateSlice(slice)
+	err = s.Store.CreateSlice(slice)
 	if err != nil {
 		slog.Error("存储slice失败", "error", err)
 		return slice, fmt.Errorf("存储slice失败: %w", err)
@@ -39,7 +39,7 @@ func (s *Service) CreateSlice(slice model.SliceProfile) (model.SliceProfile, err
 	})
 
 	// 分配IP地址
-	if slice, err = s.allocateIP(slice); err != nil {
+	if err = s.allocateIP(slice); err != nil {
 		slog.Error("分配IP失败", "error", err)
 		return slice, fmt.Errorf("分配IP失败: %w", err)
 	}
@@ -92,7 +92,7 @@ func (s *Service) CreateSlice(slice model.SliceProfile) (model.SliceProfile, err
 	return slice, nil
 }
 
-func (s *Service) UpdateSlice(slice model.SliceProfile) (model.SliceProfile, error) {
+func (s *Service) UpdateSlice(slice *model.SliceProfile) (*model.SliceProfile, error) {
 	// 检查slice是否存在, 并获取旧的slice对象
 	sliceOld, err := s.GetSlice(slice.SliceID())
 	if err != nil {
@@ -113,13 +113,13 @@ func (s *Service) UpdateSlice(slice model.SliceProfile) (model.SliceProfile, err
 	}()
 
 	// 更新 slice对象
-	slice, err = s.Store.UpdateSlice(slice)
+	err = s.Store.UpdateSlice(slice)
 	if err != nil {
 		slog.Error("更新slice失败", "error", err)
 		return slice, fmt.Errorf("更新slice失败: %w", err)
 	}
 	rollbackFuncs = append(rollbackFuncs, func() {
-		if _, updateErr := s.Store.UpdateSlice(sliceOld); updateErr != nil {
+		if updateErr := s.Store.UpdateSlice(sliceOld); updateErr != nil {
 			slog.Error("回滚: 更新回旧slice失败", "error", updateErr)
 		}
 	})
@@ -221,22 +221,22 @@ func (s *Service) DeleteSlice(sliceID string) error {
 	return nil
 }
 
-func (s *Service) GetSlice(sliceID string) (model.SliceProfile, error) {
+func (s *Service) GetSlice(sliceID string) (*model.SliceProfile, error) {
 	// 从对象存储中获取slice对象
 	slice, err := s.Store.GetSliceBySliceID(sliceID)
 	if err != nil {
 		if isNotFoundError(err) { // MongoDB为空文档
 			slog.Warn("slice不存在", "sliceID", sliceID)
-			return model.SliceProfile{}, model.ErrSliceNotFound
+			return nil, model.ErrSliceNotFound
 		}
 
 		slog.Error("获取slice失败", "sliceID", sliceID, "error", err)
-		return model.SliceProfile{}, fmt.Errorf("获取slice失败: %w", err)
+		return nil, fmt.Errorf("获取slice失败: %w", err)
 	}
 	return slice, nil
 }
 
-func (s *Service) ListSlices() ([]model.SliceProfile, error) {
+func (s *Service) ListSlices() ([]*model.SliceProfile, error) {
 	slices, err := s.Store.ListSlice()
 	if err != nil { // 为空时list不会返回错误
 		slog.Error("获取slice列表失败", "error", err)

@@ -41,13 +41,13 @@ func (s *Service) UpdateDeploy(sliceID string, deploy model.Deploy) (model.Deplo
 	}
 
 	// 更新SliceProfile存储
-	if _, err := s.Store.UpdateSlice(&slice); err != nil {
+	if err := s.Store.UpdateSlice(slice); err != nil {
 		slog.Error("更新Slice Deploy失败", "sliceID", sliceID, "error", err)
 		return model.Deploy{}, err
 	}
 	rollbackFuncs = append(rollbackFuncs, func() {
 		slice.Deploy = oldDeploy // 恢复旧的Deploy
-		if _, rollbackErr := s.Store.UpdateSlice(&slice); rollbackErr != nil {
+		if rollbackErr := s.Store.UpdateSlice(slice); rollbackErr != nil {
 			slog.Error("回滚Slice失败", "sliceID", sliceID, "error", rollbackErr)
 		}
 	})

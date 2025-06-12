@@ -6,18 +6,18 @@ import (
 	"slicer/model"
 )
 
-func (s *Service) CreateSliceMonitor(sliceID string, monitor model.Monitor) (model.Monitor, error) {
+func (s *Service) CreateSliceMonitor(sliceID string, monitor *model.Monitor) (*model.Monitor, error) {
 	// 检查sliceID是否存在
 	slice, err := s.GetSlice(sliceID)
 	if err != nil {
 		slog.Error("创建监控失败，Slice不存在", "sliceID", sliceID, "error", err)
-		return model.Monitor{}, fmt.Errorf("创建监控失败，Slice不存在: %w", err)
+		return nil, fmt.Errorf("创建监控失败，Slice不存在: %w", err)
 	}
 
 	// 检查是否已启用监控
 	if slice.IsMonitored {
 		slog.Warn("创建监控失败，Slice已启用监控", "sliceID", sliceID)
-		return model.Monitor{}, fmt.Errorf("创建监控失败，Slice已启用监控")
+		return nil, fmt.Errorf("创建监控失败，Slice已启用监控")
 	}
 
 	// 设置监控信息
@@ -26,13 +26,13 @@ func (s *Service) CreateSliceMonitor(sliceID string, monitor model.Monitor) (mod
 	// 更新Slice信息和部署
 	if _, err = s.UpdateSlice(slice); err != nil {
 		slog.Error("创建监控失败, 更新Slice失败", "sliceID", sliceID, "error", err)
-		return model.Monitor{}, fmt.Errorf("更新Slice失败: %w", err)
+		return nil, fmt.Errorf("更新Slice失败: %w", err)
 	}
 
 	// 存储监控信息
-	if monitor, err = s.Store.CreateMonitor(&monitor); err != nil {
+	if err = s.Store.CreateMonitor(monitor); err != nil {
 		slog.Error("创建监控失败，存储监控信息失败", "sliceID", sliceID, "error", err)
-		return model.Monitor{}, fmt.Errorf("创建监控失败，存储监控信息失败: %w", err)
+		return nil, fmt.Errorf("创建监控失败，存储监控信息失败: %w", err)
 	}
 
 	return monitor, nil
@@ -68,21 +68,21 @@ func (s *Service) DeleteSliceMonitor(sliceID, monitorID string) error {
 	return nil
 }
 
-func (s *Service) GetMonitor(monitorID string) (model.Monitor, error) {
+func (s *Service) GetMonitor(monitorID string) (*model.Monitor, error) {
 	// 从存储中获取监控信息
 	monitor, err := s.Store.GetMonitor(monitorID)
 	if err != nil {
 		if isNotFoundError(err) { // MongoDB为空文档
 			slog.Warn("监控不存在", "monitorID", monitorID)
-			return model.Monitor{}, model.ErrMonitorNotFound
+			return nil, model.ErrMonitorNotFound
 		}
 		slog.Error("获取监控失败", "monitorID", monitorID, "error", err)
-		return model.Monitor{}, fmt.Errorf("获取监控失败: %w", err)
+		return nil, fmt.Errorf("获取监控失败: %w", err)
 	}
 	return monitor, nil
 }
 
-func (s *Service) ListMonitor() ([]model.Monitor, error) {
+func (s *Service) ListMonitor() ([]*model.Monitor, error) {
 	// 从存储中获取所有监控信息
 	monitors, err := s.Store.ListMonitor()
 	if err != nil {

@@ -154,7 +154,7 @@ func (c *BasicController) control(sliceID string) error {
 	// 更新Slice
 	slice.Deploy = newDeploy // 更新Slice的Deploy
 	// 更新SliceProfile存储
-	_, err = c.store.UpdateSlice(slice)
+	err = c.store.UpdateSlice(slice)
 	if err != nil {
 		slog.Error("更新Slice失败", "sliceID", sliceID, "err", err)
 		return err

@@ -9,24 +9,23 @@ import (
 )
 
 // Querier 接口实现
-func (m *MongoDB) UpdateSlice(slice *model.SliceProfile) (*model.SliceProfile, error) {
+func (m *MongoDB) UpdateSlice(slice *model.SliceProfile) error {
 	_, err := m.update(m.config.SliceStoreName, slice.ID, slice, true)
 	if err != nil {
-		return slice, fmt.Errorf("更新Slice失败：%w", err)
+		return fmt.Errorf("更新Slice失败：%w", err)
 	}
 
-	return slice, nil
+	return nil
 }
 
-func (m *MongoDB) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, error) {
+func (m *MongoDB) CreateSlice(slice *model.SliceProfile) error {
 	_, err := m.insert(m.config.SliceStoreName, slice)
 
 	// 如果ID为空，mongo会自动赋值，无需手动设置
-	// slice.ID = res.InsertedID.(primitive.ObjectID)
 	if err != nil {
-		return slice, fmt.Errorf("插入Slice失败：%w", err)
+		return fmt.Errorf("插入Slice失败：%w", err)
 	}
-	return slice, nil
+	return nil
 }
 
 func (m *MongoDB) DeleteSlice(id string) error {
@@ -65,7 +64,7 @@ func (m *MongoDB) GetSliceBySliceID(sliceID string) (*model.SliceProfile, error)
 	return slice, nil
 }
 
-func (m *MongoDB) ListSlice() ([]model.SliceProfile, error) {
+func (m *MongoDB) ListSlice() ([]*model.SliceProfile, error) {
 	// 获取所有 Slice
 	cursor, err := m.findAll(m.config.SliceStoreName)
 	if err != nil {
@@ -73,7 +72,7 @@ func (m *MongoDB) ListSlice() ([]model.SliceProfile, error) {
 	}
 
 	defer cursor.Close(context.Background())
-	var slices []model.SliceProfile
+	var slices []*model.SliceProfile
 	if err := cursor.All(context.Background(), &slices); err != nil {
 		return nil, fmt.Errorf("查询Slice失败：%w", err)
 	}
