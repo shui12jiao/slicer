@@ -13,7 +13,6 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lmittmann/tint v1.0.7
 	github.com/metal-stack/go-ipam v1.14.11
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/common v0.63.0
 	github.com/stretchr/testify v1.10.0
@@ -116,6 +115,7 @@ require (
 	github.com/meguminnnnnnnnn/go-openai v0.0.0-20250408071642-761325becfd6 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/spdystream v0.5.0 // indirect
 	github.com/moby/term v0.5.2 // indirect

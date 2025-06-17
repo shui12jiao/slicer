@@ -1,11 +1,6 @@
 package value
 
-import (
-	"log/slog"
-	"reflect"
-
-	"github.com/mitchellh/mapstructure"
-)
+import "encoding/json"
 
 type Common struct {
 	AMF   *AMF          `json:"amf,omitempty" yaml:"amf,omitempty" mapstructure:"amf,omitempty"`
@@ -34,37 +29,13 @@ func (s Slice) ToMap() map[string]interface{} {
 }
 
 func ToMap(input any) map[string]interface{} {
-	result := make(map[string]interface{})
-
-	config := mapstructure.DecoderConfig{
-		Result:           &result,
-		WeaklyTypedInput: true, // 允许弱类型输入
-		TagName:          "mapstructure",
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-				// 递归解引用所有指针类型
-				val := reflect.ValueOf(data)
-				for val.Kind() == reflect.Ptr && !val.IsNil() {
-					val = val.Elem()
-				}
-				return val.Interface(), nil
-			},
-			// 保留其他内置钩子（如时间/切片转换）
-			mapstructure.StringToTimeDurationHookFunc(),
-			mapstructure.StringToSliceHookFunc(","),
-		),
-	}
-
-	decoder, err := mapstructure.NewDecoder(&config)
+	data, err := json.Marshal(input)
 	if err != nil {
-		slog.Error("创建mapstructure解码器失败", "error", err)
 		return nil
 	}
-
-	if err := decoder.Decode(input); err != nil {
-		slog.Error("解码失败", "error", err)
+	var result map[string]interface{}
+	if err = json.Unmarshal(data, &result); err != nil {
 		return nil
 	}
-
 	return result
 }
