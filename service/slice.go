@@ -34,6 +34,17 @@ func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 		}
 	}()
 
+	// 分配IP地址
+	if err = s.allocateIP(slice); err != nil {
+		slog.Error("分配IP失败", "error", err)
+		return slice, fmt.Errorf("分配IP失败: %w", err)
+	}
+	rollbackFuncs = append(rollbackFuncs, func() {
+		if releaseErr := s.releaseIP(slice); releaseErr != nil {
+			slog.Error("回滚释放IP失败", "error", releaseErr)
+		}
+	})
+
 	// 存储 slice对象
 	err = s.Store.CreateSlice(slice)
 	if err != nil {
@@ -43,17 +54,6 @@ func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 	rollbackFuncs = append(rollbackFuncs, func() {
 		if deleteErr := s.Store.DeleteSlice(slice.ID.Hex()); deleteErr != nil {
 			slog.Error("回滚: 删除slice失败", "error", deleteErr)
-		}
-	})
-
-	// 分配IP地址
-	if err = s.allocateIP(slice); err != nil {
-		slog.Error("分配IP失败", "error", err)
-		return slice, fmt.Errorf("分配IP失败: %w", err)
-	}
-	rollbackFuncs = append(rollbackFuncs, func() {
-		if releaseErr := s.releaseIP(slice); releaseErr != nil {
-			slog.Error("回滚释放IP失败", "error", releaseErr)
 		}
 	})
 
