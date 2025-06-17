@@ -11,6 +11,45 @@ resources:
 configMapGenerator:
   - name: slicer-env
     literals:
+      # ===== 监控配置 =====
+      - MONARCH_THANOS_URL=http://192.168.58.2:31004
+      - MONARCH_REQUEST_TRANSLATOR_URI=http://192.168.58.2:30700
+      - MONARCH_MONITORING_INTERVAL=1
+      - MONITOR_TIMEOUT=1m
+
+      # ===== 数据库配置 =====
+      # MONGO_URI 从secret中构筑
+      - MONGO_DB_NAME=slicer
+      - MONGO_TIMEOUT=1m
+
+      # ===== Kubernetes 客户端配置 =====
+      - NAMESPACE=open5gs
+      - MONITOR_NAMESPACE=monarch
+      # - KUBECONFIG_PATH=/home/sming/.kube/config  # 设置为空, 从集群中获取
+      - HELM_TIMEOUT=15m
+
+      # ===== 服务配置 =====
+      - HTTP_SERVER_ADDRESS=0.0.0.0:30001
+      - COMMON_CHART_PATH=./common-1.0.0.tgz
+      - SLICE_CHART_PATH=./slice-1.0.0.tgz
+
+      # ===== IPAM 网络配置 =====
+      - N3_NETWORK=10.10.3.0/24
+      - N4_NETWORK=10.10.4.0/24
+      - SESSION_NETWORK=10.32.0.0/12
+      - SESSION_SUBNET_LENGTH=16
+      - IPAM_TIMEOUT=1m
+
+      # ===== AI 服务配置 =====
+      - MODEL_TYPE=ark
+      - MODEL=deepseek-r1-250120
+      - API_KEY=9aff57ec-30ed-4c28-bf8e-b215d198e5fc
+      - AI_TIMEOUT=1m
+      - BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+      - MaxTokens=4096
+
+  - name: slicer-env
+    literals:
       # for monitor
       - MONARCH_THANOS_URL=http://datadist-thanos-query-frontend.monarch.svc.cluster.local:9065
       - MONARCH_REQUEST_TRANSLATOR_URI=http://request-translator-service.monarch.svc.cluster.local:7000
@@ -44,7 +83,7 @@ configMapGenerator:
       - MODEL_TYPE=ark
       - MODEL=deepseek-r1-250120
       - API_KEY=9aff57ec-30ed-4c28-bf8e-b215d198e5fc
-          # 可选项
+        # 可选项
       - AI_TIMEOUT=255
       - BASE_URL=https://ark.cn-beijing.volces.com/api/v3
       - MaxTokens=4096
