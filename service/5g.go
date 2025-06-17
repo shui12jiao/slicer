@@ -48,7 +48,6 @@ func (o *Open5gs) GenerateValues(store db.Store, sliceID string) (sliceVals map[
 		for _, slice := range slices {
 			sliceVals[slice.SliceID()] = o.MapSliceToValues(slice)
 		}
-		slog.Info("生成Open5GS的Values", "sliceCount", len(sliceVals))
 	} else {
 		for _, slice := range slices {
 			if slice.SliceID() == sliceID {
@@ -56,8 +55,8 @@ func (o *Open5gs) GenerateValues(store db.Store, sliceID string) (sliceVals map[
 				break // 找到指定的切片ID后退出循环
 			}
 		}
-		slog.Info("生成Open5GS的Values", "sliceID", sliceID)
 	}
+	slog.Debug("生成Open5GS的Values", "common", commonVal.ToMap(), "slices", value.ToMap(sliceVals))
 	return
 }
 

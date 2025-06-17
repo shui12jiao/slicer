@@ -2,6 +2,7 @@ package value
 
 import (
 	"log/slog"
+	"reflect"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -39,6 +40,19 @@ func ToMap(input any) map[string]interface{} {
 		Result:           &result,
 		WeaklyTypedInput: true, // 允许弱类型输入
 		TagName:          "mapstructure",
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+				// 递归解引用所有指针类型
+				val := reflect.ValueOf(data)
+				for val.Kind() == reflect.Ptr && !val.IsNil() {
+					val = val.Elem()
+				}
+				return val.Interface(), nil
+			},
+			// 保留其他内置钩子（如时间/切片转换）
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToSliceHookFunc(","),
+		),
 	}
 
 	decoder, err := mapstructure.NewDecoder(&config)
