@@ -34,7 +34,7 @@ func NewOpen5gs(namespace, HelmReleasePrefix, commonChartPath, sliceChartPath st
 	}
 }
 
-func (o *Open5gs) GenerateValues(store db.Store, commonOnly bool) (sliceVals map[string]value.Slice, commonVal value.Common, err error) {
+func (o *Open5gs) GenerateValues(store db.Store, sliceID string) (sliceVals map[string]value.Slice, commonVal value.Common, err error) {
 	sliceVals = make(map[string]value.Slice)
 
 	// 获取所有切片信息
@@ -43,15 +43,20 @@ func (o *Open5gs) GenerateValues(store db.Store, commonOnly bool) (sliceVals map
 		slog.Error("获取切片信息失败", "error", err)
 		return
 	}
-
 	commonVal = o.MapCommonValues(slices)
-	if !commonOnly { // 如果不是仅获取公共值，则需要获取每个切片的值
+	if sliceID == "" { // 如果没有指定切片ID，则生成所有切片的Values
 		for _, slice := range slices {
 			sliceVals[slice.SliceID()] = o.MapSliceToValues(slice)
 		}
-		slog.Info("生成Open5GS的Values", "sliceCount", len(sliceVals), "common", commonVal)
+		slog.Info("生成Open5GS的Values", "sliceCount", len(sliceVals))
 	} else {
-		slog.Info("生成Open5GS的公共Values", "common", commonVal)
+		for _, slice := range slices {
+			if slice.SliceID() == sliceID {
+				sliceVals[sliceID] = o.MapSliceToValues(slice)
+				break // 找到指定的切片ID后退出循环
+			}
+		}
+		slog.Info("生成Open5GS的Values", "sliceID", sliceID)
 	}
 	return
 }

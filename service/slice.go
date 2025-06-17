@@ -58,7 +58,7 @@ func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 	})
 
 	// 切片转化为helm values
-	sliceVals, commonVal, err := s.Open5gs.GenerateValues(s.Store, false) // 获取所有切片的Values
+	sliceVals, commonVal, err := s.Open5gs.GenerateValues(s.Store, slice.SliceID()) // 获取所有切片的Values
 	if err != nil {
 		slog.Error("生成Open5GS的Values失败", "error", err)
 		return slice, fmt.Errorf("生成Open5GS的Values失败: %w", err)
@@ -136,7 +136,7 @@ func (s *Service) UpdateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 	})
 
 	// 切片转化为helm values
-	sliceVals, commonVal, err := s.Open5gs.GenerateValues(s.Store, false) // 获取所有切片的Values
+	sliceVals, commonVal, err := s.Open5gs.GenerateValues(s.Store, slice.SliceID()) // 获取所有切片的Values
 	if err != nil {
 		slog.Error("生成Open5GS的Values失败", "error", err)
 		return slice, fmt.Errorf("生成Open5GS的Values失败: %w", err)
@@ -208,7 +208,7 @@ func (s *Service) DeleteSlice(sliceID string) error {
 	}
 
 	// 生成Values
-	_, commonVal, err := s.Open5gs.GenerateValues(s.Store, true) // 仅获取公共值
+	_, commonVal, err := s.Open5gs.GenerateValues(s.Store, sliceID) // 仅获取公共值
 	if err != nil {
 		slog.Error("生成Open5GS的Values失败", "error", err)
 		return fmt.Errorf("生成Open5GS的Values失败: %w", err)
