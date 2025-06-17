@@ -25,10 +25,13 @@ func (s *Service) UpdateDeploy(sliceID string, deploy model.Deploy) (model.Deplo
 
 	// 在函数退出时，根据是否出错决定是否执行回滚
 	defer func() {
-		if err != nil {
+		if r := recover(); r != nil || err != nil {
 			slog.Debug("执行回滚操作")
 			for i := len(rollbackFuncs) - 1; i >= 0; i-- {
 				rollbackFuncs[i]()
+			}
+			if r != nil {
+				panic(r)
 			}
 		}
 	}()

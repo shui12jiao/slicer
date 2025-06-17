@@ -34,6 +34,7 @@ func NewService(param NewServiceParam) *Service {
 	return &Service{
 		Config:     param.Config,
 		Store:      param.Store,
+		IPAM:       param.IPAM,
 		KubeClient: param.KubeClient,
 		HelmClient: param.HelmClient,
 		Open5gs:    open5gs,

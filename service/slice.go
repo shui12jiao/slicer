@@ -8,9 +8,14 @@ import (
 
 func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, error) {
 	// 检查是否已存在同名的Slice
-	getSlice, err := s.GetSlice(slice.SliceID())
-	if err != model.ErrSliceNotFound { //已存在同名的Slice
-		return getSlice, fmt.Errorf("切片已存在: %w", err)
+	_, err := s.GetSlice(slice.SliceID())
+	if err == nil {
+		// 如果获取Slice时没有错误，说明Slice已存在
+		slog.Warn("创建Slice失败，Slice已存在", "sliceID", slice.SliceID())
+		return slice, model.ErrSliceAlreadyExists
+	} else if err != model.ErrSliceNotFound { // 如果是其他错误，返回错误
+		slog.Error("检查同名Slice失败", "sliceID", slice.SliceID(), "error", err)
+		return slice, fmt.Errorf("检查同名Slice失败: %w", err)
 	}
 
 	// 定义一个回滚栈，用于记录需要回滚的操作
@@ -18,10 +23,13 @@ func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 
 	// 在函数退出时，根据是否出错决定是否执行回滚
 	defer func() {
-		if err != nil {
+		if r := recover(); r != nil || err != nil {
 			slog.Debug("执行回滚操作")
 			for i := len(rollbackFuncs) - 1; i >= 0; i-- {
 				rollbackFuncs[i]()
+			}
+			if r != nil {
+				panic(r)
 			}
 		}
 	}()
@@ -104,10 +112,13 @@ func (s *Service) UpdateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 
 	// 在函数退出时，根据是否出错决定是否执行回滚
 	defer func() {
-		if err != nil {
+		if r := recover(); r != nil || err != nil {
 			slog.Debug("执行回滚操作")
 			for i := len(rollbackFuncs) - 1; i >= 0; i-- {
 				rollbackFuncs[i]()
+			}
+			if r != nil {
+				panic(r)
 			}
 		}
 	}()
