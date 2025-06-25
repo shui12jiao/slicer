@@ -21,8 +21,9 @@ type Monitor struct {
 	RequestDescription string             `json:"request_description" yaml:"request_description"`
 	Scope              Scope              `json:"scope" yaml:"scope"`
 	KPI                KPI                `json:"kpi" yaml:"kpi"` // 核心内容
-	Duration           Duration           `json:"duration" yaml:"duration"`
 	MonitoringInterval MonitoringInterval `json:"monitoring_interval" yaml:"monitoring_interval"`
+	Timeout            time.Duration      `json:"timeout" yaml:"timeout"`
+	Duration           Duration           `json:"duration" yaml:"duration"`
 	//用于request translator
 	RequestID string `json:"request_id,omitempty" yaml:"request_id,omitempty"`
 }

@@ -104,13 +104,6 @@ definitions:
       status:
         type: string
     type: object
-  model.AMBR:
-    properties:
-      downlink:
-        $ref: '#/definitions/model.BitRate'
-      uplink:
-        $ref: '#/definitions/model.BitRate'
-    type: object
   model.ARP:
     properties:
       pre_emption_capability:
@@ -155,13 +148,6 @@ definitions:
     type: object
   model.Deploy:
     type: object
-  model.Duration:
-    properties:
-      end_time:
-        type: string
-      start_time:
-        type: string
-    type: object
   model.Flow:
     properties:
       description:
@@ -195,27 +181,6 @@ definitions:
         $ref: '#/definitions/model.BitRate'
     type: object
   model.Monitor:
-    properties:
-      api_version:
-        description: 通用
-        type: string
-      duration:
-        $ref: '#/definitions/model.Duration'
-      id:
-        type: string
-      kpi:
-        allOf:
-        - $ref: '#/definitions/model.KPI'
-        description: 核心内容
-      monitoring_interval:
-        $ref: '#/definitions/model.MonitoringInterval'
-      request_description:
-        type: string
-      request_id:
-        description: 用于request translator
-        type: string
-      scope:
-        $ref: '#/definitions/model.Scope'
     type: object
   model.MonitoringInterval:
     properties:
@@ -297,16 +262,12 @@ definitions:
     type: object
   model.Session:
     properties:
-      ambr:
-        $ref: '#/definitions/model.AMBR'
       name:
         type: string
       pcc_rule:
         items:
           $ref: '#/definitions/model.PCCRule'
         type: array
-      qos:
-        $ref: '#/definitions/model.QoS'
       type:
         type: integer
     type: object
@@ -327,12 +288,12 @@ definitions:
     properties:
       address_value:
         $ref: '#/definitions/model.AddressValue'
+      deploy:
+        $ref: '#/definitions/model.Deploy'
       id:
         type: string
-      is_monitored:
-        type: boolean
-      kube_config:
-        $ref: '#/definitions/model.Deploy'
+      monitor_ref:
+        type: string
       sla:
         $ref: '#/definitions/model.SLA'
       slice:

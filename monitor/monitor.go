@@ -17,7 +17,7 @@ type Monitor struct {
 }
 
 func NewMonitor(config *util.Config) *Monitor {
-	return &Monitor{config: config, componentName: "kpi_calculator"}
+	return &Monitor{config: config, componentName: "kpi-calculator"}
 }
 
 type Response struct {
@@ -69,6 +69,8 @@ func (m *Monitor) checkComponentReady(kc *kube.KubeClient) error {
 			slog.Error("应用模板到Kubernetes失败", "error", err, "file", tplFile)
 			return fmt.Errorf("应用模板到Kubernetes失败: %v", err)
 		}
+	} else {
+		slog.Info("监控组件已就绪", "component", m.componentName)
 	}
 
 	return nil

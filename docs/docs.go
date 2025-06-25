@@ -1190,17 +1190,6 @@ const docTemplate = `{
                 }
             }
         },
-        "model.AMBR": {
-            "type": "object",
-            "properties": {
-                "downlink": {
-                    "$ref": "#/definitions/model.BitRate"
-                },
-                "uplink": {
-                    "$ref": "#/definitions/model.BitRate"
-                }
-            }
-        },
         "model.ARP": {
             "type": "object",
             "properties": {
@@ -1267,17 +1256,6 @@ const docTemplate = `{
         "model.Deploy": {
             "type": "object"
         },
-        "model.Duration": {
-            "type": "object",
-            "properties": {
-                "end_time": {
-                    "type": "string"
-                },
-                "start_time": {
-                    "type": "string"
-                }
-            }
-        },
         "model.Flow": {
             "type": "object",
             "properties": {
@@ -1329,40 +1307,7 @@ const docTemplate = `{
             }
         },
         "model.Monitor": {
-            "type": "object",
-            "properties": {
-                "api_version": {
-                    "description": "通用",
-                    "type": "string"
-                },
-                "duration": {
-                    "$ref": "#/definitions/model.Duration"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "kpi": {
-                    "description": "核心内容",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/model.KPI"
-                        }
-                    ]
-                },
-                "monitoring_interval": {
-                    "$ref": "#/definitions/model.MonitoringInterval"
-                },
-                "request_description": {
-                    "type": "string"
-                },
-                "request_id": {
-                    "description": "用于request translator",
-                    "type": "string"
-                },
-                "scope": {
-                    "$ref": "#/definitions/model.Scope"
-                }
-            }
+            "type": "object"
         },
         "model.MonitoringInterval": {
             "type": "object",
@@ -1482,9 +1427,6 @@ const docTemplate = `{
         "model.Session": {
             "type": "object",
             "properties": {
-                "ambr": {
-                    "$ref": "#/definitions/model.AMBR"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -1493,9 +1435,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/model.PCCRule"
                     }
-                },
-                "qos": {
-                    "$ref": "#/definitions/model.QoS"
                 },
                 "type": {
                     "type": "integer"
@@ -1528,14 +1467,14 @@ const docTemplate = `{
                 "address_value": {
                     "$ref": "#/definitions/model.AddressValue"
                 },
+                "deploy": {
+                    "$ref": "#/definitions/model.Deploy"
+                },
                 "id": {
                     "type": "string"
                 },
-                "is_monitored": {
-                    "type": "boolean"
-                },
-                "kube_config": {
-                    "$ref": "#/definitions/model.Deploy"
+                "monitor_ref": {
+                    "type": "string"
                 },
                 "sla": {
                     "$ref": "#/definitions/model.SLA"

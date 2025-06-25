@@ -15,24 +15,22 @@ func (s *Service) CreateSliceMonitor(sliceID string, monitor *model.Monitor) (*m
 	}
 
 	// 检查是否已启用监控
-	if slice.IsMonitored {
+	if slice.MonitorRef != nil {
 		slog.Warn("创建监控失败，Slice已启用监控", "sliceID", sliceID)
 		return nil, fmt.Errorf("创建监控失败，Slice已启用监控")
-	}
-
-	// 设置监控信息
-	slice.IsMonitored = true
-
-	// 更新Slice信息和部署
-	if _, err = s.UpdateSlice(slice); err != nil {
-		slog.Error("创建监控失败, 更新Slice失败", "sliceID", sliceID, "error", err)
-		return nil, fmt.Errorf("更新Slice失败: %w", err)
 	}
 
 	// 存储监控信息
 	if err = s.Store.CreateMonitor(monitor); err != nil {
 		slog.Error("创建监控失败，存储监控信息失败", "sliceID", sliceID, "error", err)
 		return nil, fmt.Errorf("创建监控失败，存储监控信息失败: %w", err)
+	}
+
+	// 更新Slice信息和部署
+	slice.MonitorRef = &monitor.ID
+	if _, err = s.UpdateSlice(slice); err != nil {
+		slog.Error("创建监控失败, 更新Slice失败", "sliceID", sliceID, "error", err)
+		return nil, fmt.Errorf("更新Slice失败: %w", err)
 	}
 
 	return monitor, nil
@@ -46,10 +44,18 @@ func (s *Service) DeleteSliceMonitor(sliceID, monitorID string) error {
 		return fmt.Errorf("删除监控失败，Slice不存在: %w", err)
 	}
 
+	// 转换 monitorID 为 model.ObjectID
+	monitorIDObj, err := ObjectIDFromString(monitorID)
+	if err != nil {
+		slog.Error("删除监控失败，监控ID格式错误", "monitorID", monitorID, "error", err)
+		return fmt.Errorf("删除监控失败，监控ID格式错误: %w", err)
+	}
+
 	// 检查是否已启用监控
-	if !slice.IsMonitored {
-		slog.Warn("删除监控失败，Slice未启用监控", "sliceID", sliceID)
-		return fmt.Errorf("删除监控失败，Slice未启用监控")
+	if slice.MonitorRef == nil || *slice.MonitorRef != monitorIDObj {
+		// 如果Slice未启用监控或监控ID不匹配，直接返回错误
+		slog.Warn("删除监控失败，Slice未启用监控或监控ID不匹配", "sliceID", sliceID, "monitorID", monitorID)
+		return fmt.Errorf("删除监控失败，Slice未启用监控或监控ID不匹配")
 	}
 
 	// 删除监控信息
@@ -59,7 +65,7 @@ func (s *Service) DeleteSliceMonitor(sliceID, monitorID string) error {
 	}
 
 	// 更新Slice信息
-	slice.IsMonitored = false
+	slice.MonitorRef = nil // 清除监控引用
 	if _, err = s.UpdateSlice(slice); err != nil {
 		slog.Error("删除监控失败, 更新Slice失败", "sliceID", sliceID, "error", err)
 		return fmt.Errorf("更新Slice失败: %w", err)

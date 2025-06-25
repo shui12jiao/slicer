@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"slicer/model"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -108,4 +109,8 @@ func isNotFoundError(err error) bool {
 		slog.Debug("MongoDB返回错误", "error", err)
 		return false
 	}
+}
+
+func ObjectIDFromString(id string) (primitive.ObjectID, error) {
+	return primitive.ObjectIDFromHex(id)
 }

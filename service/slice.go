@@ -58,7 +58,7 @@ func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 	})
 
 	// 切片转化为helm values
-	sliceVals, commonVal, err := s.Open5gs.GenerateValues(s.Store, slice.SliceID()) // 获取所有切片的Values
+	sliceVals, commonVal, err := s.Open5gs.GenerateValues(slice.SliceID()) // 获取所有切片的Values
 	if err != nil {
 		slog.Error("生成Open5GS的Values失败", "error", err)
 		return slice, fmt.Errorf("生成Open5GS的Values失败: %w", err)
@@ -136,7 +136,7 @@ func (s *Service) UpdateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 	})
 
 	// 切片转化为helm values
-	sliceVals, commonVal, err := s.Open5gs.GenerateValues(s.Store, slice.SliceID()) // 获取所有切片的Values
+	sliceVals, commonVal, err := s.Open5gs.GenerateValues(slice.SliceID()) // 获取所有切片的Values
 	if err != nil {
 		slog.Error("生成Open5GS的Values失败", "error", err)
 		return slice, fmt.Errorf("生成Open5GS的Values失败: %w", err)
@@ -189,10 +189,15 @@ func (s *Service) DeleteSlice(sliceID string) error {
 		return err
 	}
 
-	// 检查监控是否为启用状态
-	if slice.IsMonitored {
-		slog.Warn("删除Slice失败，Slice处于监控状态", "sliceID", sliceID)
-		return fmt.Errorf("删除Slice失败，Slice处于监控状态")
+	// 首先删除监控
+	if slice.MonitorRef != nil {
+		err := s.Store.DeleteMonitor(slice.MonitorRef.Hex())
+		if err != nil {
+			slog.Error("从存储中删除监控失败", "sliceID", sliceID, "monitorID", slice.MonitorRef.Hex(), "error", err)
+			return fmt.Errorf("从存储中删除监控失败: %w", err)
+		}
+		slog.Info("从存储中删除监控成功", "sliceID", sliceID, "monitorID", slice.MonitorRef.Hex())
+		slice.MonitorRef = nil // 清除监控引用
 	}
 
 	// 从存储中删除slice对象
@@ -208,7 +213,7 @@ func (s *Service) DeleteSlice(sliceID string) error {
 	}
 
 	// 生成Values
-	_, commonVal, err := s.Open5gs.GenerateValues(s.Store, sliceID) // 仅获取公共值
+	_, commonVal, err := s.Open5gs.GenerateValues(sliceID) // 仅获取公共值
 	if err != nil {
 		slog.Error("生成Open5GS的Values失败", "error", err)
 		return fmt.Errorf("生成Open5GS的Values失败: %w", err)

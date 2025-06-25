@@ -31,7 +31,7 @@ func NewService(param NewServiceParam) *Service {
 		param.Config.SliceChartPath,
 	)
 
-	return &Service{
+	s := &Service{
 		Config:     param.Config,
 		Store:      param.Store,
 		IPAM:       param.IPAM,
@@ -39,4 +39,6 @@ func NewService(param NewServiceParam) *Service {
 		HelmClient: param.HelmClient,
 		Open5gs:    open5gs,
 	}
+	open5gs.service = s
+	return s
 }

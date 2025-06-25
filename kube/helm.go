@@ -77,6 +77,8 @@ func NewHelmClient(config *util.Config, kconfig *rest.Config) (*HelmClient, erro
 	actionSet.upgrade.Wait = true
 	actionSet.upgrade.Timeout = config.HelmTimeout
 	actionSet.upgrade.Namespace = config.Namespace
+	actionSet.upgrade.Install = false
+	actionSet.upgrade.ReuseValues = true // 启用重用旧值. patch更新时会保留旧的值
 	// 设置卸载参数
 	actionSet.uninstall.Wait = true
 	actionSet.uninstall.Timeout = config.HelmTimeout
@@ -159,8 +161,6 @@ func (hc *HelmClient) Install(releaseName, chartPath string, values map[string]i
 // Upgrade 升级 Chart
 // 注意：此方法仅在 Chart 已存在时使用
 func (hc *HelmClient) Upgrade(releaseName, chartPath string, values map[string]interface{}) (*release.Release, error) {
-	hc.action.upgrade.Install = false // 仅升级
-
 	// 加载 Chart
 	chartReq, err := loader.Load(chartPath)
 	if err != nil {

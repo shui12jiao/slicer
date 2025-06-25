@@ -20,11 +20,10 @@ func (s *Service) MdeInstall(sliceID string) error {
 		// 遍历所有Slice并安装MDE
 		activated := make([]string, 0)
 		for _, slice := range slices {
-			if slice.IsMonitored {
+			if slice.MonitorRef != nil {
 				continue // 已经启用MDE的Slice跳过
 			}
-			// 设置MDE信息
-			slice.IsMonitored = true
+
 			// 更新Slice信息和部署
 			if _, err = s.UpdateSlice(slice); err != nil {
 				slog.Error("创建MDE失败, 更新Slice失败", "sliceID", slice.SliceID(), "error", err)
@@ -63,13 +62,10 @@ func (s *Service) MdeInstall(sliceID string) error {
 		}
 
 		// 检查是否已启用MDE
-		if slice.IsMonitored {
+		if slice.MonitorRef != nil {
 			slog.Warn("创建MDE失败，Slice已启用MDE", "sliceID", sliceID)
 			return fmt.Errorf("创建MDE失败，Slice已启用MDE")
 		}
-
-		// 设置MDE信息
-		slice.IsMonitored = true
 
 		// 更新Slice信息和部署
 		if _, err = s.UpdateSlice(slice); err != nil {
@@ -118,13 +114,13 @@ func (s *Service) MdeUninstall() error {
 				}
 
 				// 检查是否已启用监控
-				if !slice.IsMonitored {
-					slog.Warn("删除监控失败，Slice未启用监控", "sliceID", sliceID)
-					return fmt.Errorf("删除监控失败，Slice未启用监控")
+				if slice.MonitorRef == nil || *slice.MonitorRef != monitor.ID {
+					slog.Warn("删除监控失败，Slice未启用监控或监控ID不匹配", "sliceID", sliceID, "monitorID", monitor.ID.Hex())
+					return fmt.Errorf("删除监控失败，Slice未启用监控或监控ID不匹配")
 				}
 
 				// 更新Slice信息
-				slice.IsMonitored = false
+				slice.MonitorRef = nil // 清除监控引用
 				if _, err = s.UpdateSlice(slice); err != nil {
 					slog.Error("删除监控失败, 更新Slice失败", "sliceID", sliceID, "error", err)
 					return fmt.Errorf("更新Slice失败: %w", err)

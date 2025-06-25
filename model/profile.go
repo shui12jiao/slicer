@@ -13,7 +13,7 @@ type SliceProfile struct {
 	Deploy `json:"deploy" yaml:"deploy"`
 	SLA    `json:"sla" yaml:"sla"`
 
-	IsMonitored  bool `json:"is_monitored,omitempty" yaml:"is_monitored,omitempty"`
+	MonitorRef   *primitive.ObjectID `json:"monitor_ref,omitempty" yaml:"monitor_ref,omitempty"`
 	AddressValue `json:"address_value,omitempty" yaml:"address_value,omitempty"`
 }
 

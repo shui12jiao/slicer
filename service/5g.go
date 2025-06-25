@@ -1,8 +1,8 @@
 package service
 
 import (
+	"fmt"
 	"log/slog"
-	"slicer/db"
 	"slicer/kube/value"
 	"slicer/model"
 	"strconv"
@@ -11,6 +11,8 @@ import (
 // Open5gs 定义Open5GS的Helm Chart相关信息
 // 用于在Kubernetes集群中部署和管理Open5GS
 type Open5gs struct {
+	service *Service // 父Service引用，用于访问Service方法
+
 	Namespace         string // Open5GS的命名空间
 	HelmCommonChart   string // Open5GS的Common Helm Chart路径
 	HelmSliceChart    string // Open5GS的切片Helm Chart路径
@@ -34,11 +36,11 @@ func NewOpen5gs(namespace, HelmReleasePrefix, commonChartPath, sliceChartPath st
 	}
 }
 
-func (o *Open5gs) GenerateValues(store db.Store, sliceID string) (sliceVals map[string]value.Slice, commonVal value.Common, err error) {
+func (o *Open5gs) GenerateValues(sliceID string) (sliceVals map[string]value.Slice, commonVal value.Common, err error) {
 	sliceVals = make(map[string]value.Slice)
 
 	// 获取所有切片信息
-	slices, err := store.ListSlice()
+	slices, err := o.service.Store.ListSlice()
 	if err != nil {
 		slog.Error("获取切片信息失败", "error", err)
 		return
@@ -66,21 +68,26 @@ func (o *Open5gs) MapSliceToValues(slice *model.SliceProfile) value.Slice {
 		"slice": slice.SliceID(), // 添加切片ID标签
 	}
 
+	var um *value.UPFMetrics
+	var sm *value.SMFMetrics
+	// 如果切片启用了监控，则获取监控信息
+	if slice.MonitorRef != nil {
+		// 查找监控信息
+		monitor, err := o.service.Store.GetMonitor(slice.MonitorRef.Hex())
+		if err != nil {
+			// 监控信息获取失败，不使用监控配置
+			slog.Error("获取监控信息失败，不配置监控", "monitorID", slice.MonitorRef.Hex(), "error", err)
+		} else {
+			// 转换监控信息为UPF和SMF的Metrics
+			um, sm = o.MapMetricsValue(monitor)
+		}
+	}
+
 	// sliceProfile包含切片逻辑信息，转化为用于slice chart（upf+smf）的value
 	return value.Slice{
 		SMF: &value.SMF{
 			CommonLabels: labels,
-			Metrics: &value.SMFMetrics{
-				Enabled: &slice.IsMonitored, // 是否启用监控
-				ServiceMonitor: &value.SMFMetricsServiceMonitor{
-					// TODO 未来改进监控配置
-					Enabled: Ptr(true),
-					// AdditionalLabels: labels, // TODO 可能不需要手动添加？ 待测试
-				},
-				ServiceScrape: &value.SMFMetricsServiceScrape{
-					Enabled: Ptr(false), // 不启用VictoriaMetrics
-				},
-			},
+			Metrics:      sm, // SMF的监控配置
 			Config: &value.SMFConfig{
 				Sbi: &value.SMFConfigSbi{
 					Client: &value.SMFConfigSbiClient{
@@ -123,17 +130,7 @@ func (o *Open5gs) MapSliceToValues(slice *model.SliceProfile) value.Slice {
 		},
 		UPF: &value.UPF{
 			CommonLabels: labels,
-			Metrics: &value.UPFMetrics{
-				Enabled: &slice.IsMonitored, // 是否启用监控
-				ServiceMonitor: &value.UPFMetricsServiceMonitor{
-					// TODO 未来改进监控配置
-					Enabled: Ptr(true),
-					// AdditionalLabels: labels, // TODO 同上
-				},
-				ServiceScrape: &value.UPFMetricsServiceScrape{
-					Enabled: Ptr(false), // 不启用VictoriaMetrics
-				},
-			},
+			Metrics:      um, // UPF的监控配置
 			Config: &value.UPFConfig{
 				SubnetList: func() []value.UPFConfigSubnetListElem {
 					subnets := make([]value.UPFConfigSubnetListElem, len(slice.AddressValue.SessionSubnets))
@@ -357,6 +354,50 @@ func (o *Open5gs) MapCommonValues(slices []*model.SliceProfile) value.Common {
 		},
 		WebUI: &value.Open5GSWebUI{}, // Open5GS Web UI配置
 	}
+}
+
+// MapMetricsValue 将监控信息转换为UPF和SMF的Metrics配置
+// 如果监控信息为空，则使用默认值
+// 监控信息包含监控间隔和超时设置
+func (o *Open5gs) MapMetricsValue(m *model.Monitor) (um *value.UPFMetrics, sm *value.SMFMetrics) {
+	if m == nil {
+		slog.Warn("监控信息为空，使用默认值")
+		// 如果监控信息为空，则使用默认值
+		um, sm = o.MapMetricsValue(&model.Monitor{})
+		return
+	}
+
+	um = &value.UPFMetrics{
+		Enabled: Ptr(true),
+		ServiceMonitor: &value.UPFMetricsServiceMonitor{
+			Enabled: Ptr(true),
+		},
+		ServiceScrape: &value.UPFMetricsServiceScrape{
+			Enabled: Ptr(false), // 不启用VictoriaMetrics
+		},
+	}
+	sm = &value.SMFMetrics{
+		Enabled: Ptr(true),
+		ServiceMonitor: &value.SMFMetricsServiceMonitor{
+			Enabled: Ptr(true),
+		},
+		ServiceScrape: &value.SMFMetricsServiceScrape{
+			Enabled: Ptr(false), // 不启用VictoriaMetrics
+		},
+	}
+
+	if m.MonitoringInterval.IntervalSecs > 0 {
+		internal := fmt.Sprintf("%ds", m.MonitoringInterval.IntervalSecs)
+		um.ServiceMonitor.Interval = &internal
+		sm.ServiceMonitor.Interval = &internal
+	}
+	if m.Timeout > 0 {
+		timeout := fmt.Sprintf("%ds", int(m.Timeout.Seconds()))
+		um.ServiceMonitor.ScrapeTimeout = &timeout
+		sm.ServiceMonitor.ScrapeTimeout = &timeout
+	}
+
+	return
 }
 
 // 用于对字面量类型的值进行指针化
