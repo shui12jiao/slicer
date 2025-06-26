@@ -129,6 +129,16 @@ func (o *Open5gs) MapSliceToValues(slice *model.SliceProfile) value.Slice {
 			},
 		},
 		UPF: &value.UPF{
+			// UPF采用的tag不同，注意！
+			Image: &value.UPFImage{
+				Registry:    Ptr("crpi-sut5dyyu9y5gqtfq.cn-shanghai.personal.cr.aliyuncs.com"),
+				Repository:  Ptr("sminggg/open5gs"),
+				Tag:         Ptr("2.7.0-upf-metrics-v2"), // Open5GS的Docker镜像版本
+				Digest:      Ptr(""),                     // 镜像的Digest，如果
+				PullPolicy:  Ptr("IfNotPresent"),         // 镜像拉取策略
+				PullSecrets: []any{},                     // 镜像拉取密钥
+				Debug:       Ptr(false),                  // 是否启用调试日志
+			}, // UPF的Docker镜像地址
 			CommonLabels: labels,
 			Metrics:      um, // UPF的监控配置
 			Config: &value.UPFConfig{

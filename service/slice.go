@@ -80,8 +80,8 @@ func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 		}
 	})
 	// 部署common的Helm Chart
-	_, err = s.HelmClient.Install(
-		s.Open5gs.HelmReleasePrefix+"common",
+	_, err = s.HelmClient.InstallOrUpgrade(
+		s.Open5gs.HelmReleasePrefix,
 		s.Open5gs.HelmCommonChart,
 		commonVal.ToMap(),
 	)
@@ -90,7 +90,7 @@ func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 		return slice, fmt.Errorf("部署common的Helm Chart失败: %w", err)
 	}
 	rollbackFuncs = append(rollbackFuncs, func() {
-		if uninstallErr := s.HelmClient.Uninstall(s.Open5gs.HelmReleasePrefix + "common"); uninstallErr != nil {
+		if uninstallErr := s.HelmClient.Uninstall(s.Open5gs.HelmReleasePrefix); uninstallErr != nil {
 			slog.Error("回滚: 卸载common的Helm Chart失败", "error", uninstallErr)
 		}
 	})
@@ -160,7 +160,7 @@ func (s *Service) UpdateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 		}
 	})
 	// 更新common的Helm Chart
-	commonReleaseName := s.Open5gs.HelmReleasePrefix + "common"
+	commonReleaseName := s.Open5gs.HelmReleasePrefix
 	commonReleaseOld, err := s.HelmClient.Get(commonReleaseName)
 	_, err = s.HelmClient.Upgrade(
 		commonReleaseName,
@@ -226,7 +226,7 @@ func (s *Service) DeleteSlice(sliceID string) error {
 	}
 	// 更新common的Helm Chart
 	if _, err := s.HelmClient.InstallOrUpgrade(
-		s.Open5gs.HelmReleasePrefix+"common",
+		s.Open5gs.HelmReleasePrefix,
 		s.Open5gs.HelmCommonChart,
 		commonVal.ToMap(),
 	); err != nil {
