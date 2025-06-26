@@ -139,6 +139,13 @@ func (o *Open5gs) MapSliceToValues(slice *model.SliceProfile) value.Slice {
 				PullSecrets: []any{},                     // 镜像拉取密钥
 				Debug:       Ptr(false),                  // 是否启用调试日志
 			}, // UPF的Docker镜像地址
+			Command: []any{
+				"/open5gs/install/bin/open5gs-upfd", // UPF的启动命令
+			},
+			Args: []any{
+				"-c",
+				"/opt/open5gs/etc/open5gs/upf.yaml", // UPF的配置文件路径
+			},
 			CommonLabels: labels,
 			Metrics:      um, // UPF的监控配置
 			Config: &value.UPFConfig{

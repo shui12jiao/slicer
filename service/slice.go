@@ -65,7 +65,7 @@ func (s *Service) CreateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 	}
 
 	// 部署slice的Helm Chart
-	_, err = s.HelmClient.Install(
+	_, err = s.HelmClient.InstallOrUpgrade(
 		s.Open5gs.HelmReleasePrefix+slice.SliceID(),
 		s.Open5gs.HelmSliceChart,
 		sliceVals[slice.SliceID()].ToMap(),
