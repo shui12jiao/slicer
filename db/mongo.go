@@ -54,6 +54,11 @@ func NewMongoDB(config *util.Config, opts ...*options.ClientOptions) (*MongoDB, 
 // 更新
 // 设置upsert为true时，如果文档不存在则插入新文档
 func (m *MongoDB) update(collection string, objID primitive.ObjectID, doc any, upsert bool) (*mongo.UpdateResult, error) {
+	// 检查 objID 是否为零值
+	if objID.IsZero() {
+		return nil, errors.New("无效的 ObjectID")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
 	defer cancel()
 

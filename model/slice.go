@@ -109,6 +109,27 @@ func (s *Slice) Validate() error {
 	return errors.Join(errs...)
 }
 
+// 通过sliceID设置SST和SD的值
+func (s *SliceProfile) SetSliceID(sliceID string) error {
+	if sliceID == "" {
+		return errors.New("sliceID不能为空")
+	}
+
+	// 解析 sliceID 格式
+	var sst int
+	var sd string
+	n, err := fmt.Sscanf(sliceID, "%d-%s", &sst, &sd)
+	if err != nil || n != 2 {
+		return fmt.Errorf("sliceID格式错误：%s", sliceID)
+	}
+
+	// 设置 SST 和 SD
+	s.Slice.SST = sst
+	s.Slice.SD = sd
+
+	return nil
+}
+
 // // validateSession 校验单个会话结构
 // func validateSession(s *Session, idx int) error {
 // 	var errs []error

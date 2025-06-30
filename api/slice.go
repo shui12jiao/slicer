@@ -71,11 +71,28 @@ func (s *Server) createSlice(w http.ResponseWriter, r *http.Request) {
 func (s *Server) updateSlice(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("更新slice请求", "method", r.Method, "url", r.URL.String())
 
-	slice := new(model.SliceProfile)
+	// 获取URL参数中的sliceID
+	// 注意：这里的sliceID是从URL路径中获取的，而不是从请求体中获取的
+	// 这样符合 RESTful API 的设计原则，请求体中应该只包含需要更新的字段，而不是整个对象，这里方便起见，直接采用了整个对象，但sliceID相关字段会被忽略
+	sliceID := chi.URLParam(r, "slice_id")
+	if sliceID == "" {
+		slog.Warn("缺少sliceID参数")
+		http.Error(w, "缺少sliceID参数", http.StatusBadRequest)
+		return
+	}
 
+	// 获取请求体中的切片对象
+	slice := new(model.SliceProfile)
 	if err := json.NewDecoder(r.Body).Decode(slice); err != nil {
 		slog.Warn("请求解码失败", "error", err)
 		http.Error(w, fmt.Sprintf("请求解码失败: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// 设置切片ID
+	if err := slice.SetSliceID(sliceID); err != nil {
+		slog.Warn("设置sliceID失败", "error", err)
+		http.Error(w, fmt.Sprintf("设置sliceID失败: %v", err), http.StatusBadRequest)
 		return
 	}
 

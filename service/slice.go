@@ -107,6 +107,9 @@ func (s *Service) UpdateSlice(slice *model.SliceProfile) (*model.SliceProfile, e
 		return slice, err
 	}
 
+	// 赋值ID
+	slice.ID = sliceOld.ID // 保持ID不变
+
 	// 定义一个回滚栈，用于记录需要回滚的操作
 	var rollbackFuncs []func()
 

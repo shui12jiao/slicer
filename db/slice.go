@@ -10,7 +10,7 @@ import (
 
 // Querier 接口实现
 func (m *MongoDB) UpdateSlice(slice *model.SliceProfile) error {
-	_, err := m.update(m.config.SliceStoreName, slice.ID, slice, true)
+	_, err := m.update(m.config.SliceStoreName, slice.ID, slice, false)
 	if err != nil {
 		return fmt.Errorf("更新Slice失败：%w", err)
 	}
