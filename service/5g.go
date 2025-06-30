@@ -97,7 +97,7 @@ func (o *Open5gs) MapSliceToValues(slice *model.SliceProfile) value.Slice {
 						Scp: &value.SMFConfigSbiClientScp{
 							Enabled: Ptr(true), // SCP启用
 							// TODO,为了可能需要修正模板来解决
-							Uri: Ptr("http://open5gs-scp-sbi:7777"), // SCP的URI
+							Uri: Ptr(fmt.Sprintf("http://%s-scp-sbi:7777", o.HelmReleasePrefix)), // SCP的URI
 						},
 					},
 				},
@@ -302,7 +302,7 @@ func (o *Open5gs) MapCommonValues(slices []*model.SliceProfile) value.Common {
 						nsiList[i] = value.NSSFConfigNsiListElem{
 							Sd:  &slice.SD,
 							Sst: &slice.SST,
-							Uri: Ptr("http://nrf-nnrf:80"),
+							Uri: Ptr(fmt.Sprintf("http://%s-nrf-sbi:7777", o.HelmReleasePrefix)), // NRF的URI
 						}
 					}
 					return nsiList
