@@ -65,3 +65,9 @@ package:
 	cd ../slice && helm dependency build && helm lint && helm package . --destination ../ && \
 	cd ../ueransim-gnb && helm dependency build && helm lint && helm package . --destination ../ && \
 	cd ../ueransim-ues && helm dependency build && helm lint && helm package . --destination ../ 
+
+gnb:
+	helm install -n open5gs ueransim-gnb ./charts/ueransim-gnb-1.0.0.tgz
+
+ues:
+	helm install -n open5gs ueransim-ues ./charts/ueransim-ues-1.0.0.tgz

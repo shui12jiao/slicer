@@ -96,6 +96,8 @@ func (o *Open5gs) MapSliceToValues(slice *model.SliceProfile) value.Slice {
 						},
 						Scp: &value.SMFConfigSbiClientScp{
 							Enabled: Ptr(true), // SCP启用
+							// TODO,为了可能需要修正模板来解决
+							Uri: Ptr("http://open5gs-scp-sbi:7777"), // SCP的URI
 						},
 					},
 				},
