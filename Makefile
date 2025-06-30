@@ -62,4 +62,6 @@ deploy:
 # helm
 package:
 	cd charts/common && helm dependency build && helm lint && helm package . --destination ../ && \
-	cd ../slice && helm dependency build && helm lint && helm package . --destination ../
+	cd ../slice && helm dependency build && helm lint && helm package . --destination ../ && \
+	cd ../ueransim-gnb && helm dependency build && helm lint && helm package . --destination ../ && \
+	cd ../ueransim-ues && helm dependency build && helm lint && helm package . --destination ../ 
