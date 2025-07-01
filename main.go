@@ -101,7 +101,7 @@ func main() {
 func runController(config *util.Config, store db.Store, kclient *kube.KubeClient) controller.Controller {
 	basicStrategy := newBasicStrategy(config)
 	aiStrategy := newAIStrategy(config)
-	controller := controller.NewBasicController(config, store, kclient, basicStrategy, aiStrategy)
+	controller := controller.NewBasicController(config, store, kclient, aiStrategy, basicStrategy)
 	controller.Start()
 	slog.Info("控制器已启动", "频率", controller.GetFrequency(), "策略", controller.GetStrategy().Name())
 	return controller

@@ -130,7 +130,7 @@ func (s *StrategyAgent) Reconcile(sliceID string, current sm.Deploy, sla sm.SLA)
 		schema.UserMessage("当前策略: " + current.String()),
 		schema.UserMessage("当前指标: " + metrics),
 		schema.UserMessage("当前SLA: " + sla.String()),
-		schema.UserMessage("请根据当前指标和SLA, 生成新的Play策略"),
+		schema.UserMessage("请根据当前指标和SLA, 生成新的Deploy策略"),
 		schema.UserMessage("注意: 只需要返回新的策略对应的JSON格式数据, 不要多余描述"),
 	}
 

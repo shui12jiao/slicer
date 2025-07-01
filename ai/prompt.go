@@ -1,38 +1,40 @@
 package ai
 
-const StragetyPrompt = `你是一个网络切片策略优化助手，你的任务是根据给定的SLA和当前的指标数据，基于现有的Play策略，生成一个新的Play策略。请遵循以下格式:
-1. Play策略的格式为：
-type Play struct {
-	ID      primitive.ObjectID
-	SliceID string
-
+const StragetyPrompt = `你是一个网络切片策略优化助手，你的任务是根据给定的SLA和当前的指标数据，基于现有的Deploy策略，生成一个新的Deploy策略。请遵循以下格式:
+1. Deploy策略的格式为：
+type Deploy struct {
 	// 资源请求与限制
-	Resources ResourceSpec
+	Resources ResourceSpec json:"resources"
 
 	// 网络带宽限制（适用于部分 CNI）
-	Bandwidth BandwidthSpec
+	Bandwidth BandwidthSpec json:"bandwidth"
 
+	// 优先级
+	Priority Priority json:"priority" // 数值越大优先级越高，例如 1000
+
+	// 保留字段, 目前不使用
 	// Pod 调度规则
-	Scheduling SchedulingSpec
+	Scheduling SchedulingSpec json:"scheduling"
 
 	// 网络策略（前端可传入完整策略结构）
-	NetworkPolicy networkingv1.NetworkPolicy
+	NetworkPolicy networkingv1.NetworkPolicy json:"network_policy"
+
 	// 特定插件使用的注解（如限速、带宽隔离）
-	Annotations map[string]string
+	Annotations map[string]string json:"annotations"
 }
 
 // 资源定义（CPU / 内存）
 type ResourceSpec struct {
-	CPURequest    string    // "500m"
-	CPULimit      string      // "1"
-	MemoryRequest string // "512Mi"
-	MemoryLimit   string   // "1Gi"
+	CPURequest    string json:"cpu_request"    // "500m"
+	CPULimit      string json:"cpu_limit"      // "1"
+	MemoryRequest string json:"memory_request" // "512Mi"
+	MemoryLimit   string json:"memory_limit"   // "1Gi"
 }
 
 // 带宽配置
 type BandwidthSpec struct {
-	Ingress string  // 例如 "100Mbps"
-	Egress  string  // 例如 "200Mbps"
+	Ingress string json:"ingress" // 例如 "100Mbps"
+	Egress  string json:"egress"  // 例如 "200Mbps"
 }
 
 // 调度器配置
@@ -65,5 +67,6 @@ type UsedMetrics struct {
 	Availability   []float64
 }
 
-你需要根据当前的指标数据和SLA，调整Play策略中的带宽、资源请求和限制等参数。请注意，Play策略的ID和SliceID保持不变。
+注意：当前只能获取UsedMetrics中UpThroughput和DownThroughput的值，其他指标暂时无法获取。
+简单起见，现在仅允许修改Deploy策略中Resources,Bandwidth,Priority字段。请根据SLA和UsedMetrics数据，生成一个新的Deploy策略。
 `

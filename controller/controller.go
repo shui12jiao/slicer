@@ -105,12 +105,15 @@ func (c *BasicController) run() {
 	ticker := time.NewTicker(c.frequency)
 	defer ticker.Stop()
 
+	slog.Info("控制器已启动", "频率", c.frequency)
+
 	for {
 		select {
 		case <-c.ctx.Done(): // 停止
 			c.mu.Lock()
 			c.running = false
 			c.mu.Unlock()
+			slog.Info("控制器已停止")
 			return
 		case <-ticker.C:
 			// 执行控制逻辑

@@ -84,8 +84,27 @@ func (o *Open5gs) MapSliceToValues(slice *model.SliceProfile) value.Slice {
 	}
 
 	// sliceProfile包含切片逻辑信息，转化为用于slice chart（upf+smf）的value
+	// TODO暂时配合监控系统metrics需求，使用特殊的2.7.0-upf-metrics-v2 tag
+	// 未来改进监控可能换用官方metrics
 	return value.Slice{
 		SMF: &value.SMF{
+			// SMF采用的tag不同，注意！
+			Image: &value.SMFImage{
+				Registry:    Ptr("crpi-sut5dyyu9y5gqtfq.cn-shanghai.personal.cr.aliyuncs.com"),
+				Repository:  Ptr("sminggg/open5gs"),
+				Tag:         Ptr("2.7.0-upf-metrics-v2"), // Open5GS的Docker镜像版本
+				Digest:      Ptr(""),                     // 镜像的Digest，如果
+				PullPolicy:  Ptr("IfNotPresent"),         // 镜像拉取策略
+				PullSecrets: []any{},                     // 镜像拉取密钥
+				Debug:       Ptr(false),                  // 是否启用调试日志
+			}, // UPF的Docker镜像地址
+			Command: []any{
+				"/open5gs/install/bin/open5gs-smfd", // UPF的启动命令
+			},
+			Args: []any{
+				"-c",
+				"/opt/open5gs/etc/open5gs/smf.yaml", // UPF的配置文件路径
+			},
 			CommonLabels: labels,
 			Metrics:      sm, // SMF的监控配置
 			Config: &value.SMFConfig{
