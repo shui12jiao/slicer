@@ -10,17 +10,7 @@ type Deploy struct {
 	Bandwidth BandwidthSpec json:"bandwidth"
 
 	// 优先级
-	Priority Priority json:"priority" // 数值越大优先级越高，例如 1000
-
-	// 保留字段, 目前不使用
-	// Pod 调度规则
-	Scheduling SchedulingSpec json:"scheduling"
-
-	// 网络策略（前端可传入完整策略结构）
-	NetworkPolicy networkingv1.NetworkPolicy json:"network_policy"
-
-	// 特定插件使用的注解（如限速、带宽隔离）
-	Annotations map[string]string json:"annotations"
+	Priority Priority json:"priority" // Priority实际为int，数值越大优先级越高，例如 1000
 }
 
 // 资源定义（CPU / 内存）
@@ -37,12 +27,6 @@ type BandwidthSpec struct {
 	Egress  string json:"egress"  // 例如 "200Mbps"
 }
 
-// 调度器配置
-type SchedulingSpec struct {
-	SchedulerName string            // 自定义调度器名称，默认 "default-scheduler"
-	NodeName      string                 // 若指定，Pod 将直接运行在此节点
-	NodeSelector  map[string]string  // 节点标签选择器
-}
 
 2. SLA的格式为：
 type SLA struct {
@@ -68,5 +52,4 @@ type UsedMetrics struct {
 }
 
 注意：当前只能获取UsedMetrics中UpThroughput和DownThroughput的值，其他指标暂时无法获取。
-简单起见，现在仅允许修改Deploy策略中Resources,Bandwidth,Priority字段。请根据SLA和UsedMetrics数据，生成一个新的Deploy策略。
 `

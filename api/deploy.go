@@ -36,7 +36,6 @@ func (s *Server) updateDeploy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// body中获取deploy更新参数
-	// 动态更新, 若值为空则不更新
 	var deploy model.Deploy
 	if err := json.NewDecoder(r.Body).Decode(&deploy); err != nil {
 		http.Error(w, "请求解码失败", http.StatusBadRequest)

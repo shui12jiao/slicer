@@ -16,50 +16,57 @@ import (
 func (kc *KubeClient) Deploy(deploy model.Deploy, sliceID, deploymentName, namespace string) error {
 	ctx := context.Background()
 
-	// 1. 获取现有Deployment
+	// 获取现有Deployment
 	deployment, err := kc.clientset.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("获取Deployment失败: %v", err)
 	}
 
-	// 2. 更新资源请求/限制
 	container := &deployment.Spec.Template.Spec.Containers[0]
-	container.Resources = corev1.ResourceRequirements{
-		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(deploy.Resources.CPURequest),
-			corev1.ResourceMemory: resource.MustParse(deploy.Resources.MemoryRequest),
-		},
-		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(deploy.Resources.CPULimit),
-			corev1.ResourceMemory: resource.MustParse(deploy.Resources.MemoryLimit),
-		},
+
+	// 更新资源请求/限制
+	if !deploy.Resources.IsEmpty() {
+		container.Resources = corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(deploy.Resources.CPURequest),
+				corev1.ResourceMemory: resource.MustParse(deploy.Resources.MemoryRequest),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(deploy.Resources.CPULimit),
+				corev1.ResourceMemory: resource.MustParse(deploy.Resources.MemoryLimit),
+			},
+		}
 	}
 
-	// 3. 注入带宽限制（通过CNI注解）
-	if deployment.Spec.Template.Annotations == nil {
-		deployment.Spec.Template.Annotations = make(map[string]string)
-	}
-	deployment.Spec.Template.Annotations["kubernetes.io/ingress-bandwidth"] = deploy.Bandwidth.Ingress
-	deployment.Spec.Template.Annotations["kubernetes.io/egress-bandwidth"] = deploy.Bandwidth.Egress
-
-	// 4. 更新调度规则
-	// 4.1 调度器名称
-	deployment.Spec.Template.Spec.SchedulerName = deploy.Scheduling.SchedulerName
-	// 4.2 直接节点绑定（高优先级）
-	if deploy.Scheduling.NodeName != "" {
-		deployment.Spec.Template.Spec.NodeName = deploy.Scheduling.NodeName
-	}
-	// 4.3 合并节点选择器（避免覆盖原有标签）
-	for k, v := range deploy.Scheduling.NodeSelector {
-		deployment.Spec.Template.Spec.NodeSelector[k] = v
+	// 注入带宽限制（通过CNI注解）
+	if !deploy.Bandwidth.IsEmpty() {
+		if deployment.Spec.Template.Annotations == nil {
+			deployment.Spec.Template.Annotations = make(map[string]string)
+		}
+		deployment.Spec.Template.Annotations["kubernetes.io/ingress-bandwidth"] = deploy.Bandwidth.Ingress
+		deployment.Spec.Template.Annotations["kubernetes.io/egress-bandwidth"] = deploy.Bandwidth.Egress
 	}
 
-	// 5. 合并注解（保留系统注解）
+	// 更新调度规则
+	if !deploy.Scheduling.IsEmpty() {
+		// 调度器名称
+		deployment.Spec.Template.Spec.SchedulerName = deploy.Scheduling.SchedulerName
+		// 直接节点绑定（高优先级）
+		if deploy.Scheduling.NodeName != "" {
+			deployment.Spec.Template.Spec.NodeName = deploy.Scheduling.NodeName
+		}
+		// 合并节点选择器（避免覆盖原有标签）
+		for k, v := range deploy.Scheduling.NodeSelector {
+			deployment.Spec.Template.Spec.NodeSelector[k] = v
+		}
+	}
+
+	// 合并注解（保留系统注解）
 	for k, v := range deploy.Annotations {
 		deployment.Spec.Template.Annotations[k] = v
 	}
 
-	// 6. 优先级Priority处理
+	// 优先级Priority处理
 	if deploy.Priority != 0 { // 0表示不设置优先级
 		if err := deploy.Priority.Validate(); err != nil {
 			return fmt.Errorf("优先级参数错误: %v", err)
@@ -97,12 +104,12 @@ func (kc *KubeClient) Deploy(deploy model.Deploy, sliceID, deploymentName, names
 		}
 	}
 
-	// 6. 更新Deployment
+	// 更新Deployment
 	if _, err := kc.clientset.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{}); err != nil {
 		return fmt.Errorf("更新Deployment失败: %v", err)
 	}
 
-	// 7. 创建/更新网络策略
+	// 创建/更新网络策略
 	if err := kc.applyNetworkPolicy(&deploy.NetworkPolicy, namespace); err != nil {
 		return fmt.Errorf("网络策略更新失败: %v", err)
 	}
@@ -111,11 +118,11 @@ func (kc *KubeClient) Deploy(deploy model.Deploy, sliceID, deploymentName, names
 }
 
 // 独立处理NetworkPolicy
-func (kc *KubeClient) applyNetworkPolicy(np *networkingv1.NetworkPolicy, namespace string) error {
-	if np == nil { // 允许空策略
+func (kc *KubeClient) applyNetworkPolicy(np *model.NetworkPolicy, namespace string) error {
+	if np == nil || np.IsEmpty() {
 		return nil
 	}
 	_, err := kc.clientset.NetworkingV1().NetworkPolicies(namespace).Update(
-		context.Background(), np, metav1.UpdateOptions{})
+		context.Background(), (*networkingv1.NetworkPolicy)(np), metav1.UpdateOptions{})
 	return err
 }
