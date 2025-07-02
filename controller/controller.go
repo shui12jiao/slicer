@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"slicer/db"
 	"slicer/kube"
@@ -15,6 +16,9 @@ type Controller interface {
 	Start() // 异步运行
 	Stop()
 	IsRunning() bool // 控制器是否在运行
+
+	// 立刻执行控制
+	Trigger(slices []string) error // 触发控制, 如果不传入切片ID, 则控制器会使用当前所有切片
 
 	// 频率
 	SetFrequency(duration time.Duration) // 设置控制频率
@@ -41,6 +45,8 @@ type BasicController struct {
 	ctx context.Context
 	// 控制器的取消函数
 	cancel context.CancelFunc
+	// 立刻触发指定slice控制
+	trigger chan []string
 
 	// config
 	config *util.Config
@@ -73,6 +79,7 @@ func NewBasicController(config *util.Config, store db.Store, kclient *kube.KubeC
 		frequency: 6 * time.Hour,
 		ctx:       ctx,
 		cancel:    cancel,
+		trigger:   make(chan []string, 1),
 		slices:    []string{},
 		config:    config,
 		store:     store,
@@ -86,6 +93,24 @@ func NewBasicController(config *util.Config, store db.Store, kclient *kube.KubeC
 	}
 	c.RegisterStrategy(strategy...) // 注册策略
 	return c
+}
+
+func (c *BasicController) Trigger(slices []string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if !c.running {
+		return errors.New("控制器未运行, 无法触发控制")
+	}
+
+	if len(slices) == 0 {
+		slog.Info("触发控制, 使用当前所有切片")
+		c.trigger <- c.ListSlices() // 如果没有传入切片ID, 则使用当前所有切片
+	} else {
+		slog.Info("触发控制", "切片ID", slices)
+		c.trigger <- slices // 传入指定的切片ID
+	}
+	return nil
 }
 
 // 运行相关
@@ -108,6 +133,8 @@ func (c *BasicController) run() {
 	slog.Info("控制器已启动", "频率", c.frequency)
 
 	for {
+		var slices []string
+
 		select {
 		case <-c.ctx.Done(): // 停止
 			c.mu.Lock()
@@ -115,14 +142,20 @@ func (c *BasicController) run() {
 			c.mu.Unlock()
 			slog.Info("控制器已停止")
 			return
+		// 立刻触发控制
+		case slices = <-c.trigger:
+		// 定时触发控制，触发所有切片
 		case <-ticker.C:
-			// 执行控制逻辑
-			for _, sliceID := range c.slices {
-				err := c.control(sliceID)
-				if err != nil {
-					slog.Error("控制失败, 跳过", "sliceID", sliceID, "err", err)
-					continue
-				}
+			slices = c.ListSlices()
+
+		}
+
+		// 执行控制逻辑
+		for _, sliceID := range slices {
+			err := c.control(sliceID)
+			if err != nil {
+				slog.Error("控制失败, 跳过", "sliceID", sliceID, "err", err)
+				continue
 			}
 		}
 	}

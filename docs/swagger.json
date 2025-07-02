@@ -79,6 +79,49 @@
                 }
             }
         },
+        "/controller/trigger": {
+            "post": {
+                "description": "触发控制器立即运行，可以指定切片ID或全部切片(传入空或者手动传入全部切片ID)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Controller"
+                ],
+                "summary": "触发控制器立即运行",
+                "parameters": [
+                    {
+                        "description": "切片ID列表, 如果为空则触发全部切片",
+                        "name": "slices",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.triggerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "触发成功"
+                    },
+                    "400": {
+                        "description": "请求解析失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "触发控制器失败",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/monitor": {
             "get": {
                 "description": "获取系统中存在的所有监控配置列表",
@@ -1181,6 +1224,17 @@
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "api.triggerRequest": {
+            "type": "object",
+            "properties": {
+                "slices": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

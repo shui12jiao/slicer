@@ -104,6 +104,13 @@ definitions:
       status:
         type: string
     type: object
+  api.triggerRequest:
+    properties:
+      slices:
+        items:
+          type: string
+        type: array
+    type: object
   model.ARP:
     properties:
       pre_emption_capability:
@@ -378,6 +385,34 @@ paths:
           schema:
             type: string
       summary: 更新控制器配置
+      tags:
+      - Controller
+  /controller/trigger:
+    post:
+      consumes:
+      - application/json
+      description: 触发控制器立即运行，可以指定切片ID或全部切片(传入空或者手动传入全部切片ID)
+      parameters:
+      - description: 切片ID列表, 如果为空则触发全部切片
+        in: body
+        name: slices
+        required: true
+        schema:
+          $ref: '#/definitions/api.triggerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 触发成功
+        "400":
+          description: 请求解析失败
+          schema:
+            type: string
+        "500":
+          description: 触发控制器失败
+          schema:
+            type: string
+      summary: 触发控制器立即运行
       tags:
       - Controller
   /monitor:

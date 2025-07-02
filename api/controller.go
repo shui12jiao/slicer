@@ -138,3 +138,38 @@ func (s *Server) updateController(w http.ResponseWriter, r *http.Request) {
 	// 返回成功响应
 	w.WriteHeader(http.StatusOK)
 }
+
+type triggerRequest struct {
+	Slices []string `json:"slices"`
+}
+
+// triggerNow godoc
+// @Summary      触发控制器立即运行
+// @Description  触发控制器立即运行，可以指定切片ID或全部切片(传入空或者手动传入全部切片ID)
+// @Tags         Controller
+// @Accept       json
+// @Produce      json
+// @Param        slices body triggerRequest true "切片ID列表, 如果为空则触发全部切片"
+// @Success      200 "触发成功"
+// @Failure      400 {string} string "请求解析失败"
+// @Failure      500 {string} string "触发控制器失败"
+// @Router       /controller/trigger [post]
+func (s *Server) triggerNow(w http.ResponseWriter, r *http.Request) {
+	slog.Debug("触发控制器立即运行请求", "method", r.Method, "url", r.URL.String())
+	// 触发控制器立即运行
+	var req triggerRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Error("解析请求失败", "error", err)
+		http.Error(w, "解析请求失败: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := s.controller.Trigger(req.Slices); err != nil {
+		slog.Error("触发控制器失败", "error", err)
+		http.Error(w, "触发控制器失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 返回成功响应
+	w.WriteHeader(http.StatusOK)
+}
