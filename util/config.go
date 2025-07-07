@@ -47,7 +47,7 @@ type IPAMConfig struct {
 type AIConfig struct {
 	ModelType string        `envconfig:"MODEL_TYPE" required:"true"`
 	Model     string        `envconfig:"MODEL" required:"true"`
-	APIKey    string        `envconfig:"API_KEY" required:"true"`
+	APIKey    string        `envconfig:"API_KEY"`
 	BaseURL   string        `envconfig:"BASE_URL"`
 	AITimeout time.Duration `envconfig:"AI_TIMEOUT" default:"30s"`
 	MaxTokens int           `envconfig:"AI_MAX_TOKENS"`

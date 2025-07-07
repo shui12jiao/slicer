@@ -75,7 +75,6 @@ func (m *MetricsTool) InvokableRun(ctx context.Context, argumentsInJSON string, 
 }
 
 type StrategyAgent struct {
-	Model       model.ToolCallingChatModel
 	MetricsTool tool.InvokableTool
 	Agent       *react.Agent
 }
@@ -93,7 +92,6 @@ func NewStrategyAgent(ctx context.Context, metricsTool tool.InvokableTool, model
 	}
 
 	return &StrategyAgent{
-		Model:       model,
 		MetricsTool: metricsTool,
 		Agent:       agent,
 	}, nil

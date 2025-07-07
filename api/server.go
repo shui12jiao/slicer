@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"slicer/monitor"
 	"slicer/service"
 	"slicer/util"
+	"time"
 
 	"github.com/go-chi/chi"
 
@@ -53,10 +55,7 @@ func (s *Server) routes() {
 		CORS(),
 	)
 
-	// swagger
-	s.router.Get("/swagger/*", httpSwagger.WrapHandler)
-
-	// 简单测试
+	// Debug
 	s.router.Route("/", func(r chi.Router) {
 		r.Get("/ok", func(w http.ResponseWriter, r *http.Request) {
 			// 简单健康检查
@@ -68,7 +67,26 @@ func (s *Server) routes() {
 			slog.Error("panic")
 			panic("panic")
 		})
+		r.Get("/ai/ping", func(w http.ResponseWriter, r *http.Request) {
+			// 设置5秒超时
+			ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+			defer cancel()
+
+			duration, err := s.service.AI.Ping(ctx)
+			if err != nil {
+				http.Error(w, "AI模型连接测试失败: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			response := map[string]any{
+				"message":  "ok",
+				"duration": duration.Seconds(),
+			}
+			encodeResponse(w, response)
+		})
 	})
+
+	// Swagger
+	s.router.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	// 切片管理
 	s.router.Route("/slice", func(r chi.Router) {

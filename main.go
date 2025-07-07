@@ -73,8 +73,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 初始化ai服务
+	ai, err := ai.NewGeneralAI(config)
+	if err != nil {
+		slog.Error("创建AI失败", "error", err)
+		os.Exit(1)
+	}
+
 	// 启动控制器
-	controller := runController(config, store, kubeClient)
+	controller := runController(config, store, ai, kubeClient)
 
 	// 初始化Server
 	server := api.NewServer(api.NewSeverParam{
@@ -85,6 +92,7 @@ func main() {
 				IPAM:       ipam,
 				KubeClient: kubeClient,
 				HelmClient: helmClient,
+				AI:         ai, // 可选的AI服务
 			},
 		),
 		HelmClient: helmClient,
@@ -98,9 +106,8 @@ func main() {
 }
 
 // 注册并启动controller
-func runController(config *util.Config, store db.Store, kclient *kube.KubeClient) controller.Controller {
+func runController(config *util.Config, store db.Store, aiStrategy ai.AI, kclient *kube.KubeClient) controller.Controller {
 	basicStrategy := newBasicStrategy(config)
-	aiStrategy := newAIStrategy(config)
 	controller := controller.NewBasicController(config, store, kclient, aiStrategy, basicStrategy)
 	controller.Start()
 	slog.Info("控制器已启动", "频率", controller.GetFrequency(), "策略", controller.GetStrategy().Name())
@@ -117,15 +124,4 @@ func newBasicStrategy(config *util.Config) controller.Strategy {
 	}
 	// 初始化策略
 	return controller.NewBasicStrategy(metrics)
-}
-
-// ai大模型支持的策略
-func newAIStrategy(config *util.Config) controller.Strategy {
-	// 初始化ai
-	ai, err := ai.NewGeneralAI(config)
-	if err != nil {
-		slog.Error("创建AI失败", "error", err)
-		os.Exit(1)
-	}
-	return ai
 }

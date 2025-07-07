@@ -1,6 +1,7 @@
 package service
 
 import (
+	"slicer/ai"
 	"slicer/db"
 	"slicer/kube"
 	"slicer/util"
@@ -12,6 +13,7 @@ type Service struct {
 	IPAM       *db.IPAM
 	KubeClient *kube.KubeClient
 	HelmClient *kube.HelmClient
+	AI         ai.AI
 	Open5gs    *Open5gs
 }
 
@@ -21,6 +23,7 @@ type NewServiceParam struct {
 	IPAM       *db.IPAM
 	KubeClient *kube.KubeClient
 	HelmClient *kube.HelmClient
+	AI         ai.AI // 可选的AI服务
 }
 
 func NewService(param NewServiceParam) *Service {
@@ -37,6 +40,7 @@ func NewService(param NewServiceParam) *Service {
 		IPAM:       param.IPAM,
 		KubeClient: param.KubeClient,
 		HelmClient: param.HelmClient,
+		AI:         param.AI,
 		Open5gs:    open5gs,
 	}
 	open5gs.service = s
