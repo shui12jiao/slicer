@@ -32,6 +32,10 @@ type KubeConfig struct {
 	HelmTimeout      time.Duration `envconfig:"HELM_TIMEOUT" default:"5m"`
 }
 
+type ControllerConfig struct {
+	Frequency time.Duration `envconfig:"FREQUENCY" default:"6h"` // 控制器运行频率
+}
+
 type ServerConfig struct {
 	HTTPServerAddress string `envconfig:"HTTP_SERVER_ADDRESS" required:"true"`
 }
@@ -63,6 +67,7 @@ type Config struct {
 	MonitorConfig
 	MongoConfig
 	KubeConfig
+	ControllerConfig
 	ServerConfig
 	IPAMConfig
 	AIConfig

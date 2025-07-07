@@ -45,6 +45,8 @@ type BasicController struct {
 	ctx context.Context
 	// 控制器的取消函数
 	cancel context.CancelFunc
+	// 用于等待 run Goroutine 退出
+	wg sync.WaitGroup
 	// 立刻触发指定slice控制
 	trigger chan []string
 
@@ -71,14 +73,15 @@ type BasicController struct {
 // NewBasicController 创建一个新的控制器
 // 注册传入的所有strategy, 并将第一个strategy设置为默认策略, 若不传入则strategy为nil
 func NewBasicController(config *util.Config, store db.Store, kclient *kube.KubeClient, strategy ...Strategy) Controller {
-	// 创建一个新的上下文和取消函数
-	ctx, cancel := context.WithCancel(context.Background())
+	// 初始创建一个已取消的上下文，作为占位符
+	initialCtx, initialCancel := context.WithCancel(context.Background())
+	initialCancel() // 确保这个占位符上下文是已取消状态
 
 	c := &BasicController{
 		running:   false,
-		frequency: 6 * time.Hour,
-		ctx:       ctx,
-		cancel:    cancel,
+		frequency: config.Frequency,
+		ctx:       initialCtx, // 使用初始已取消的上下文
+		cancel:    initialCancel,
 		trigger:   make(chan []string, 1),
 		slices:    []string{},
 		config:    config,
@@ -95,37 +98,50 @@ func NewBasicController(config *util.Config, store db.Store, kclient *kube.KubeC
 	return c
 }
 
-func (c *BasicController) Trigger(slices []string) error {
+// 运行相关
+func (c *BasicController) Start() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if !c.running {
-		return errors.New("控制器未运行, 无法触发控制")
+	if c.running {
+		slog.Warn("控制器已在运行中, 无需重复启动")
+		return
 	}
 
-	if len(slices) == 0 {
-		slog.Info("触发控制, 使用当前所有切片")
-		c.trigger <- c.ListSlices() // 如果没有传入切片ID, 则使用当前所有切片
-	} else {
-		slog.Info("触发控制", "切片ID", slices)
-		c.trigger <- slices // 传入指定的切片ID
-	}
-	return nil
+	// 每次启动都创建新的上下文
+	c.ctx, c.cancel = context.WithCancel(context.Background())
+	c.running = true
+	c.wg.Add(1) // 增加一个等待的 Goroutine
+
+	go c.run() // 启动控制器的运行逻辑
+	slog.Info("控制器启动中...")
 }
 
-// 运行相关
-func (c *BasicController) Start() {
-	go c.run()
+func (c *BasicController) Stop() {
+	c.mu.Lock()
+	if !c.running {
+		c.mu.Unlock()
+		slog.Info("控制器未运行，无需停止")
+		return
+	}
+
+	slog.Info("控制器停止中...")
+	c.cancel()    // 发送取消信号给 run() Goroutine
+	c.mu.Unlock() // cancel本身是线程安全的，这里防止并发时候未知状态
+
+	// 等待 run() Goroutine 完全退出
+	c.wg.Wait()
+
+	// Goroutine 退出后，安全地更新状态
+	c.mu.Lock() // 重新获取锁保护 running 状态
+	c.running = false
+	c.mu.Unlock()
+
+	slog.Info("控制器已停止")
 }
 
 func (c *BasicController) run() {
-	c.mu.Lock()
-	if c.running {
-		c.mu.Unlock()
-		return
-	}
-	c.running = true
-	c.mu.Unlock()
+	defer c.wg.Done() // Goroutine 退出时通知 WaitGroup 完成
 
 	ticker := time.NewTicker(c.frequency)
 	defer ticker.Stop()
@@ -136,18 +152,15 @@ func (c *BasicController) run() {
 		var slices []string
 
 		select {
-		case <-c.ctx.Done(): // 停止
-			c.mu.Lock()
-			c.running = false
-			c.mu.Unlock()
-			slog.Info("控制器已停止")
-			return
+		// 停止
+		case <-c.ctx.Done():
+			slog.Info("控制器核心逻辑 Goroutine 收到停止信号，正在退出...")
+			return // 退出循环和 Goroutine
 		// 立刻触发控制
 		case slices = <-c.trigger:
 		// 定时触发控制，触发所有切片
 		case <-ticker.C:
 			slices = c.ListSlices()
-
 		}
 
 		// 执行控制逻辑
@@ -201,19 +214,19 @@ func (c *BasicController) control(sliceID string) error {
 	return nil
 }
 
-func (c *BasicController) Stop() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.running {
-		c.cancel() // 取消上下文
-		c.running = false
-
-		// 等待控制器停止
-		time.Sleep(100 * time.Millisecond)
-
-		// 重新创建上下文和取消函数
-		c.ctx, c.cancel = context.WithCancel(context.Background())
+func (c *BasicController) Trigger(slices []string) error {
+	if !c.IsRunning() {
+		return errors.New("控制器未运行, 无法触发控制")
 	}
+
+	if len(slices) == 0 {
+		slog.Info("触发控制, 使用当前所有切片")
+		c.trigger <- c.ListSlices() // 如果没有传入切片ID, 则使用当前所有切片
+	} else {
+		slog.Info("触发控制", "切片ID", slices)
+		c.trigger <- slices // 传入指定的切片ID
+	}
+	return nil
 }
 
 func (c *BasicController) IsRunning() bool {
