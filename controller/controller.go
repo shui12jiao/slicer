@@ -220,12 +220,10 @@ func (c *BasicController) Trigger(slices []string) error {
 	}
 
 	if len(slices) == 0 {
-		slog.Info("触发控制, 使用当前所有切片")
-		c.trigger <- c.ListSlices() // 如果没有传入切片ID, 则使用当前所有切片
-	} else {
-		slog.Info("触发控制", "切片ID", slices)
-		c.trigger <- slices // 传入指定的切片ID
+		slices = c.ListSlices() // 测试方便，这里如果没有传入切片ID，则使用当前所有切片
 	}
+	slog.Info("触发控制", "切片ID", slices)
+	c.trigger <- slices // 传入指定的切片ID
 	return nil
 }
 

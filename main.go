@@ -110,7 +110,6 @@ func runController(config *util.Config, store db.Store, aiStrategy ai.AI, kclien
 	basicStrategy := newBasicStrategy(config)
 	controller := controller.NewBasicController(config, store, kclient, aiStrategy, basicStrategy)
 	controller.Start()
-	slog.Info("控制器已启动", "频率", controller.GetFrequency(), "策略", controller.GetStrategy().Name())
 	return controller
 }
 
