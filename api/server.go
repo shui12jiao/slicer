@@ -102,7 +102,7 @@ func (s *Server) routes() {
 	// Controller管理
 	s.router.Route("/controller", func(r chi.Router) {
 		r.Get("/", s.getController)      // 获取 controller 的状态，包括切片列表、策略等
-		r.Post("/", s.updateController)  // 更新 controller 的状态
+		r.Patch("/", s.updateController) // 更新 controller 的状态
 		r.Post("/trigger", s.triggerNow) // 触发控制器立即运行（指定/全部切片）
 	})
 

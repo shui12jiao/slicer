@@ -43,7 +43,7 @@ const docTemplate = `{
                     }
                 }
             },
-            "put": {
+            "patch": {
                 "description": "动态更新运行状态、控制频率或切换调度策略",
                 "consumes": [
                     "application/json"

@@ -360,7 +360,7 @@ paths:
       summary: 获取控制器状态
       tags:
       - Controller
-    put:
+    patch:
       consumes:
       - application/json
       description: 动态更新运行状态、控制频率或切换调度策略

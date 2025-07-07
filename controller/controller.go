@@ -291,10 +291,12 @@ func (c *BasicController) RegisterStrategy(strategy ...Strategy) {
 		for _, st := range c.strategies {
 			if st.Name() == s.Name() {
 				slog.Warn("策略已存在, 跳过注册", "策略名称", s.Name())
-				continue
+				goto next
 			}
-			c.strategies = append(c.strategies, s)
 		}
+		slog.Info("注册新策略", "策略名称", s.Name())
+		c.strategies = append(c.strategies, s)
+	next:
 	}
 }
 

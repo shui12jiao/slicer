@@ -84,7 +84,7 @@ type UpdateControllerRequest struct {
 // @Success      200 "配置更新成功"
 // @Failure      400 {string} string "请求解析失败/策略不存在"
 // @Failure      500 {string} string "内部配置更新失败"
-// @Router       /controller [put]
+// @Router       /controller [patch]
 func (s *Server) updateController(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("更新控制器状态请求", "method", r.Method, "url", r.URL.String())
 	var req UpdateControllerRequest
