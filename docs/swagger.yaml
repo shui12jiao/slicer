@@ -26,11 +26,21 @@ definitions:
     type: object
   api.UpdateControllerRequest:
     properties:
+      add_slices:
+        description: 切片列表
+        items:
+          type: string
+        type: array
       frequency:
         description: 控制频率
         example: 1000000000
         format: nanoseconds
         type: integer
+      remove_slices:
+        description: 移除切片
+        items:
+          type: string
+        type: array
       running:
         description: 运行状态
         type: boolean
@@ -363,7 +373,7 @@ paths:
     patch:
       consumes:
       - application/json
-      description: 动态更新运行状态、控制频率或切换调度策略
+      description: 动态更新运行状态、控制频率或切换调度策略，声明式
       parameters:
       - description: 更新配置参数
         in: body

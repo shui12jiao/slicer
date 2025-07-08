@@ -25,8 +25,8 @@ type Controller interface {
 	GetFrequency() time.Duration         // 获取控制频率
 
 	// 切片
-	AddSlice(sliceID string)
-	RemoveSlice(sliceID string)
+	AddSlice(slices []string)
+	RemoveSlice(slices []string)
 	ListSlices() []string
 
 	// 策略
@@ -234,25 +234,42 @@ func (c *BasicController) IsRunning() bool {
 }
 
 // 切片相关
-func (c *BasicController) AddSlice(sliceID string) {
+func (c *BasicController) AddSlice(adds []string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	set := make(map[string]struct{}, len(c.slices))
 	for _, id := range c.slices {
-		if id == sliceID {
-			return
+		set[id] = struct{}{}
+	}
+	for _, id := range adds {
+		if _, exists := set[id]; !exists {
+			c.slices = append(c.slices, id)
+			slog.Info("添加切片", "sliceID", id)
+		} else {
+			slog.Warn("切片已存在, 跳过添加", "sliceID", id)
 		}
 	}
-	c.slices = append(c.slices, sliceID)
 }
-func (c *BasicController) RemoveSlice(sliceID string) {
+
+func (c *BasicController) RemoveSlice(removes []string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for i, id := range c.slices {
-		if id == sliceID {
-			c.slices = append(c.slices[:i], c.slices[i+1:]...)
-			return
+
+	set := make(map[string]struct{}, len(removes))
+	for _, id := range removes {
+		set[id] = struct{}{}
+	}
+
+	var newSlices []string
+	for _, id := range c.slices {
+		if _, exists := set[id]; !exists {
+			newSlices = append(newSlices, id)
+		} else {
+			slog.Info("移除切片", "sliceID", id)
 		}
 	}
+	c.slices = newSlices
 }
 
 func (c *BasicController) ListSlices() []string {

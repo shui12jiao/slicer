@@ -44,7 +44,7 @@ const docTemplate = `{
                 }
             },
             "patch": {
-                "description": "动态更新运行状态、控制频率或切换调度策略",
+                "description": "动态更新运行状态、控制频率或切换调度策略，声明式",
                 "consumes": [
                     "application/json"
                 ],
@@ -1128,11 +1128,25 @@ const docTemplate = `{
         "api.UpdateControllerRequest": {
             "type": "object",
             "properties": {
+                "add_slices": {
+                    "description": "切片列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "frequency": {
                     "description": "控制频率",
                     "type": "integer",
                     "format": "nanoseconds",
                     "example": 1000000000
+                },
+                "remove_slices": {
+                    "description": "移除切片",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "running": {
                     "description": "运行状态",

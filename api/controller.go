@@ -72,11 +72,14 @@ type UpdateControllerRequest struct {
 	Frequency *time.Duration `json:"frequency" swaggertype:"primitive,integer" format:"nanoseconds" example:"1000000000"`
 	// 使用策略
 	UsedStrategy *string `json:"used_strategy"`
+	// 切片列表
+	AddSlices    []string `json:"add_slices,omitempty"`    // 添加切片列表
+	RemoveSlices []string `json:"remove_slices,omitempty"` // 移除切片
 }
 
 // updateController godoc
 // @Summary      更新控制器配置
-// @Description  动态更新运行状态、控制频率或切换调度策略
+// @Description  动态更新运行状态、控制频率或切换调度策略，声明式
 // @Tags         Controller
 // @Accept       json
 // @Produce      json
@@ -118,7 +121,7 @@ func (s *Server) updateController(w http.ResponseWriter, r *http.Request) {
 		slog.Info("控制器频率更新", "frequency", *req.Frequency)
 	}
 
-	// 处理切片列表
+	// 处理策略
 	if req.UsedStrategy != nil {
 		strategy := controller.GetStrategy()
 		if strategy != nil && strategy.Name() == *req.UsedStrategy {
@@ -133,6 +136,16 @@ func (s *Server) updateController(w http.ResponseWriter, r *http.Request) {
 		}
 		controller.SetStrategy(s)
 		slog.Info("控制器策略更新", "策略名称", *req.UsedStrategy)
+	}
+
+	// 处理切片列表
+	if len(req.AddSlices) > 0 {
+		controller.AddSlice(req.AddSlices)
+		slog.Info("添加切片", "切片ID列表", req.AddSlices)
+	}
+	if len(req.RemoveSlices) > 0 {
+		controller.RemoveSlice(req.RemoveSlices)
+		slog.Info("移除切片", "切片ID列表", req.RemoveSlices)
 	}
 
 	// 返回成功响应
