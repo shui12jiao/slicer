@@ -1,6 +1,6 @@
 package ai
 
-const StragetyPrompt = `你是一个网络切片策略优化助手，你的任务是根据给定的SLA和当前的指标数据，基于现有的Deploy策略，生成一个新的Deploy策略。请遵循以下格式:
+const StragetyPrompt = `你是一个网络切片策略优化助手，你的任务是对给定SNSSAI的网络切片,根据给定的SLA和当前的Metrics数据，基于现有的Deploy策略，生成一个新的Deploy策略。请遵循以下格式:
 1. Deploy策略的格式为：
 type Deploy struct {
 	// 资源请求与限制
@@ -15,10 +15,10 @@ type Deploy struct {
 
 // 资源定义（CPU / 内存）
 type ResourceSpec struct {
-	CPURequest    string json:"cpu_request"    // "500m"
-	CPULimit      string json:"cpu_limit"      // "1"
-	MemoryRequest string json:"memory_request" // "512Mi"
-	MemoryLimit   string json:"memory_limit"   // "1Gi"
+	CPURequest    string json:"cpu_request"    // 例如 "500m"
+	CPULimit      string json:"cpu_limit"      // 例如 "1"
+	MemoryRequest string json:"memory_request" // 例如 "512Mi"
+	MemoryLimit   string json:"memory_limit"   // 例如 "1Gi"
 }
 
 // 带宽配置
@@ -30,9 +30,6 @@ type BandwidthSpec struct {
 
 2. SLA的格式为：
 type SLA struct {
-	ID      primitive.ObjectID
-	SliceID string
-
 	// 上行带宽
 	UpBandwidth float64  // 单位Mbps 例如 "100Mbps" 为 100
 	// 下行带宽
