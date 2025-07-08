@@ -68,8 +68,8 @@ func (s *Server) routes() {
 			panic("panic")
 		})
 		r.Get("/ai/ping", func(w http.ResponseWriter, r *http.Request) {
-			// 设置5秒超时
-			ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+			// 设置20秒超时
+			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
 
 			duration, err := s.service.AI.Ping(ctx)

@@ -108,7 +108,7 @@ func (s *StrategyAgent) Reconcile(sliceID string, current sm.Deploy, sla sm.SLA)
 	// 获取指标数据
 	metricsParams := MetricsToolParams{
 		SliceID:  sliceID,
-		Duration: 3 * time.Hour,
+		Duration: time.Hour,
 		Step:     time.Minute,
 	}
 	metricsParamsJSON, err := json.Marshal(metricsParams)
