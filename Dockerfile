@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main .
 # 运行应用
 FROM alpine:latest
 WORKDIR /root/
-COPY --from=builder /app/render/template /root/render/template 
+COPY --from=builder /app/monitor/kpi-calculator.yaml.tpl  /root/monitor/kpi-calculator.yaml.tpl
 COPY --from=builder /app/main .
 EXPOSE 30001
 CMD ["./main"]
